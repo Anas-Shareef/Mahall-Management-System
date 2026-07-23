@@ -856,55 +856,235 @@ export const Households: React.FC = () => {
 
         .consolidated-total-row td {
           border-bottom: none;
-        }
-
-        .grand-balance {
-          color: var(--primary);
+        .households-table th {
+          padding: 12px 14px;
           font-size: 12px;
+          font-weight: 600;
+          color: #6b7280;
+          text-transform: uppercase;
+          border-bottom: 1px solid #e5e7eb;
         }
 
-        /* MODAL STYLE */
-        .modal-backdrop {
+        .households-table td {
+          padding: 14px;
+          font-size: 13.5px;
+          border-bottom: 1px solid #f3f4f6;
+          color: #374151;
+        }
+
+        .clickable-row {
+          cursor: pointer;
+          transition: var(--transition-all);
+        }
+
+        .clickable-row:hover {
+          background: #f9fafb;
+        }
+
+        .clickable-row.selected {
+          background: #ecfdf5;
+        }
+
+        .bold-text {
+          font-weight: 700;
+          color: #111827;
+        }
+
+        .amount-text {
+          font-weight: 800;
+          color: var(--primary);
+        }
+
+        .status-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 3px 10px;
+          border-radius: var(--radius-pill);
+          font-size: 11.5px;
+          font-weight: 600;
+        }
+
+        .status-badge.active {
+          background: #d1fae5;
+          color: #065f46;
+        }
+
+        .status-badge.inactive {
+          background: #fee2e2;
+          color: #991b1b;
+        }
+
+        .action-cell {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .icon-action-btn {
+          background: transparent;
+          border: none;
+          color: #6b7280;
+          cursor: pointer;
+          padding: 6px;
+          border-radius: 50%;
+          transition: var(--transition-all);
+        }
+
+        .icon-action-btn:hover {
+          color: var(--primary);
+          background: #f3f4f6;
+        }
+
+        .no-data-cell {
+          text-align: center;
+          color: #9ca3af;
+          padding: 24px;
+        }
+
+        /* DETAILS PANEL */
+        .details-panel-card {
+          width: 360px;
+          padding: 24px;
+          position: sticky;
+          top: 90px;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .panel-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding-bottom: 14px;
+          border-bottom: 1px solid #e5e7eb;
+        }
+
+        .panel-header-title h4 {
+          font-size: 16px;
+          font-weight: 800;
+          color: #111827;
+        }
+
+        .panel-header-title p {
+          font-size: 12px;
+          color: #6b7280;
+          margin-top: 2px;
+        }
+
+        .panel-close-btn {
+          background: transparent;
+          border: none;
+          color: #9ca3af;
+          cursor: pointer;
+        }
+
+        .panel-body {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .info-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 12px;
+        }
+
+        .info-item {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .info-item .label {
+          font-size: 11px;
+          color: #6b7280;
+          font-weight: 600;
+        }
+
+        .info-item .value {
+          font-size: 13px;
+          font-weight: 700;
+          color: #111827;
+        }
+
+        .panel-section-title {
+          font-size: 13.5px;
+          font-weight: 700;
+          color: #111827;
+          margin-bottom: 10px;
+        }
+
+        .panel-members-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .panel-member-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 10px 12px;
+          background: #f9fafb;
+          border-radius: var(--radius-md);
+          border: 1px solid #f3f4f6;
+        }
+
+        .member-name-tag h5 {
+          font-size: 13px;
+          font-weight: 700;
+          color: #111827;
+        }
+
+        .member-name-tag p {
+          font-size: 11px;
+          color: #6b7280;
+        }
+
+        /* MODAL DIALOG */
+        .modal-overlay {
           position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(15, 23, 42, 0.4);
-          z-index: 1000;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.45);
+          z-index: 200;
           display: flex;
           align-items: center;
           justify-content: center;
           padding: 20px;
+          animation: fadeIn 0.2s ease;
         }
 
-        .modal-container {
-          background: var(--bg-card);
-          border-radius: var(--radius-lg);
+        .modal-dialog-card {
           width: 100%;
-          max-width: 600px;
-          box-shadow: var(--shadow-lg);
+          max-width: 540px;
+          background: #ffffff;
+          border-radius: var(--radius-xl);
+          box-shadow: var(--shadow-floating);
           overflow: hidden;
         }
 
         .modal-header {
           padding: 20px 24px;
-          border-bottom: 1px solid var(--border-color);
           display: flex;
           align-items: center;
           justify-content: space-between;
+          border-bottom: 1px solid #e5e7eb;
+          background: #f9fafb;
         }
 
         .modal-header h4 {
           font-size: 16px;
-          font-weight: 700;
-          color: var(--primary);
+          font-weight: 800;
+          color: #111827;
         }
 
         .modal-close-btn {
           background: transparent;
           border: none;
-          color: var(--text-muted);
+          color: #9ca3af;
           cursor: pointer;
         }
 
@@ -913,21 +1093,6 @@ export const Households: React.FC = () => {
           display: flex;
           flex-direction: column;
           gap: 16px;
-        }
-
-        .form-alert {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 12px;
-          border-radius: var(--radius-sm);
-          font-size: 13px;
-        }
-
-        .form-alert.error {
-          background-color: var(--error-bg);
-          color: var(--error);
-          border: 1px solid rgba(239, 68, 68, 0.2);
         }
 
         .form-row-grid {
@@ -943,38 +1108,26 @@ export const Households: React.FC = () => {
         }
 
         .form-group label {
-          font-size: 13px;
+          font-size: 12.5px;
           font-weight: 600;
-          color: var(--text-main);
+          color: #374151;
         }
 
         .form-group input, .form-group textarea {
-          padding: 10px 12px;
+          padding: 10px 14px;
           border: 1px solid var(--border-color);
-          border-radius: var(--radius-sm);
-          background: var(--bg-card);
-          color: var(--text-main);
+          border-radius: var(--radius-md);
+          background: #f9fafb;
+          color: #111827;
+          font-size: 13.5px;
           transition: var(--transition-all);
         }
 
         .form-group input:focus, .form-group textarea:focus {
           outline: none;
           border-color: var(--primary);
-          box-shadow: 0 0 0 3px var(--primary-10);
-        }
-
-        .radio-selection {
-          display: flex;
-          gap: 20px;
-          padding: 8px 0;
-        }
-
-        .radio-label {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          cursor: pointer;
-          font-size: 13px;
+          background: #ffffff;
+          box-shadow: 0 0 0 3px rgba(0, 150, 107, 0.12);
         }
 
         .modal-actions {
@@ -984,18 +1137,14 @@ export const Households: React.FC = () => {
           margin-top: 16px;
         }
 
-        .modal-actions button {
-          min-width: 100px;
-          padding: 10px;
-          border-radius: var(--radius-sm);
+        .btn-cancel {
+          background: #f3f4f6;
+          border: 1px solid var(--border-color);
+          color: #374151;
+          padding: 10px 20px;
+          border-radius: var(--radius-pill);
           font-weight: 600;
           cursor: pointer;
-        }
-
-        .btn-cancel {
-          background: transparent;
-          border: 1px solid var(--border-color);
-          color: var(--text-muted);
         }
 
         /* RESPONSIVE */

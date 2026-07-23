@@ -253,13 +253,13 @@ export const Login: React.FC = () => {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          background: linear-gradient(135deg, #f4f6f8 0%, #e2e8f0 100%);
+          background: #ffffff;
           padding: 20px;
           position: relative;
         }
 
         [data-theme="dark"] .login-container {
-          background: linear-gradient(135deg, #0b0f19 0%, #131b2e 100%);
+          background: #f0f4f2;
         }
 
         .login-controls {
@@ -270,28 +270,28 @@ export const Login: React.FC = () => {
 
         .lang-toggle-btn {
           padding: 8px 16px;
-          border: 1px solid var(--primary);
+          border: 1.5px solid #1a4731;
           border-radius: var(--radius-sm);
           background: transparent;
-          color: var(--primary);
+          color: #1a4731;
           font-weight: 600;
           cursor: pointer;
           transition: var(--transition-all);
         }
 
         .lang-toggle-btn:hover {
-          background: var(--primary);
+          background: #1a4731;
           color: white;
         }
 
         .login-card {
           width: 100%;
-          max-width: 460px;
-          background: var(--bg-card);
+          max-width: 440px;
+          background: #ffffff;
           border: 1px solid var(--border-color);
-          border-radius: var(--radius-lg);
-          padding: 40px;
-          box-shadow: var(--shadow-premium);
+          border-radius: var(--radius-xl);
+          padding: 40px 32px;
+          box-shadow: var(--shadow-floating);
         }
 
         .login-branding {
@@ -299,47 +299,50 @@ export const Login: React.FC = () => {
           flex-direction: column;
           align-items: center;
           text-align: center;
-          margin-bottom: 30px;
+          margin-bottom: 28px;
         }
 
-        .emblem-container {
-          width: 50px;
-          height: 50px;
-          background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-          border: 2px solid var(--gold);
-          border-radius: 50%;
+        .brand-logo-icon {
+          width: 54px;
+          height: 54px;
+          background: linear-gradient(135deg, #ff7a00 0%, #ff9500 100%);
+          border-radius: 14px;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-bottom: 12px;
+          margin-bottom: 14px;
+          box-shadow: 0 6px 16px rgba(255, 122, 0, 0.35);
         }
 
-        .emblem-container span {
-          color: var(--gold);
-          font-weight: 700;
-          font-size: 18px;
+        .brand-logo-icon span {
+          color: #ffffff;
+          font-weight: 800;
+          font-size: 28px;
+          line-height: 1;
         }
 
         .login-branding h1 {
           font-family: var(--font-ml);
-          font-size: 20px;
-          color: var(--primary);
-          line-height: 1.4;
-          margin-bottom: 6px;
+          font-size: 19px;
+          font-weight: 700;
+          color: #111827;
+          line-height: 1.3;
+          margin-bottom: 4px;
         }
 
         .login-branding p {
-          font-size: 12px;
-          color: var(--text-muted);
+          font-size: 11.5px;
+          color: #6b7280;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
+          letter-spacing: 0.04em;
           font-weight: 600;
         }
 
+        /* Pill Tabs */
         .role-tabs {
           display: flex;
-          background: var(--bg-app);
-          border-radius: var(--radius-md);
+          background: #f3f4f6;
+          border-radius: var(--radius-pill);
           padding: 4px;
           margin-bottom: 24px;
         }
@@ -353,22 +356,18 @@ export const Login: React.FC = () => {
           padding: 10px;
           border: none;
           background: transparent;
-          color: var(--text-muted);
+          color: #6b7280;
           font-weight: 600;
           font-size: 13px;
-          border-radius: var(--radius-sm);
+          border-radius: var(--radius-pill);
           cursor: pointer;
           transition: var(--transition-all);
         }
 
         .tab-btn.active {
-          background: var(--bg-card);
-          color: var(--primary);
-          box-shadow: var(--shadow-sm);
-        }
-
-        [data-theme="dark"] .tab-btn.active {
-          color: var(--gold);
+          background: var(--primary);
+          color: #ffffff;
+          box-shadow: 0 4px 12px rgba(0, 150, 107, 0.35);
         }
 
         .alert {
@@ -379,43 +378,41 @@ export const Login: React.FC = () => {
           border-radius: var(--radius-md);
           margin-bottom: 20px;
           font-size: 13px;
-          animation: fadeIn 0.3s ease;
         }
 
         .alert-error {
-          background-color: var(--error-bg);
-          color: var(--error);
-          border: 1px solid rgba(239, 68, 68, 0.2);
+          background-color: #fee2e2;
+          color: #991b1b;
+          border: 1px solid #fca5a5;
         }
 
         .alert-success {
-          background-color: var(--success-bg);
-          color: var(--success);
-          border: 1px solid rgba(16, 185, 129, 0.2);
+          background-color: #d1fae5;
+          color: #065f46;
+          border: 1px solid #6ee7b7;
         }
 
         .login-form {
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 18px;
         }
 
         .input-group {
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 6px;
         }
 
         .input-group label {
-          font-size: 13px;
+          font-size: 12.5px;
           font-weight: 600;
-          color: var(--text-main);
+          color: #374151;
         }
 
         .field-hint {
           font-size: 11px;
-          color: var(--text-muted);
-          line-height: 1.3;
+          color: #9ca3af;
         }
 
         .input-with-icon {
@@ -427,28 +424,34 @@ export const Login: React.FC = () => {
         .input-icon {
           position: absolute;
           left: 14px;
-          color: var(--text-muted);
+          color: #9ca3af;
         }
 
         .input-with-icon input {
           width: 100%;
-          padding: 12px 12px 12px 42px;
+          padding: 12px 14px 12px 42px;
           border: 1px solid var(--border-color);
           border-radius: var(--radius-md);
-          background: var(--bg-card);
-          color: var(--text-main);
+          background: #f9fafb;
+          color: #111827;
+          font-size: 14px;
           transition: var(--transition-all);
+        }
+
+        .input-with-icon input::placeholder {
+          color: #9ca3af;
         }
 
         .input-with-icon input:focus {
           outline: none;
           border-color: var(--primary);
-          box-shadow: 0 0 0 3px var(--primary-10);
+          background: #ffffff;
+          box-shadow: 0 0 0 3px rgba(0, 150, 107, 0.12);
         }
 
         .otp-helper-hint {
           font-size: 11px;
-          color: var(--warning);
+          color: #9ca3af;
           margin-top: 4px;
           text-align: right;
         }
@@ -457,40 +460,42 @@ export const Login: React.FC = () => {
           width: 100%;
           padding: 12px;
           border: none;
-          border-radius: var(--radius-md);
+          border-radius: var(--radius-pill);
           font-weight: 700;
-          font-size: 15px;
+          font-size: 14.5px;
           cursor: pointer;
           transition: var(--transition-all);
         }
 
         .primary-btn {
           background: var(--primary);
-          color: white;
+          color: #ffffff;
+          box-shadow: 0 4px 14px rgba(0, 150, 107, 0.35);
         }
 
         .primary-btn:hover {
           background: var(--primary-light);
+          box-shadow: 0 6px 18px rgba(0, 150, 107, 0.45);
         }
 
         .primary-btn:disabled {
-          opacity: 0.6;
+          opacity: 0.65;
           cursor: not-allowed;
         }
 
         .otp-actions {
           display: flex;
-          gap: 16px;
+          gap: 12px;
           align-items: center;
         }
 
         .back-btn {
           flex: 1;
           padding: 12px;
-          background: transparent;
+          background: #f3f4f6;
           border: 1px solid var(--border-color);
-          border-radius: var(--radius-md);
-          color: var(--text-muted);
+          border-radius: var(--radius-pill);
+          color: #374151;
           font-weight: 600;
           cursor: pointer;
           transition: var(--transition-all);
@@ -498,8 +503,7 @@ export const Login: React.FC = () => {
         }
 
         .back-btn:hover {
-          background: var(--bg-app);
-          color: var(--text-main);
+          background: #e5e7eb;
         }
       `}</style>
     </div>
