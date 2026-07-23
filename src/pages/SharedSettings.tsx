@@ -6,8 +6,8 @@ import { Globe, User, CheckCircle, AlertCircle } from 'lucide-react';
 
 export const SharedSettings: React.FC = () => {
   const { t, language, setLanguage } = useTranslation();
-  const { user, updateUserLanguage } = useAuth();
-
+  const { user, updateUserLanguage, updateUserProfile } = useAuth();
+  
   // Profile Form states
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
@@ -53,8 +53,12 @@ export const SharedSettings: React.FC = () => {
           phone: phone || null,
         });
 
-        // Trigger session profile update in auth context by re-reading or manually setting it.
-        // For simplicity: updating mock values immediately.
+        await updateUserProfile({
+          name,
+          email: email || null,
+          phone: phone || null,
+        });
+
         setSuccessMsg(t('settings.updateSuccess'));
         setTimeout(() => setSuccessMsg(''), 2000);
       }

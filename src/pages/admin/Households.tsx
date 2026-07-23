@@ -401,10 +401,10 @@ export const Households: React.FC = () => {
         )}
       </div>
 
-      {/* ADD/EDIT MODAL */}
+      {/* ADD/EDIT MODAL DIALOG */}
       {isModalOpen && (
-        <div className="modal-backdrop">
-          <div className="modal-container animate-fade-in">
+        <div className="modal-overlay">
+          <div className="modal-dialog-card animate-fade-in">
             <div className="modal-header">
               <h4>{modalMode === 'add' ? t('household.addHousehold') : t('household.editHousehold')}</h4>
               <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}>
@@ -483,33 +483,31 @@ export const Households: React.FC = () => {
 
               <div className="form-group">
                 <label>{t('household.status')}</label>
-                <div className="radio-selection">
-                  <label className="radio-label">
-                    <input
-                      type="radio"
-                      name="status"
-                      checked={status === 'active'}
-                      onChange={() => setStatus('active')}
-                    />
+                <div className="status-pill-toggle-group">
+                  <button
+                    type="button"
+                    className={`status-toggle-pill active-pill ${status === 'active' ? 'selected' : ''}`}
+                    onClick={() => setStatus('active')}
+                  >
+                    <span className="dot active-dot"></span>
                     <span>{t('household.active')}</span>
-                  </label>
-                  <label className="radio-label">
-                    <input
-                      type="radio"
-                      name="status"
-                      checked={status === 'inactive'}
-                      onChange={() => setStatus('inactive')}
-                    />
+                  </button>
+                  <button
+                    type="button"
+                    className={`status-toggle-pill inactive-pill ${status === 'inactive' ? 'selected' : ''}`}
+                    onClick={() => setStatus('inactive')}
+                  >
+                    <span className="dot inactive-dot"></span>
                     <span>{t('household.inactive')}</span>
-                  </label>
+                  </button>
                 </div>
               </div>
 
               <div className="modal-actions">
-                <button type="button" className="btn-cancel back-btn" onClick={() => setIsModalOpen(false)}>
+                <button type="button" className="btn-cancel" onClick={() => setIsModalOpen(false)}>
                   {t('common.cancel')}
                 </button>
-                <button type="submit" className="btn-submit primary-btn">
+                <button type="submit" className="primary-btn">
                   {t('common.save')}
                 </button>
               </div>
@@ -1123,18 +1121,59 @@ export const Households: React.FC = () => {
           transition: var(--transition-all);
         }
 
-        .form-group input:focus, .form-group textarea:focus {
-          outline: none;
-          border-color: var(--primary);
-          background: #ffffff;
-          box-shadow: 0 0 0 3px rgba(0, 150, 107, 0.12);
+        .status-pill-toggle-group {
+          display: flex;
+          gap: 12px;
+          margin-top: 4px;
+        }
+
+        .status-toggle-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 16px;
+          border-radius: var(--radius-pill);
+          border: 1px solid var(--border-color);
+          background: #f9fafb;
+          color: #4b5563;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: var(--transition-all);
+        }
+
+        .status-toggle-pill .dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #9ca3af;
+        }
+
+        .status-toggle-pill.active-pill.selected {
+          background: #d1fae5;
+          color: #065f46;
+          border-color: #a7f3d0;
+        }
+        .status-toggle-pill.active-pill.selected .dot {
+          background: #10b981;
+        }
+
+        .status-toggle-pill.inactive-pill.selected {
+          background: #fee2e2;
+          color: #991b1b;
+          border-color: #fca5a5;
+        }
+        .status-toggle-pill.inactive-pill.selected .dot {
+          background: #ef4444;
         }
 
         .modal-actions {
           display: flex;
           justify-content: flex-end;
           gap: 12px;
-          margin-top: 16px;
+          margin-top: 20px;
+          padding-top: 14px;
+          border-top: 1px solid #e5e7eb;
         }
 
         .btn-cancel {

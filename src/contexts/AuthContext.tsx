@@ -20,6 +20,7 @@ interface AuthContextProps {
   verifyOTP: (phone: string, code: string) => Promise<UserSession>;
   logout: () => Promise<void>;
   updateUserLanguage: (lang: 'en' | 'ml') => Promise<void>;
+  updateUserProfile: (data: { name?: string; email?: string | null; phone?: string | null }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -221,6 +222,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateUserProfile = async (data: { name?: string; email?: string | null; phone?: string | null }) => {
+    if (!user) return;
+    try {
+      const updatedUser: UserSession = {
+        ...user,
+        name: data.name !== undefined ? data.name : user.name,
+        email: data.email !== undefined ? data.email : user.email,
+        phone: data.phone !== undefined ? data.phone : user.phone,
+      };
+      setUser(updatedUser);
+      localStorage.setItem('mahal_session', JSON.stringify(updatedUser));
+    } catch (err) {
+      console.error('Failed to update user profile in context:', err);
+    }
+  };
+
   const updateUserLanguage = async (lang: 'en' | 'ml') => {
     if (!user) return;
     try {
@@ -245,6 +262,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         verifyOTP,
         logout,
         updateUserLanguage,
+        updateUserProfile,
       }}
     >
       {children}
