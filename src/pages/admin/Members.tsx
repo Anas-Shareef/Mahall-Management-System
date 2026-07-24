@@ -797,42 +797,44 @@ export const Members: React.FC = () => {
       {isDeleteModalOpen && memberToDelete && (
         <div className="modal-overlay">
           <div className="modal-dialog-card delete-card animate-scale-up">
-            <div className="modal-header delete-header">
-              <div className="delete-badge-icon">
-                <Trash2 size={22} color="#dc2626" />
+            <div className="delete-card-body">
+              <div className="delete-header">
+                <div className="delete-badge-icon">
+                  <Trash2 size={22} color="#dc2626" />
+                </div>
+                <div>
+                  <h4>Delete Member?</h4>
+                  <p className="delete-subtitle">
+                    Are you sure you want to delete member <strong>{memberToDelete.name}</strong>? This action cannot be undone.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4>Delete Member?</h4>
-                <p className="modal-subtitle">
-                  Are you sure you want to delete member <strong>{memberToDelete.name}</strong>? This action cannot be undone.
-                </p>
-              </div>
-            </div>
 
-            <div className="modal-actions">
-              <button
-                type="button"
-                className="btn-cancel"
-                onClick={() => setIsDeleteModalOpen(false)}
-                disabled={isDeleting}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="delete-danger-btn"
-                onClick={handleConfirmDelete}
-                disabled={isDeleting}
-              >
-                {isDeleting ? (
-                  <>
-                    <Loader2 size={16} className="spinner-icon" />
-                    <span>Deleting...</span>
-                  </>
-                ) : (
-                  <span>Delete Member</span>
-                )}
-              </button>
+              <div className="delete-actions">
+                <button
+                  type="button"
+                  className="btn-cancel"
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="delete-danger-btn"
+                  onClick={handleConfirmDelete}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 size={16} className="spinner-icon" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <span>Delete Member</span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1336,11 +1338,16 @@ export const Members: React.FC = () => {
         .spinner-icon { animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* DELETE DIALOG */
-        .delete-card { max-width: 440px; }
-        .delete-header { display: flex; gap: 12px; align-items: flex-start; }
-        .delete-badge-icon { width: 42px; height: 42px; background: #fee2e2; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .delete-danger-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: var(--radius-pill); background: #dc2626; color: #ffffff; font-weight: 700; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35); }
+        /* DELETE DIALOG REDESIGN */
+        .delete-card { max-width: 480px; background: #ffffff; border-radius: 20px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2); overflow: hidden; padding: 24px; border: 1px solid var(--border-color); }
+        .delete-card-body { display: flex; flex-direction: column; gap: 20px; }
+        .delete-header { display: flex; gap: 16px; align-items: flex-start; }
+        .delete-badge-icon { width: 44px; height: 44px; background: #fee2e2; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .delete-header h4 { font-size: 18px; font-weight: 800; color: #111827; margin: 0 0 6px 0; }
+        .delete-subtitle { font-size: 13px; color: #6b7280; line-height: 1.5; margin: 0; }
+        .delete-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 6px; }
+        .delete-danger-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 22px; border-radius: var(--radius-pill); background: #dc2626; color: #ffffff; font-weight: 700; font-size: 13.5px; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35); transition: var(--transition-all); }
+        .delete-danger-btn:hover { background: #b91c1c; }
 
         /* RESPONSIVE STYLES FOR SAMSUNG GALAXY S8 & SMARTPHONES */
         @media (max-width: 991px) {

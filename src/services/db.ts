@@ -749,6 +749,25 @@ export const db = {
           .select()
           .single();
         if (error) throw error;
+
+        // Auto-create member_subscriptions records in Supabase for all active members
+        try {
+          const activeMembers = (await db.members.get()).filter((m) => m.status === 'active');
+          if (activeMembers.length > 0) {
+            const subInserts = activeMembers.map((m) => ({
+              member_id: m.id,
+              subscription_year_id: (data as any).id,
+              annual_fee: yearData.default_fee,
+              previous_arrears: 0,
+              total_paid: 0,
+              status: 'unpaid',
+            }));
+            await supabase.from('member_subscriptions').insert(subInserts);
+          }
+        } catch (subErr) {
+          console.warn('Notice auto-generating member subscriptions in Supabase:', subErr);
+        }
+
         return data as SubscriptionYear;
       }
       const list = getLocalData<SubscriptionYear>('mahal_years');

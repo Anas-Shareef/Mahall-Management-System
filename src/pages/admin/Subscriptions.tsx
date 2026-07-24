@@ -221,6 +221,19 @@ export const Subscriptions: React.FC = () => {
     }
   };
 
+  const openConfigureYearModal = () => {
+    const existingYearsList = years.map((y) => y.year);
+    const maxYear = existingYearsList.length > 0 ? Math.max(...existingYearsList) : new Date().getFullYear() - 1;
+    const nextYear = maxYear + 1;
+
+    setYearVal(nextYear);
+    setDefaultFee(1000);
+    setStartDate(`${nextYear}-01-01`);
+    setEndDate(`${nextYear}-12-31`);
+    setYearError('');
+    setIsYearModalOpen(true);
+  };
+
   // Handle Configure Year Save
   const handleSaveYear = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -231,23 +244,36 @@ export const Subscriptions: React.FC = () => {
       return;
     }
 
+    const yrNum = Number(yearVal);
+
+    if (years.some((y) => y.year === yrNum)) {
+      const existingYearsList = years.map((y) => y.year);
+      const maxYear = Math.max(...existingYearsList);
+      setYearError(`Subscription year ${yrNum} already exists. Please choose a new year (e.g. ${maxYear + 1}).`);
+      return;
+    }
+
     setIsSavingYear(true);
 
     try {
       const newYear = await db.years.create({
-        year: Number(yearVal),
+        year: yrNum,
         default_fee: Number(defaultFee),
         start_date: startDate,
         end_date: endDate,
         status: 'active',
       });
 
-      showToast('success', `✓ Subscription year ${yearVal} configured successfully.`);
+      showToast('success', `✓ Subscription year ${yrNum} configured successfully.`);
       setIsYearModalOpen(false);
       setSelectedYearId(newYear.id);
       loadData();
     } catch (err: any) {
-      setYearError(err.message || 'Failed to configure subscription year.');
+      if (err.message && err.message.includes('subscription_years_year_key')) {
+        setYearError(`Subscription year ${yrNum} already exists. Please choose a new year.`);
+      } else {
+        setYearError(err.message || 'Failed to configure subscription year.');
+      }
     } finally {
       setIsSavingYear(false);
     }
@@ -373,14 +399,7 @@ export const Subscriptions: React.FC = () => {
         </div>
 
         <div className="header-cta-group">
-          <button className="configure-btn secondary-btn" onClick={() => {
-            setYearVal(new Date().getFullYear());
-            setDefaultFee(1000);
-            setStartDate(`${new Date().getFullYear()}-01-01`);
-            setEndDate(`${new Date().getFullYear()}-12-31`);
-            setYearError('');
-            setIsYearModalOpen(true);
-          }}>
+          <button className="configure-btn secondary-btn" onClick={openConfigureYearModal}>
             <Calendar size={16} />
             <span>{t('subscription.configureYear')}</span>
           </button>
@@ -989,43 +1008,45 @@ export const Subscriptions: React.FC = () => {
       {isDeleteModalOpen && subToDelete && (
         <div className="modal-overlay">
           <div className="modal-dialog-card delete-card animate-scale-up">
-            <div className="modal-header delete-header">
-              <div className="delete-badge-icon">
-                <Trash2 size={22} color="#dc2626" />
+            <div className="delete-card-body">
+              <div className="delete-header">
+                <div className="delete-badge-icon">
+                  <Trash2 size={22} color="#dc2626" />
+                </div>
+                <div>
+                  <h4>Delete Subscription?</h4>
+                  <p className="delete-subtitle">
+                    Are you sure you want to delete this subscription record for{' '}
+                    <strong>{members.find((m) => m.id === subToDelete.member_id)?.name}</strong>? This action cannot be undone.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4>Delete Subscription?</h4>
-                <p className="modal-subtitle">
-                  Are you sure you want to delete this subscription record for{' '}
-                  <strong>{members.find((m) => m.id === subToDelete.member_id)?.name}</strong>? This action cannot be undone.
-                </p>
-              </div>
-            </div>
 
-            <div className="modal-actions">
-              <button
-                type="button"
-                className="btn-cancel"
-                onClick={() => setIsDeleteModalOpen(false)}
-                disabled={isDeleting}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="delete-danger-btn"
-                onClick={handleConfirmDelete}
-                disabled={isDeleting}
-              >
-                {isDeleting ? (
-                  <>
-                    <Loader2 size={16} className="spinner-icon" />
-                    <span>Deleting...</span>
-                  </>
-                ) : (
-                  <span>Delete Subscription</span>
-                )}
-              </button>
+              <div className="delete-actions">
+                <button
+                  type="button"
+                  className="btn-cancel"
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="delete-danger-btn"
+                  onClick={handleConfirmDelete}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 size={16} className="spinner-icon" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <span>Delete Subscription</span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1536,11 +1557,16 @@ export const Subscriptions: React.FC = () => {
         .spinner-icon { animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* DELETE DIALOG */
-        .delete-card { max-width: 440px; }
-        .delete-header { display: flex; gap: 12px; align-items: flex-start; }
-        .delete-badge-icon { width: 42px; height: 42px; background: #fee2e2; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .delete-danger-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: var(--radius-pill); background: #dc2626; color: #ffffff; font-weight: 700; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35); }
+        /* DELETE DIALOG REDESIGN */
+        .delete-card { max-width: 480px; background: #ffffff; border-radius: 20px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2); overflow: hidden; padding: 24px; border: 1px solid var(--border-color); }
+        .delete-card-body { display: flex; flex-direction: column; gap: 20px; }
+        .delete-header { display: flex; gap: 16px; align-items: flex-start; }
+        .delete-badge-icon { width: 44px; height: 44px; background: #fee2e2; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .delete-header h4 { font-size: 18px; font-weight: 800; color: #111827; margin: 0 0 6px 0; }
+        .delete-subtitle { font-size: 13px; color: #6b7280; line-height: 1.5; margin: 0; }
+        .delete-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 6px; }
+        .delete-danger-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 22px; border-radius: var(--radius-pill); background: #dc2626; color: #ffffff; font-weight: 700; font-size: 13.5px; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35); transition: var(--transition-all); }
+        .delete-danger-btn:hover { background: #b91c1c; }
 
         /* ── RESPONSIVE STYLES FOR SAMSUNG GALAXY S8 & SMALL SMARTPHONES ── */
         @media (max-width: 991px) {
