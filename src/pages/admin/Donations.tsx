@@ -7,8 +7,7 @@ import {
   CheckCircle, AlertCircle, 
   X, Loader2, Printer, Layers,
   Download, Edit2, Trash2, Eye,
-  Calendar, Filter, User, UserCheck,
-  UserX, FileText, Check, RefreshCw
+  UserX, FileText, RefreshCw
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 
@@ -142,7 +141,7 @@ export const Donations: React.FC = () => {
       const campName = campObj ? campObj.campaign_name.toLowerCase() : '';
       const memObj = members.find((m) => m.id === d.donor_member_id);
       const memName = memObj ? memObj.name.toLowerCase() : '';
-      const memCode = memObj ? (memObj.member_id || '').toLowerCase() : '';
+      const memCode = memObj ? memObj.id.toLowerCase() : '';
 
       const query = searchQuery.trim().toLowerCase();
       const matchSearch = !query ||
@@ -234,7 +233,7 @@ export const Donations: React.FC = () => {
       const h = households.find((house) => house.id === m.household_id);
       return (
         m.name.toLowerCase().includes(q) ||
-        (m.member_id && m.member_id.toLowerCase().includes(q)) ||
+        m.id.toLowerCase().includes(q) ||
         (m.phone && m.phone.includes(q)) ||
         (h && h.house_number.toLowerCase().includes(q))
       );
@@ -602,7 +601,7 @@ export const Donations: React.FC = () => {
         `"${d.donation_date}"`,
         `"${donorNameLabel.replace(/"/g, '""')}"`,
         `"${donorTypeLabel}"`,
-        `"${mem ? (mem.member_id || '') : ''}"`,
+        `"${mem ? mem.id : ''}"`,
         `"${d.donation_type}"`,
         `"${campOrPurpose.replace(/"/g, '""')}"`,
         d.amount,
@@ -907,7 +906,7 @@ export const Donations: React.FC = () => {
                                   <div className="font-weight-600">{d.donor_name || 'Wellwisher'}</div>
                                   {memObj ? (
                                     <span className="member-code-badge font-xs">
-                                      Member ID: {memObj.member_id || 'M-Member'}
+                                      Member ID: {memObj.id.substring(0, 8)}
                                     </span>
                                   ) : (
                                     d.donor_phone && <span className="font-xs text-muted">{d.donor_phone}</span>
@@ -1116,7 +1115,7 @@ export const Donations: React.FC = () => {
 
                     <div className="campaign-footer-meta flex-between margin-top-sm pt-xs border-top">
                       <span className="font-xs color-subtle">
-                        <HeartHandshake size={13} inline /> {donationCount} Donations
+                        <HeartHandshake size={13} className="inline-block align-middle" /> {donationCount} Donations
                       </span>
                       <div className="action-buttons-group">
                         <button className="icon-action-btn" title="Edit Campaign" onClick={() => openEditCampaignModal(camp)}>
@@ -1282,7 +1281,7 @@ export const Donations: React.FC = () => {
                           <div>
                             <div className="font-weight-600">{m.name}</div>
                             <span className="font-xs text-muted">
-                              ID: {m.member_id || 'M-Code'} | House: H-{h ? h.house_number : 'N/A'}
+                              ID: {m.id.substring(0, 8)} | House: H-{h ? h.house_number : 'N/A'}
                             </span>
                           </div>
                           {isChosen && <CheckCircle size={16} className="text-success" />}
