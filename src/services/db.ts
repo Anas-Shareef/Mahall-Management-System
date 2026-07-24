@@ -716,6 +716,17 @@ export const db = {
       saveLocalData('mahal_members', list);
       return list[idx];
     },
+    delete: async (id: string): Promise<boolean> => {
+      if (isSupabaseConfigured && supabase) {
+        const { error } = await supabase.from('members').delete().eq('id', id);
+        if (error) throw error;
+        return true;
+      }
+      const list = getLocalData<Member>('mahal_members');
+      const filtered = list.filter((m) => m.id !== id);
+      saveLocalData('mahal_members', filtered);
+      return true;
+    },
   },
 
   // SUBSCRIPTION YEARS
