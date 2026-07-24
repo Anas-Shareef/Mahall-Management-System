@@ -976,37 +976,41 @@ export const db = {
       );
     },
     getUserNotifications: async (userId: string): Promise<(Notification & { read_at: string | null; recipient_id: string })[]> => {
-      if (isSupabaseConfigured && supabase) {
-        // Query through recipients join
-        const { data, error } = await supabase
-          .from('notification_recipients')
-          .select(`
-            id,
-            read_at,
-            notifications (
+      const isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
+      if (isSupabaseConfigured && supabase && isValidUuid) {
+        try {
+          const { data, error } = await supabase
+            .from('notification_recipients')
+            .select(`
               id,
-              title_en,
-              message_en,
-              title_ml,
-              message_ml,
-              type,
-              created_by,
-              created_at
-            )
-          `)
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false });
+              read_at,
+              notifications (
+                id,
+                title_en,
+                message_en,
+                title_ml,
+                message_ml,
+                type,
+                created_by,
+                created_at
+              )
+            `)
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
 
-        if (error) throw error;
-
-        return data.map((d: any) => ({
-          ...d.notifications,
-          read_at: d.read_at,
-          recipient_id: d.id,
-        }));
+          if (!error && data) {
+            return data.map((d: any) => ({
+              ...d.notifications,
+              read_at: d.read_at,
+              recipient_id: d.id,
+            }));
+          }
+        } catch (e) {
+          console.warn('Supabase notifications fetch notice:', e);
+        }
       }
 
-      // Mock join
+      // Mock join fallback
       const recipients = getLocalData<NotificationRecipient>('mahal_recipients').filter(
         (r) => r.user_id === userId
       );
