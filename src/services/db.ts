@@ -477,11 +477,38 @@ export const db = {
     getById: async (id: string): Promise<Profile | null> => {
       if (isSupabaseConfigured && supabase) {
         const { data, error } = await supabase.from('profiles').select('*').eq('id', id).single();
+        if (error && error.code !== 'PGRST116') throw error;
+        return data ? (data as Profile) : null;
+      }
+      const list = getLocalData<Profile>('mahal_profiles');
+      return list.find((p) => p.id === id) || null;
+    },
+    create: async (profile: Partial<Profile> & { id: string; name: string; role: 'admin' | 'member' }): Promise<Profile> => {
+      const fullProfile: Profile = {
+        id: profile.id,
+        name: profile.name,
+        email: profile.email || null,
+        phone: profile.phone || null,
+        role: profile.role,
+        language: profile.language || 'en',
+        status: profile.status || 'active',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase.from('profiles').upsert(fullProfile).select().single();
         if (error) throw error;
         return data as Profile;
       }
       const list = getLocalData<Profile>('mahal_profiles');
-      return list.find((p) => p.id === id) || null;
+      const idx = list.findIndex((p) => p.id === profile.id);
+      if (idx !== -1) {
+        list[idx] = { ...list[idx], ...fullProfile };
+      } else {
+        list.push(fullProfile);
+      }
+      saveLocalData('mahal_profiles', list);
+      return fullProfile;
     },
     update: async (id: string, updates: Partial<Profile>): Promise<Profile> => {
       if (isSupabaseConfigured && supabase) {

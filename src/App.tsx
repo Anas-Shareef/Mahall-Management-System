@@ -7,7 +7,11 @@ import DashboardLayout from './layouts/DashboardLayout';
 
 // Pages
 import LanguageSelect from './pages/LanguageSelect';
-import Login from './pages/Login';
+import LoginGateway from './pages/auth/LoginGateway';
+import AdminLogin from './pages/auth/AdminLogin';
+import AdminSignup from './pages/auth/AdminSignup';
+import MemberLogin from './pages/auth/MemberLogin';
+import MemberSignup from './pages/auth/MemberSignup';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
@@ -33,11 +37,17 @@ const App: React.FC = () => {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            {/* Onboarding & Authentication */}
+            {/* Onboarding & Authentication Gateway */}
             <Route path="/" element={<LanguageSelect />} />
-            <Route path="/login" element={<Login />} />
+            <Route path="/login" element={<LoginGateway />} />
 
-            {/* Admin Routes */}
+            {/* Dedicated Auth Routes */}
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/signup" element={<AdminSignup />} />
+            <Route path="/member/login" element={<MemberLogin />} />
+            <Route path="/member/signup" element={<MemberSignup />} />
+
+            {/* Protected Admin Routes */}
             <Route
               path="/admin/*"
               element={
@@ -59,7 +69,7 @@ const App: React.FC = () => {
               }
             />
 
-            {/* Member Routes */}
+            {/* Protected Member Routes */}
             <Route
               path="/member/*"
               element={
