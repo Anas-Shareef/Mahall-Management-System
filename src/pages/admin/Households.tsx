@@ -4,7 +4,7 @@ import { db } from '../../services/db';
 import type { Household, Member, MemberSubscription, SubscriptionYear } from '../../services/db';
 import { 
   Plus, Edit2, Trash2, Search, Filter, Home, Users, X, AlertCircle, 
-  CheckCircle, Phone, MapPin, Loader2 
+  CheckCircle, Phone, MapPin, Loader2, Download, Calendar 
 } from 'lucide-react';
 
 export const Households: React.FC = () => {
@@ -17,10 +17,11 @@ export const Households: React.FC = () => {
   const [years, setYears] = useState<SubscriptionYear[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Search & Filter States
+  // Dynamic Search & Filter States
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedArea, setSelectedArea] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [selectedYearId, setSelectedYearId] = useState<string>('all');
 
   // Add / Edit Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -38,6 +39,7 @@ export const Households: React.FC = () => {
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
   const [formError, setFormError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Delete Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -70,6 +72,12 @@ export const Households: React.FC = () => {
       setMembers(memberList);
       setSubscriptions(subList);
       setYears(yearList);
+
+      // Default active year if not set
+      const activeYear = yearList.find(y => y.status === 'active');
+      if (activeYear && selectedYearId === 'all') {
+        setSelectedYearId(activeYear.id);
+      }
     } catch (err) {
       console.error('Failed to load household page data:', err);
       showToast('error', 'Unable to load households. Please try again.');
@@ -82,7 +90,7 @@ export const Households: React.FC = () => {
     loadData();
   }, []);
 
-  // Calculate Consolidated financials for a household
+  // Calculate Consolidated financials for a household (respecting selected year filter)
   const getHouseholdFinancials = (householdId: string) => {
     const houseMembers = members.filter((m) => m.household_id === householdId);
     let totalDue = 0;
@@ -90,7 +98,11 @@ export const Households: React.FC = () => {
     let balance = 0;
 
     houseMembers.forEach((member) => {
-      const memberSubs = subscriptions.filter((s) => s.member_id === member.id);
+      let memberSubs = subscriptions.filter((s) => s.member_id === member.id);
+      if (selectedYearId !== 'all') {
+        memberSubs = memberSubs.filter((s) => s.subscription_year_id === selectedYearId);
+      }
+      
       memberSubs.forEach((sub) => {
         totalDue += sub.total_due;
         totalPaid += sub.total_paid;
@@ -171,7 +183,6 @@ export const Households: React.FC = () => {
     if (!houseNumber.trim()) {
       errors.houseNumber = 'House number is required.';
     } else {
-      // Check duplicate house number
       const duplicate = households.find(
         (h) => h.house_number.toLowerCase() === houseNumber.trim().toLowerCase() && h.id !== currentId
       );
@@ -197,9 +208,7 @@ export const Households: React.FC = () => {
     e.preventDefault();
     setFormError('');
 
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsSaving(true);
 
@@ -235,15 +244,78 @@ export const Households: React.FC = () => {
     }
   };
 
+  // Dynamic Report Download (CSV Export)
+  const handleDownloadReport = () => {
+    if (filteredHouseholds.length === 0) {
+      showToast('error', 'No household records to export.');
+      return;
+    }
+
+    setIsExporting(true);
+
+    setTimeout(() => {
+      try {
+        const selectedYearObj = years.find((y) => y.id === selectedYearId);
+        const yearLabel = selectedYearObj ? selectedYearObj.year : 'All_Years';
+
+        const headers = [
+          'House Number',
+          'House Owner Name',
+          'Owner Phone',
+          'Area / Ward',
+          'Members Count',
+          'Total Due (INR)',
+          'Total Paid (INR)',
+          'Outstanding Balance (INR)',
+          'Status',
+          'Created Date',
+        ];
+
+        const rows = filteredHouseholds.map((h) => {
+          const fin = getHouseholdFinancials(h.id);
+          return [
+            `"H-${h.house_number}"`,
+            `"${h.house_owner_name.replace(/"/g, '""')}"`,
+            `"${h.house_owner_phone || ''}"`,
+            `"${(h.area || '').replace(/"/g, '""')}"`,
+            fin.membersCount,
+            fin.totalDue,
+            fin.totalPaid,
+            fin.balance,
+            `"${h.status.toUpperCase()}"`,
+            `"${new Date(h.created_at).toLocaleDateString()}"`,
+          ];
+        });
+
+        const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `Mahallu_Households_Report_${yearLabel}_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        showToast('success', '✓ Household Report downloaded successfully!');
+      } catch (err) {
+        showToast('error', 'Failed to generate report.');
+      } finally {
+        setIsExporting(false);
+      }
+    }, 600);
+  };
+
   // Show detailed panel
   const handleViewDetails = (h: Household) => {
     setSelectedHouseholdDetails(h);
     const houseMembers = members.filter((m) => m.household_id === h.id);
-    const activeYear = years.find((y) => y.status === 'active') || years[0];
+    const targetYearId = selectedYearId !== 'all' ? selectedYearId : (years.find((y) => y.status === 'active')?.id || years[0]?.id);
 
     const details = houseMembers.map((m) => {
-      const sub = activeYear
-        ? subscriptions.find((s) => s.member_id === m.id && s.subscription_year_id === activeYear.id)
+      const sub = targetYearId
+        ? subscriptions.find((s) => s.member_id === m.id && s.subscription_year_id === targetYearId)
         : null;
 
       return {
@@ -312,19 +384,23 @@ export const Households: React.FC = () => {
           <h3>{t('household.householdsTitle')}</h3>
           <p className="page-subtitle">Manage Mahallu households, ward directories, and member financial balances.</p>
         </div>
-        <button className="add-btn primary-btn" onClick={openAddModal}>
-          <Plus size={16} />
-          <span>{t('household.addHousehold')}</span>
-        </button>
+        
+        <div className="header-cta-group">
+          <button className="add-btn primary-btn" onClick={openAddModal}>
+            <Plus size={16} />
+            <span>{t('household.addHousehold')}</span>
+          </button>
+        </div>
       </div>
 
-      {/* SEARCH AND FILTER TOOLBAR */}
+      {/* SEARCH AND FILTER TOOLBAR (RESPONSIVE FOR SAMSUNG GALAXY S8 & MOBILE) */}
       <div className="filter-bar glass-card">
+        {/* Search Input Box */}
         <div className="search-box">
           <Search size={18} className="search-icon" />
           <input
             type="text"
-            placeholder="Search by house number, owner name, phone, or ward..."
+            placeholder="Search house number, owner, or ward..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -335,9 +411,24 @@ export const Households: React.FC = () => {
           )}
         </div>
 
-        <div className="filter-selectors">
+        {/* Filter Dropdowns Grid */}
+        <div className="filter-selectors-grid">
+          {/* Subscription Year Filter Dropdown */}
           <div className="filter-select-wrapper">
-            <Filter size={15} className="select-icon" />
+            <Calendar size={15} className="select-icon" />
+            <select value={selectedYearId} onChange={(e) => setSelectedYearId(e.target.value)}>
+              <option value="all">Financials: All Years</option>
+              {years.map((y) => (
+                <option key={y.id} value={y.id}>
+                  Year: {y.year} {y.status === 'active' ? '(Active)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Area / Ward Filter Dropdown */}
+          <div className="filter-select-wrapper">
+            <MapPin size={15} className="select-icon" />
             <select value={selectedArea} onChange={(e) => setSelectedArea(e.target.value)}>
               <option value="">All Wards / Areas</option>
               {uniqueAreas.map((a) => (
@@ -348,6 +439,7 @@ export const Households: React.FC = () => {
             </select>
           </div>
 
+          {/* Status Filter Dropdown */}
           <div className="filter-select-wrapper">
             <Filter size={15} className="select-icon" />
             <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
@@ -357,11 +449,25 @@ export const Households: React.FC = () => {
             </select>
           </div>
 
-          {(searchQuery || selectedArea || selectedStatus) && (
-            <button className="clear-filters-link" onClick={clearFilters}>
-              Clear Filters
-            </button>
-          )}
+          {/* Dynamic Download Report Button */}
+          <button 
+            className="report-export-btn" 
+            onClick={handleDownloadReport} 
+            disabled={isExporting}
+            title="Download CSV Report"
+          >
+            {isExporting ? (
+              <>
+                <Loader2 size={15} className="spinner-icon" />
+                <span>Generating...</span>
+              </>
+            ) : (
+              <>
+                <Download size={15} />
+                <span>Download Report</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -486,7 +592,7 @@ export const Households: React.FC = () => {
                 </table>
               </div>
 
-              {/* MOBILE CARD DIRECTORY VIEW */}
+              {/* MOBILE CARD DIRECTORY VIEW (FOR SAMSUNG GALAXY S8 & SMARTPHONES) */}
               <div className="mobile-cards-directory">
                 {filteredHouseholds.map((h) => {
                   const financials = getHouseholdFinancials(h.id);
@@ -854,12 +960,15 @@ export const Households: React.FC = () => {
         </div>
       )}
 
-      {/* PAGE STYLES */}
+      {/* STYLES */}
       <style>{`
         .households-page {
           display: flex;
           flex-direction: column;
-          gap: 24px;
+          gap: 20px;
+          width: 100%;
+          max-width: 100%;
+          box-sizing: border-box;
         }
 
         /* TOAST NOTIFICATION */
@@ -877,21 +986,17 @@ export const Households: React.FC = () => {
           font-size: 13.5px;
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
         }
-        .toast-notification.success {
-          background: #d1fae5;
-          color: #065f46;
-          border: 1px solid #6ee7b7;
-        }
-        .toast-notification.error {
-          background: #fee2e2;
-          color: #991b1b;
-          border: 1px solid #fca5a5;
-        }
+        .toast-notification.success { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+        .toast-notification.error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
 
         .page-header-actions {
           display: flex;
           align-items: center;
           justify-content: space-between;
+          gap: 16px;
+          flex-wrap: wrap;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .page-header-actions h3 {
@@ -900,15 +1005,18 @@ export const Households: React.FC = () => {
           color: #111827;
         }
 
-        .page-subtitle {
-          font-size: 13px;
-          color: #6b7280;
-          margin-top: 2px;
+        .page-subtitle { font-size: 13px; color: #6b7280; margin-top: 2px; }
+
+        .header-cta-group {
+          display: flex;
+          align-items: center;
+          gap: 12px;
         }
 
         .add-btn.primary-btn {
-          display: flex;
+          display: inline-flex;
           align-items: center;
+          justify-content: center;
           gap: 8px;
           padding: 10px 20px;
           border-radius: var(--radius-pill);
@@ -922,9 +1030,7 @@ export const Households: React.FC = () => {
           transition: var(--transition-all);
         }
 
-        .add-btn.primary-btn:hover {
-          background: var(--primary-light);
-        }
+        .add-btn.primary-btn:hover { background: var(--primary-light); }
 
         /* TOOLBAR FILTER BAR */
         .filter-bar {
@@ -932,11 +1038,13 @@ export const Households: React.FC = () => {
           align-items: center;
           justify-content: space-between;
           padding: 16px 20px;
-          gap: 16px;
+          gap: 14px;
           background: #ffffff;
           border: 1px solid var(--border-color);
           border-radius: var(--radius-xl);
           flex-wrap: wrap;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .search-box {
@@ -944,14 +1052,10 @@ export const Households: React.FC = () => {
           display: flex;
           align-items: center;
           flex: 1;
-          min-width: 280px;
+          min-width: 260px;
         }
 
-        .search-icon {
-          position: absolute;
-          left: 14px;
-          color: #9ca3af;
-        }
+        .search-icon { position: absolute; left: 14px; color: #9ca3af; }
 
         .search-box input {
           width: 100%;
@@ -986,10 +1090,11 @@ export const Households: React.FC = () => {
           cursor: pointer;
         }
 
-        .filter-selectors {
+        .filter-selectors-grid {
           display: flex;
-          gap: 12px;
+          gap: 10px;
           align-items: center;
+          flex-wrap: wrap;
         }
 
         .filter-select-wrapper {
@@ -998,15 +1103,10 @@ export const Households: React.FC = () => {
           align-items: center;
         }
 
-        .select-icon {
-          position: absolute;
-          left: 14px;
-          color: #9ca3af;
-          pointer-events: none;
-        }
+        .select-icon { position: absolute; left: 14px; color: #9ca3af; pointer-events: none; }
 
         .filter-select-wrapper select {
-          padding: 10px 36px 10px 38px;
+          padding: 10px 32px 10px 36px;
           border: 1px solid var(--border-color);
           border-radius: var(--radius-pill);
           background: #f9fafb;
@@ -1017,21 +1117,30 @@ export const Households: React.FC = () => {
           font-size: 13px;
         }
 
-        .clear-filters-link {
-          background: transparent;
-          border: none;
-          color: var(--primary);
+        .report-export-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 10px 18px;
+          border-radius: var(--radius-pill);
+          background: #ecfdf5;
+          color: #00966b;
+          border: 1px solid #a7f3d0;
           font-weight: 700;
           font-size: 13px;
           cursor: pointer;
-          padding: 6px 12px;
+          transition: var(--transition-all);
         }
+
+        .report-export-btn:hover { background: #d1fae5; }
 
         /* MAIN CONTENT SPLIT */
         .households-content-split {
           display: flex;
           gap: 24px;
           align-items: flex-start;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .table-container-card {
@@ -1041,27 +1150,17 @@ export const Households: React.FC = () => {
           border-radius: var(--radius-xl);
           padding: 20px;
           transition: var(--transition-all);
+          width: 100%;
+          box-sizing: border-box;
+          min-width: 0;
         }
 
-        .table-container-card.narrow {
-          flex: 1.4;
-        }
+        .table-container-card.narrow { flex: 1.4; }
 
         /* DESKTOP TABLE STYLES */
-        .desktop-view-only {
-          display: block;
-        }
-
-        .table-responsive {
-          width: 100%;
-          overflow-x: auto;
-        }
-
-        .households-table {
-          width: 100%;
-          border-collapse: collapse;
-          text-align: left;
-        }
+        .desktop-view-only { display: block; }
+        .table-responsive { width: 100%; overflow-x: auto; }
+        .households-table { width: 100%; border-collapse: collapse; text-align: left; }
 
         .households-table th {
           font-size: 11px;
@@ -1081,18 +1180,9 @@ export const Households: React.FC = () => {
           color: #111827;
         }
 
-        .household-row {
-          cursor: pointer;
-          transition: var(--transition-all);
-        }
-
-        .household-row:hover {
-          background-color: #f9fafb;
-        }
-
-        .household-row.selected {
-          background-color: #ecfdf5;
-        }
+        .household-row { cursor: pointer; transition: var(--transition-all); }
+        .household-row:hover { background-color: #f9fafb; }
+        .household-row.selected { background-color: #ecfdf5; }
 
         .house-tag {
           font-weight: 800;
@@ -1104,24 +1194,9 @@ export const Households: React.FC = () => {
           font-size: 13px;
         }
 
-        .owner-profile-td {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .owner-name {
-          font-weight: 700;
-          color: #111827;
-        }
-
-        .owner-phone-sub {
-          font-size: 11px;
-          color: #6b7280;
-          margin-top: 2px;
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
+        .owner-profile-td { display: flex; flex-direction: column; }
+        .owner-name { font-weight: 700; color: #111827; }
+        .owner-phone-sub { font-size: 11px; color: #6b7280; margin-top: 2px; display: flex; align-items: center; gap: 4px; }
 
         .area-tag {
           display: inline-flex;
@@ -1146,10 +1221,7 @@ export const Households: React.FC = () => {
           font-weight: 700;
         }
 
-        .balance-td {
-          font-weight: 800;
-        }
-
+        .balance-td { font-weight: 800; }
         .balance-td.outstanding { color: #dc2626; }
         .balance-td.paid { color: #059669; }
 
@@ -1164,29 +1236,14 @@ export const Households: React.FC = () => {
           text-transform: uppercase;
         }
 
-        .status-pill .dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-        }
-
-        .status-pill.active {
-          background-color: #d1fae5;
-          color: #065f46;
-        }
+        .status-pill .dot { width: 6px; height: 6px; border-radius: 50%; }
+        .status-pill.active { background-color: #d1fae5; color: #065f46; }
         .status-pill.active .dot { background-color: #10b981; }
 
-        .status-pill.inactive {
-          background-color: #fee2e2;
-          color: #991b1b;
-        }
+        .status-pill.inactive { background-color: #fee2e2; color: #991b1b; }
         .status-pill.inactive .dot { background-color: #ef4444; }
 
-        .actions-button-wrapper {
-          display: flex;
-          gap: 6px;
-          justify-content: flex-end;
-        }
+        .actions-button-wrapper { display: flex; gap: 6px; justify-content: flex-end; }
 
         .action-icon-btn {
           border: 1px solid var(--border-color);
@@ -1199,26 +1256,18 @@ export const Households: React.FC = () => {
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          transition: var(--transition-all);
         }
 
-        .action-icon-btn.edit:hover {
-          background: #ecfdf5;
-          color: #00966b;
-          border-color: #a7f3d0;
-        }
-
-        .action-icon-btn.delete:hover {
-          background: #fee2e2;
-          color: #dc2626;
-          border-color: #fca5a5;
-        }
+        .action-icon-btn.edit:hover { background: #ecfdf5; color: #00966b; border-color: #a7f3d0; }
+        .action-icon-btn.delete:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
 
         /* MOBILE CARDS DIRECTORY VIEW */
         .mobile-cards-directory {
           display: none;
           flex-direction: column;
-          gap: 16px;
+          gap: 14px;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .mobile-household-card {
@@ -1230,19 +1279,12 @@ export const Households: React.FC = () => {
           flex-direction: column;
           gap: 12px;
           cursor: pointer;
-          transition: var(--transition-all);
+          box-sizing: border-box;
+          width: 100%;
         }
 
-        .mobile-household-card.selected {
-          border-color: var(--primary);
-          background: #f0fdf4;
-        }
-
-        .mobile-household-card .card-head {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
+        .mobile-household-card.selected { border-color: var(--primary); background: #f0fdf4; }
+        .mobile-household-card .card-head { display: flex; align-items: center; justify-content: space-between; }
 
         .house-no-badge {
           font-weight: 800;
@@ -1254,20 +1296,8 @@ export const Households: React.FC = () => {
           font-size: 13px;
         }
 
-        .owner-title {
-          font-size: 16px;
-          font-weight: 800;
-          color: #111827;
-        }
-
-        .card-info-row {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 12.5px;
-          color: #4b5563;
-          margin-top: 4px;
-        }
+        .owner-title { font-size: 16px; font-weight: 800; color: #111827; }
+        .card-info-row { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #4b5563; margin-top: 4px; }
 
         .card-footer {
           display: flex;
@@ -1275,25 +1305,16 @@ export const Households: React.FC = () => {
           justify-content: space-between;
           padding-top: 12px;
           border-top: 1px solid #f3f4f6;
+          flex-wrap: wrap;
+          gap: 8px;
         }
 
-        .card-stats {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .balance-tag {
-          font-weight: 800;
-          font-size: 13px;
-        }
+        .card-stats { display: flex; align-items: center; gap: 10px; }
+        .balance-tag { font-weight: 800; font-size: 13px; }
         .balance-tag.outstanding { color: #dc2626; }
         .balance-tag.paid { color: #059669; }
 
-        .mobile-card-actions {
-          display: flex;
-          gap: 8px;
-        }
+        .mobile-card-actions { display: flex; gap: 8px; }
 
         .mobile-action-btn {
           display: flex;
@@ -1315,34 +1336,19 @@ export const Households: React.FC = () => {
           flex-direction: column;
           align-items: center;
           text-align: center;
-          padding: 48px 24px;
+          padding: 48px 20px;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .empty-state-icon {
-          width: 64px;
-          height: 64px;
-          border-radius: 20px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 16px;
+          width: 60px; height: 60px; border-radius: 18px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px;
         }
         .empty-state-icon.emerald { background: #ecfdf5; color: #00966b; }
         .empty-state-icon.neutral { background: #f3f4f6; color: #6b7280; }
 
-        .empty-state-card h4 {
-          font-size: 18px;
-          font-weight: 800;
-          color: #111827;
-        }
-
-        .empty-state-card p {
-          font-size: 13px;
-          color: #6b7280;
-          margin-top: 4px;
-          max-width: 320px;
-        }
-
+        .empty-state-card h4 { font-size: 18px; font-weight: 800; color: #111827; }
+        .empty-state-card p { font-size: 13px; color: #6b7280; margin-top: 4px; max-width: 320px; }
         .margin-top { margin-top: 16px; }
 
         /* DETAILS LEDGER PANEL */
@@ -1351,10 +1357,11 @@ export const Households: React.FC = () => {
           background: #ffffff;
           border: 1px solid var(--border-color);
           border-radius: var(--radius-xl);
-          padding: 24px;
+          padding: 20px;
           position: sticky;
           top: 94px;
-          animation: slideInLeft 0.3s ease;
+          box-sizing: border-box;
+          width: 100%;
         }
 
         .panel-header {
@@ -1362,48 +1369,22 @@ export const Households: React.FC = () => {
           align-items: center;
           justify-content: space-between;
           border-bottom: 1px solid #e5e7eb;
-          padding-bottom: 16px;
-          margin-bottom: 20px;
+          padding-bottom: 14px;
+          margin-bottom: 16px;
         }
 
-        .panel-title-wrapper {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
+        .panel-title-wrapper { display: flex; align-items: center; gap: 10px; }
         .panel-icon-box {
-          width: 42px;
-          height: 42px;
-          background: #ecfdf5;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          width: 40px; height: 40px; background: #ecfdf5; border-radius: 12px; display: flex; align-items: center; justify-content: center;
         }
-
-        .panel-title-wrapper h4 {
-          font-size: 17px;
-          font-weight: 800;
-          color: #111827;
-        }
-
-        .panel-title-wrapper p {
-          font-size: 12px;
-          color: #6b7280;
-        }
-
-        .panel-close-btn {
-          background: transparent;
-          border: none;
-          color: #9ca3af;
-          cursor: pointer;
-        }
+        .panel-title-wrapper h4 { font-size: 16px; font-weight: 800; color: #111827; }
+        .panel-title-wrapper p { font-size: 12px; color: #6b7280; }
+        .panel-close-btn { background: transparent; border: none; color: #9ca3af; cursor: pointer; }
 
         .details-meta-section {
           background: #f9fafb;
           border-radius: var(--radius-md);
-          padding: 16px;
+          padding: 14px;
           display: flex;
           flex-direction: column;
           gap: 10px;
@@ -1411,56 +1392,20 @@ export const Households: React.FC = () => {
           border: 1px solid #f3f4f6;
         }
 
-        .meta-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
+        .meta-item { display: flex; justify-content: space-between; align-items: center; }
         .meta-label { font-size: 12px; color: #6b7280; font-weight: 600; }
         .meta-value { font-size: 13px; font-weight: 700; color: #111827; }
 
-        .financials-breakdown h5 {
-          font-size: 14px;
-          font-weight: 800;
-          margin-bottom: 12px;
-          color: #111827;
-        }
+        .financials-breakdown h5 { font-size: 14px; font-weight: 800; margin-bottom: 12px; color: #111827; }
+        .members-ledger-table-wrapper { overflow-x: auto; border: 1px solid #e5e7eb; border-radius: var(--radius-md); }
 
-        .members-ledger-table-wrapper {
-          overflow-x: auto;
-          border: 1px solid #e5e7eb;
-          border-radius: var(--radius-md);
-        }
-
-        .mini-ledger-table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 12px;
-          text-align: left;
-        }
-
-        .mini-ledger-table th {
-          padding: 10px 12px;
-          background: #f9fafb;
-          color: #6b7280;
-          font-weight: 700;
-          border-bottom: 1px solid #e5e7eb;
-        }
-
-        .mini-ledger-table td {
-          padding: 10px 12px;
-          border-bottom: 1px solid #f3f4f6;
-          color: #111827;
-        }
+        .mini-ledger-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+        .mini-ledger-table th { padding: 10px 12px; background: #f9fafb; color: #6b7280; font-weight: 700; border-bottom: 1px solid #e5e7eb; }
+        .mini-ledger-table td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; color: #111827; }
 
         .rel-tag { font-size: 10px; color: #9ca3af; }
         .mini-ledger-table td.outstanding { color: #dc2626; font-weight: 800; }
-
-        .consolidated-total-row {
-          background-color: #ecfdf5;
-          font-weight: 800;
-        }
+        .consolidated-total-row { background-color: #ecfdf5; font-weight: 800; }
         .consolidated-total-row td { border-bottom: none; }
         .grand-balance { color: #dc2626; font-weight: 800; }
 
@@ -1474,7 +1419,8 @@ export const Households: React.FC = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 20px;
+          padding: 16px;
+          box-sizing: border-box;
         }
 
         .modal-dialog-card {
@@ -1485,10 +1431,11 @@ export const Households: React.FC = () => {
           box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
           overflow: hidden;
           border: 1px solid var(--border-color);
+          box-sizing: border-box;
         }
 
         .modal-header {
-          padding: 20px 24px;
+          padding: 18px 20px;
           display: flex;
           align-items: flex-start;
           justify-content: space-between;
@@ -1496,216 +1443,85 @@ export const Households: React.FC = () => {
           background: #f9fafb;
         }
 
-        .modal-header h4 {
-          font-size: 18px;
-          font-weight: 800;
-          color: #111827;
-        }
+        .modal-header h4 { font-size: 17px; font-weight: 800; color: #111827; }
+        .modal-subtitle { font-size: 12px; color: #6b7280; margin-top: 2px; }
+        .modal-close-btn { background: transparent; border: none; color: #9ca3af; cursor: pointer; }
 
-        .modal-subtitle {
-          font-size: 12.5px;
-          color: #6b7280;
-          margin-top: 2px;
-        }
+        .modal-form { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+        .form-section-title { font-size: 11px; font-weight: 800; color: #00966b; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2px; }
 
-        .modal-form {
-          padding: 24px;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .form-section-title {
-          font-size: 11px;
-          font-weight: 800;
-          color: #00966b;
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
-          margin-bottom: 4px;
-        }
-
-        .form-row-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 16px;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .form-group label {
-          font-size: 12.5px;
-          font-weight: 700;
-          color: #374151;
-        }
+        .form-row-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group label { font-size: 12.5px; font-weight: 700; color: #374151; }
 
         .form-group input, .form-group textarea {
-          padding: 11px 14px;
+          padding: 10px 12px;
           border: 1px solid var(--border-color);
           border-radius: var(--radius-md);
           background: #f9fafb;
           color: #111827;
           font-size: 13.5px;
-          transition: var(--transition-all);
         }
 
         .form-group input:focus, .form-group textarea:focus {
-          outline: none;
-          border-color: var(--primary);
-          background: #ffffff;
-          box-shadow: 0 0 0 3px rgba(0, 150, 107, 0.12);
+          outline: none; border-color: var(--primary); background: #ffffff; box-shadow: 0 0 0 3px rgba(0, 150, 107, 0.12);
         }
 
-        .input-error {
-          border-color: #ef4444 !important;
-          background: #fff5f5 !important;
-        }
+        .input-error { border-color: #ef4444 !important; background: #fff5f5 !important; }
+        .field-error-text { font-size: 11px; font-weight: 600; color: #dc2626; }
 
-        .field-error-text {
-          font-size: 11.5px;
-          font-weight: 600;
-          color: #dc2626;
-        }
-
-        .form-alert {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 10px 14px;
-          border-radius: var(--radius-md);
-          font-size: 13px;
-        }
+        .form-alert { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: var(--radius-md); font-size: 13px; }
         .form-alert.error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
 
-        .status-pill-toggle-group {
-          display: flex;
-          gap: 12px;
-          margin-top: 4px;
-        }
-
+        .status-pill-toggle-group { display: flex; gap: 10px; margin-top: 2px; }
         .status-toggle-pill {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 9px 18px;
-          border-radius: var(--radius-pill);
-          border: 1px solid var(--border-color);
-          background: #f9fafb;
-          color: #4b5563;
-          font-size: 13px;
-          font-weight: 700;
-          cursor: pointer;
-          transition: var(--transition-all);
+          display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: var(--radius-pill); border: 1px solid var(--border-color); background: #f9fafb; color: #4b5563; font-size: 13px; font-weight: 700; cursor: pointer;
         }
-
-        .status-toggle-pill .dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          background: #9ca3af;
-        }
-
-        .status-toggle-pill.active-pill.selected {
-          background: #d1fae5;
-          color: #065f46;
-          border-color: #a7f3d0;
-        }
+        .status-toggle-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: #9ca3af; }
+        .status-toggle-pill.active-pill.selected { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
         .status-toggle-pill.active-pill.selected .dot { background: #10b981; }
 
-        .status-toggle-pill.inactive-pill.selected {
-          background: #fee2e2;
-          color: #991b1b;
-          border-color: #fca5a5;
-        }
+        .status-toggle-pill.inactive-pill.selected { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
         .status-toggle-pill.inactive-pill.selected .dot { background: #ef4444; }
 
-        .modal-actions {
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-          margin-top: 16px;
-          padding-top: 16px;
-          border-top: 1px solid #e5e7eb;
-        }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid #e5e7eb; }
 
-        .btn-cancel {
-          background: #f3f4f6;
-          border: 1px solid var(--border-color);
-          color: #374151;
-          padding: 10px 20px;
-          border-radius: var(--radius-pill);
-          font-weight: 700;
-          cursor: pointer;
-        }
+        .btn-cancel { background: #f3f4f6; border: 1px solid var(--border-color); color: #374151; padding: 10px 18px; border-radius: var(--radius-pill); font-weight: 700; cursor: pointer; }
+        .submit-pill-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 22px; border-radius: var(--radius-pill); background: var(--primary); color: #ffffff; font-weight: 700; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 150, 107, 0.35); }
 
-        .submit-pill-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 10px 24px;
-          border-radius: var(--radius-pill);
-          background: var(--primary);
-          color: #ffffff;
-          font-weight: 700;
-          border: none;
-          cursor: pointer;
-          box-shadow: 0 4px 14px rgba(0, 150, 107, 0.35);
-        }
-
-        .spinner-icon {
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
+        .spinner-icon { animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         /* DELETE DIALOG */
         .delete-card { max-width: 440px; }
-        .delete-header { display: flex; gap: 14px; align-items: flex-start; }
-        .delete-badge-icon {
-          width: 44px;
-          height: 44px;
-          background: #fee2e2;
-          border-radius: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-        .delete-danger-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 10px 20px;
-          border-radius: var(--radius-pill);
-          background: #dc2626;
-          color: #ffffff;
-          font-weight: 700;
-          border: none;
-          cursor: pointer;
-          box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
-        }
+        .delete-header { display: flex; gap: 12px; align-items: flex-start; }
+        .delete-badge-icon { width: 42px; height: 42px; background: #fee2e2; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .delete-danger-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: var(--radius-pill); background: #dc2626; color: #ffffff; font-weight: 700; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35); }
 
-        /* RESPONSIVE OPTIMIZATION */
+        /* ── RESPONSIVE STYLES FOR SAMSUNG GALAXY S8 & SMALL SMARTPHONES ── */
         @media (max-width: 991px) {
-          .households-content-split {
-            flex-direction: column;
-          }
-          
-          .details-panel-card {
+          .households-content-split { flex-direction: column; }
+          .details-panel-card { width: 100%; position: relative; top: 0; }
+        }
+
+        @media (max-width: 768px) {
+          .page-header-actions { flex-direction: column; align-items: stretch; gap: 12px; }
+          .add-btn.primary-btn { width: 100%; justify-content: center; }
+
+          .filter-bar { flex-direction: column; align-items: stretch; padding: 14px; gap: 12px; }
+          .search-box { width: 100%; min-width: 0; }
+
+          .filter-selectors-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
             width: 100%;
-            position: relative;
-            top: 0;
           }
 
-          .filter-bar {
-            flex-direction: column;
-            align-items: stretch;
+          .filter-select-wrapper select, .report-export-btn {
+            width: 100%;
+            justify-content: center;
+            box-sizing: border-box;
           }
         }
 
@@ -1713,9 +1529,11 @@ export const Households: React.FC = () => {
           .desktop-view-only { display: none; }
           .mobile-cards-directory { display: flex; }
 
-          .form-row-grid {
+          .filter-selectors-grid {
             grid-template-columns: 1fr;
           }
+
+          .form-row-grid { grid-template-columns: 1fr; }
 
           .modal-overlay {
             padding: 0;
@@ -1723,7 +1541,7 @@ export const Households: React.FC = () => {
           }
 
           .modal-dialog-card {
-            border-radius: 24px 24px 0 0;
+            border-radius: 20px 20px 0 0;
             max-height: 90vh;
             overflow-y: auto;
           }
