@@ -10,6 +10,7 @@ import {
   CheckCircle, Loader2, Home, CreditCard, 
   Layers, Sparkles, UserCheck, DollarSign, Eye
 } from 'lucide-react';
+import { YearFilter } from '../../components/YearFilter';
 
 export const Subscriptions: React.FC = () => {
   const { t } = useTranslation();
@@ -112,19 +113,9 @@ export const Subscriptions: React.FC = () => {
 
   // CALCULATED DYNAMIC STATISTICS FOR CURRENT SELECTED YEAR
   const yearStats = useMemo(() => {
-    if (!selectedYearId) {
-      return {
-        accountableMembers: 0,
-        paidCount: 0,
-        partiallyPaidCount: 0,
-        unpaidCount: 0,
-        totalExpected: 0,
-        totalCollected: 0,
-        totalOutstanding: 0,
-      };
-    }
-
-    const yearSubs = subscriptions.filter((s) => s.subscription_year_id === selectedYearId);
+    const yearSubs = selectedYearId 
+      ? subscriptions.filter((s) => s.subscription_year_id === selectedYearId)
+      : subscriptions;
     const accountableMembers = members.filter((m) => m.status === 'active' && m.is_subscription_accountable !== false);
 
     const paidCount = yearSubs.filter((s) => s.status === 'paid').length;
@@ -335,21 +326,12 @@ export const Subscriptions: React.FC = () => {
         </div>
 
         <div className="header-cta-group">
-          <div className="year-selector-pill">
-            <Calendar size={15} className="calendar-icon" />
-            <span>Active Year:</span>
-            <select
-              value={selectedYearId}
-              onChange={(e) => setSelectedYearId(e.target.value)}
-              className="year-dropdown-select"
-            >
-              {years.map((y) => (
-                <option key={y.id} value={y.id}>
-                  {y.year} (₹{y.default_fee}) {y.status === 'active' ? '• Active' : ''}
-                </option>
-              ))}
-            </select>
-          </div>
+          <YearFilter
+            selectedYearId={selectedYearId}
+            onChange={setSelectedYearId}
+            years={years}
+            showAllOption={true}
+          />
 
           <button className="add-btn secondary-btn" onClick={openConfigureYearModal}>
             <Plus size={15} />

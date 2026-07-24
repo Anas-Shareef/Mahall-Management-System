@@ -5,10 +5,11 @@ import type {
   Household, Member, MemberSubscription, SubscriptionYear, Payment 
 } from '../../services/db';
 import { 
-  Download, Search, Filter, Calendar, Users, Home, 
+  Download, Search, Filter, Users, Home, 
   CreditCard, AlertCircle, CheckCircle, X, 
   Sparkles, Loader2, Layers 
 } from 'lucide-react';
+import { YearFilter } from '../../components/YearFilter';
 
 export const Reports: React.FC = () => {
   const { t } = useTranslation();
@@ -400,21 +401,12 @@ export const Reports: React.FC = () => {
         </div>
 
         <div className="header-cta-group">
-          <div className="year-selector-pill">
-            <Calendar size={15} className="calendar-icon" />
-            <span>Target Year:</span>
-            <select
-              value={selectedYearId}
-              onChange={(e) => setSelectedYearId(e.target.value)}
-              className="year-dropdown-select"
-            >
-              {years.map((y) => (
-                <option key={y.id} value={y.id}>
-                  {y.year} (₹{y.default_fee})
-                </option>
-              ))}
-            </select>
-          </div>
+          <YearFilter
+            selectedYearId={selectedYearId}
+            onChange={setSelectedYearId}
+            years={years}
+            showAllOption={true}
+          />
 
           <button className="add-btn secondary-btn" onClick={openReportGeneratorModal}>
             <Sparkles size={15} />

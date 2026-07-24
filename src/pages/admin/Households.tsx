@@ -159,10 +159,19 @@ export const Households: React.FC = () => {
   // Confirm Delete
   const handleConfirmDelete = async () => {
     if (!householdToDelete) return;
+
+    const linkedMembers = members.filter((m) => m.household_id === householdToDelete.id);
+    if (linkedMembers.length > 0) {
+      showToast('error', `Cannot delete Household H-${householdToDelete.house_number} because it has ${linkedMembers.length} active member(s). Please remove or reassign members first.`);
+      setIsDeleteModalOpen(false);
+      setHouseholdToDelete(null);
+      return;
+    }
+
     setIsDeleting(true);
     try {
       await db.households.delete(householdToDelete.id);
-      showToast('success', `✓ Household ${householdToDelete.house_number} deleted successfully.`);
+      showToast('success', `✓ Household H-${householdToDelete.house_number} deleted successfully.`);
       setIsDeleteModalOpen(false);
       setHouseholdToDelete(null);
       if (selectedHouseholdDetails?.id === householdToDelete.id) {

@@ -5,9 +5,10 @@ import { db } from '../../services/db';
 import type { Household, Member, MemberSubscription, SubscriptionYear, Payment } from '../../services/db';
 import { 
   Home, Users, TrendingUp, CheckCircle, History, ArrowUpRight, 
-  BookOpen, Plus, Calendar, AlertCircle, X, 
+  BookOpen, Plus, AlertCircle, X, 
   Loader2, Sparkles, Receipt, FileText, ArrowUp, Building2 
 } from 'lucide-react';
+import { YearFilter } from '../../components/YearFilter';
 
 export const Dashboard: React.FC = () => {
   const { t } = useTranslation();
@@ -83,7 +84,9 @@ export const Dashboard: React.FC = () => {
     const activeMembers = members.filter((m) => m.status === 'active');
     const accountableMembers = members.filter((m) => m.status === 'active' && m.is_subscription_accountable !== false);
 
-    const yearSubs = subscriptions.filter((s) => s.subscription_year_id === selectedYearId);
+    const yearSubs = selectedYearId 
+      ? subscriptions.filter((s) => s.subscription_year_id === selectedYearId)
+      : subscriptions;
     const expected = yearSubs.reduce((sum, s) => sum + s.total_due, 0);
     const collected = yearSubs.reduce((sum, s) => sum + s.total_paid, 0);
     const pending = yearSubs.reduce((sum, s) => sum + s.balance, 0);
@@ -263,21 +266,12 @@ export const Dashboard: React.FC = () => {
         </div>
 
         <div className="dashboard-actions-group">
-          <div className="year-selector-pill">
-            <Calendar size={15} className="calendar-icon" />
-            <span>Active Year:</span>
-            <select
-              value={selectedYearId}
-              onChange={(e) => setSelectedYearId(e.target.value)}
-              className="year-dropdown-select"
-            >
-              {years.map((y) => (
-                <option key={y.id} value={y.id}>
-                  {y.year} (₹{y.default_fee})
-                </option>
-              ))}
-            </select>
-          </div>
+          <YearFilter
+            selectedYearId={selectedYearId}
+            onChange={setSelectedYearId}
+            years={years}
+            showAllOption={true}
+          />
 
           <button className="add-btn primary-btn" onClick={openAddHouseModal}>
             <Plus size={16} />

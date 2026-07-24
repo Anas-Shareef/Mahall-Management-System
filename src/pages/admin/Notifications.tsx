@@ -193,7 +193,7 @@ export const Notifications: React.FC = () => {
         title_ml: titleMl.trim() || titleEn.trim(),
         message_ml: msgMl.trim() || msgEn.trim(),
         type: notifType,
-        created_by: user?.id || null,
+        created_by: user?.id || '00000000-0000-0000-0000-000000000001',
       };
 
       if (modalMode === 'add') {
@@ -640,6 +640,9 @@ export const Notifications: React.FC = () => {
                   >
                     <Globe size={14} />
                     <span>English Content</span>
+                    <span className={`completion-badge ${titleEn.trim() && msgEn.trim() ? 'complete' : 'pending'}`}>
+                      {titleEn.trim() && msgEn.trim() ? '✓ Complete' : '○ Optional'}
+                    </span>
                   </button>
                   <button
                     type="button"
@@ -648,6 +651,9 @@ export const Notifications: React.FC = () => {
                   >
                     <Globe size={14} />
                     <span>മലയാളം ഉള്ളടക്കം</span>
+                    <span className={`completion-badge ${titleMl.trim() && msgMl.trim() ? 'complete' : 'pending'}`}>
+                      {titleMl.trim() && msgMl.trim() ? '✓ Complete' : '○ Optional'}
+                    </span>
                   </button>
                 </div>
               </div>
@@ -906,6 +912,16 @@ export const Notifications: React.FC = () => {
         }
         .toast-notification.success { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
         .toast-notification.error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+        .completion-badge {
+          font-size: 10.5px;
+          font-weight: 700;
+          padding: 2px 8px;
+          border-radius: var(--radius-pill);
+          margin-left: 4px;
+        }
+        .completion-badge.complete { background: #d1fae5; color: #065f46; }
+        .completion-badge.pending { background: #f3f4f6; color: #9ca3af; }
 
         .page-header-actions {
           display: flex;

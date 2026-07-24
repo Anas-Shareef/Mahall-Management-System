@@ -7,6 +7,7 @@ import {
   Plus, Edit2, Trash2, Search, Filter, Receipt, X, AlertCircle, 
   CheckCircle, Download, Loader2, Home 
 } from 'lucide-react';
+import { YearFilter } from '../../components/YearFilter';
 
 export const Payments: React.FC = () => {
   const { t } = useTranslation();
@@ -24,6 +25,7 @@ export const Payments: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMethod, setSelectedMethod] = useState('');
   const [selectedHouseholdId, setSelectedHouseholdId] = useState('');
+  const [selectedYearId, setSelectedYearId] = useState('');
 
   // Add / Edit Payment Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -232,7 +234,7 @@ export const Payments: React.FC = () => {
         payment_date: formDate,
         reference_number: formRefNumber.trim() || null,
         notes: formNotes.trim() || null,
-        recorded_by: user?.id || null,
+        recorded_by: user?.id || '00000000-0000-0000-0000-000000000001',
       };
 
       if (modalMode === 'add') {
@@ -332,15 +334,18 @@ export const Payments: React.FC = () => {
 
       const matchesMethod = selectedMethod ? pay.payment_method === selectedMethod : true;
       const matchesHouse = selectedHouseholdId ? (mem && mem.household_id === selectedHouseholdId) : true;
+      const sub = subscriptions.find((s) => s.id === pay.subscription_id);
+      const matchesYear = selectedYearId ? (sub && sub.subscription_year_id === selectedYearId) : true;
 
-      return matchesSearch && matchesMethod && matchesHouse;
+      return matchesSearch && matchesMethod && matchesHouse && matchesYear;
     });
-  }, [payments, members, households, searchQuery, selectedMethod, selectedHouseholdId]);
+  }, [payments, members, households, subscriptions, searchQuery, selectedMethod, selectedHouseholdId, selectedYearId]);
 
   const clearFilters = () => {
     setSearchQuery('');
     setSelectedMethod('');
     setSelectedHouseholdId('');
+    setSelectedYearId('');
   };
 
   const formatCurrency = (val: number) => {
@@ -394,6 +399,12 @@ export const Payments: React.FC = () => {
         </div>
 
         <div className="filter-selectors-grid">
+          <YearFilter
+            selectedYearId={selectedYearId}
+            onChange={setSelectedYearId}
+            years={years}
+            showAllOption={true}
+          />
           <div className="filter-select-wrapper">
             <Home size={15} className="select-icon" />
             <select value={selectedHouseholdId} onChange={(e) => setSelectedHouseholdId(e.target.value)}>
