@@ -100,10 +100,11 @@ export const Dashboard: React.FC = () => {
     // Resolve numeric year from selectedYearId for filtering date-based records
     const selectedYear = years.find((y) => y.id === selectedYearId)?.year ?? null;
 
-    // Filter community records by selected year (derived from date fields)
+    // Filter community records by selected year (derived from date fields) & status === 'received'
+    const receivedDonations = donations.filter((d) => (d.status || 'received') === 'received');
     const filteredDonations = selectedYear
-      ? donations.filter((d) => new Date(d.donation_date).getFullYear() === selectedYear)
-      : donations;
+      ? receivedDonations.filter((d) => new Date(d.donation_date).getFullYear() === selectedYear)
+      : receivedDonations;
     const filteredDeaths = selectedYear
       ? deaths.filter((d) => new Date(d.date_of_death).getFullYear() === selectedYear)
       : deaths;

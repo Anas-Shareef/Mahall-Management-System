@@ -184,18 +184,35 @@ export interface Donation {
   id: string;
   donation_type: 'general' | 'campaign';
   campaign_id: string | null;
+  donor_type?: 'member' | 'external' | 'anonymous';
   donor_name: string | null;
   donor_phone: string | null;
+  donor_email?: string | null;
+  donor_address?: string | null;
   donor_member_id: string | null;
   is_anonymous: boolean;
   amount: number;
   payment_method: 'cash' | 'upi' | 'bank_transfer' | 'cheque' | 'other';
   donation_date: string;
   receipt_number: string | null;
+  reference_number?: string | null;
+  purpose?: string | null;
+  status?: 'received' | 'pending' | 'cancelled' | 'refunded';
   notes: string | null;
   recorded_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface AuditLog {
+  id?: string;
+  user_id?: string | null;
+  action: string;
+  entity_type: string;
+  entity_id?: string | null;
+  old_data?: any;
+  new_data?: any;
+  created_at?: string;
 }
 
 export interface GalleryAlbum {
@@ -2031,6 +2048,20 @@ export const db = {
       saveLocalData('mahal_donations', list);
       return true;
     },
+    deleteMultiple: async (ids: string[]): Promise<boolean> => {
+      if (ids.length === 0) return true;
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { error } = await supabase.from('donations').delete().in('id', ids);
+          if (!error) return true;
+        } catch (e) {
+          console.warn('Supabase donations deleteMultiple notice:', e);
+        }
+      }
+      const list = getLocalData<Donation>('mahal_donations').filter((d) => !ids.includes(d.id));
+      saveLocalData('mahal_donations', list);
+      return true;
+    },
   },
 
   // GALLERY ALBUMS
@@ -2160,6 +2191,32 @@ export const db = {
       const list = getLocalData<GalleryImage>('mahal_images').filter((img) => img.id !== id);
       saveLocalData('mahal_images', list);
       return true;
+    },
+  },
+
+  // AUDIT LOGS
+  auditLogs: {
+    log: async (entry: AuditLog): Promise<void> => {
+      const cleanEntry = {
+        ...entry,
+        user_id: sanitizeUuid(entry.user_id),
+        entity_id: sanitizeUuid(entry.entity_id),
+      };
+      if (isSupabaseConfigured && supabase) {
+        try {
+          await supabase.from('audit_logs').insert([cleanEntry]);
+          return;
+        } catch (e) {
+          console.warn('Supabase audit_logs insert notice:', e);
+        }
+      }
+      const list = getLocalData<AuditLog>('mahal_audit_logs');
+      list.push({
+        ...cleanEntry,
+        id: 'audit-' + Math.random().toString(36).substr(2, 9),
+        created_at: new Date().toISOString(),
+      });
+      saveLocalData('mahal_audit_logs', list);
     },
   },
 };
