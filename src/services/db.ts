@@ -879,6 +879,66 @@ export const db = {
       saveLocalData('mahal_subscriptions', list);
       return list[idx];
     },
+    create: async (
+      subData: Omit<MemberSubscription, 'id' | 'created_at' | 'updated_at'>
+    ): Promise<MemberSubscription> => {
+      const annual_fee = subData.annual_fee || 0;
+      const previous_arrears = subData.previous_arrears || 0;
+      const total_paid = subData.total_paid || 0;
+      const total_due = annual_fee + previous_arrears;
+      const balance = total_due - total_paid;
+
+      let status = subData.status;
+      if (total_paid >= total_due && total_due > 0) {
+        status = 'paid';
+      } else if (total_paid > 0) {
+        status = 'partially_paid';
+      } else {
+        status = 'unpaid';
+      }
+
+      const fullRecord = {
+        ...subData,
+        annual_fee,
+        previous_arrears,
+        total_due,
+        total_paid,
+        balance,
+        status,
+      };
+
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase
+          .from('member_subscriptions')
+          .insert([fullRecord])
+          .select()
+          .single();
+        if (error) throw error;
+        return data as MemberSubscription;
+      }
+
+      const list = getLocalData<MemberSubscription>('mahal_subscriptions');
+      const newSub: MemberSubscription = {
+        ...fullRecord,
+        id: 'sub-' + Math.random().toString(36).substr(2, 9),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      list.push(newSub);
+      saveLocalData('mahal_subscriptions', list);
+      return newSub;
+    },
+    delete: async (id: string): Promise<boolean> => {
+      if (isSupabaseConfigured && supabase) {
+        const { error } = await supabase.from('member_subscriptions').delete().eq('id', id);
+        if (error) throw error;
+        return true;
+      }
+      const list = getLocalData<MemberSubscription>('mahal_subscriptions');
+      const filtered = list.filter((s) => s.id !== id);
+      saveLocalData('mahal_subscriptions', filtered);
+      return true;
+    },
   },
 
   // PAYMENTS
