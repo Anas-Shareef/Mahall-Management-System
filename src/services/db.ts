@@ -605,6 +605,17 @@ export const db = {
       saveLocalData('mahal_households', list);
       return list[idx];
     },
+    delete: async (id: string): Promise<boolean> => {
+      if (isSupabaseConfigured && supabase) {
+        const { error } = await supabase.from('households').delete().eq('id', id);
+        if (error) throw error;
+        return true;
+      }
+      const list = getLocalData<Household>('mahal_households');
+      const filtered = list.filter((h) => h.id !== id);
+      saveLocalData('mahal_households', filtered);
+      return true;
+    },
   },
 
   // MEMBERS

@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { db } from '../../services/db';
 import type { Household, Member, MemberSubscription, SubscriptionYear } from '../../services/db';
-import { Plus, Edit2, Search, Filter, Home, Users, X, AlertCircle } from 'lucide-react';
+import { 
+  Plus, Edit2, Trash2, Search, Filter, Home, Users, X, AlertCircle, 
+  CheckCircle, Phone, MapPin, Loader2 
+} from 'lucide-react';
 
 export const Households: React.FC = () => {
   const { t } = useTranslation();
@@ -19,23 +22,39 @@ export const Households: React.FC = () => {
   const [selectedArea, setSelectedArea] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
 
-  // Modal States
+  // Add / Edit Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
   const [currentId, setCurrentId] = useState<string | null>(null);
 
-  // Form Fields
+  // Form Fields & Validation Errors
   const [houseNumber, setHouseNumber] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [ownerPhone, setOwnerPhone] = useState('');
   const [address, setAddress] = useState('');
   const [area, setArea] = useState('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
+  
+  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
   const [formError, setFormError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Delete Modal State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [householdToDelete, setHouseholdToDelete] = useState<Household | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Toast Notification State
+  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Household Details Panel
   const [selectedHouseholdDetails, setSelectedHouseholdDetails] = useState<Household | null>(null);
   const [householdMembersDetails, setHouseholdMembersDetails] = useState<any[]>([]);
+
+  const showToast = (type: 'success' | 'error', text: string) => {
+    setToastMessage({ type, text });
+    setTimeout(() => setToastMessage(null), 3500);
+  };
 
   // Fetch initial data
   const loadData = async () => {
@@ -53,6 +72,7 @@ export const Households: React.FC = () => {
       setYears(yearList);
     } catch (err) {
       console.error('Failed to load household page data:', err);
+      showToast('error', 'Unable to load households. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -86,7 +106,7 @@ export const Households: React.FC = () => {
     };
   };
 
-  // Open Modal
+  // Open Add Modal
   const openAddModal = () => {
     setModalMode('add');
     setCurrentId(null);
@@ -96,11 +116,14 @@ export const Households: React.FC = () => {
     setAddress('');
     setArea('');
     setStatus('active');
+    setFieldErrors({});
     setFormError('');
     setIsModalOpen(true);
   };
 
-  const openEditModal = (h: Household) => {
+  // Open Edit Modal
+  const openEditModal = (h: Household, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     setModalMode('edit');
     setCurrentId(h.id);
     setHouseNumber(h.house_number);
@@ -109,8 +132,64 @@ export const Households: React.FC = () => {
     setAddress(h.address || '');
     setArea(h.area || '');
     setStatus(h.status);
+    setFieldErrors({});
     setFormError('');
     setIsModalOpen(true);
+  };
+
+  // Open Delete Modal
+  const openDeleteModal = (h: Household, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setHouseholdToDelete(h);
+    setIsDeleteModalOpen(true);
+  };
+
+  // Confirm Delete
+  const handleConfirmDelete = async () => {
+    if (!householdToDelete) return;
+    setIsDeleting(true);
+    try {
+      await db.households.delete(householdToDelete.id);
+      showToast('success', `✓ Household ${householdToDelete.house_number} deleted successfully.`);
+      setIsDeleteModalOpen(false);
+      setHouseholdToDelete(null);
+      if (selectedHouseholdDetails?.id === householdToDelete.id) {
+        setSelectedHouseholdDetails(null);
+      }
+      loadData();
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to delete household.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Validate Form
+  const validateForm = (): boolean => {
+    const errors: { [key: string]: string } = {};
+
+    if (!houseNumber.trim()) {
+      errors.houseNumber = 'House number is required.';
+    } else {
+      // Check duplicate house number
+      const duplicate = households.find(
+        (h) => h.house_number.toLowerCase() === houseNumber.trim().toLowerCase() && h.id !== currentId
+      );
+      if (duplicate) {
+        errors.houseNumber = `A household with house number "${houseNumber}" already exists.`;
+      }
+    }
+
+    if (!ownerName.trim()) {
+      errors.ownerName = 'House owner name is required.';
+    }
+
+    if (ownerPhone.trim() && !/^[0-9+--\s()]{7,15}$/.test(ownerPhone.trim())) {
+      errors.ownerPhone = 'Please enter a valid phone number.';
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   // Save Modal Form
@@ -118,37 +197,41 @@ export const Households: React.FC = () => {
     e.preventDefault();
     setFormError('');
 
-    if (!houseNumber || !ownerName) {
-      setFormError('House number and owner name are required.');
+    if (!validateForm()) {
       return;
     }
 
+    setIsSaving(true);
+
     try {
       const data = {
-        house_number: houseNumber,
-        house_owner_name: ownerName,
-        house_owner_phone: ownerPhone || null,
-        address: address || null,
-        area: area || null,
+        house_number: houseNumber.trim(),
+        house_owner_name: ownerName.trim(),
+        house_owner_phone: ownerPhone.trim() || null,
+        address: address.trim() || null,
+        area: area.trim() || null,
         status,
       };
 
       if (modalMode === 'add') {
         await db.households.create(data);
+        showToast('success', '✓ Household added successfully.');
       } else if (currentId) {
         await db.households.update(currentId, data);
+        showToast('success', '✓ Household updated successfully.');
       }
 
       setIsModalOpen(false);
       loadData();
-      
-      // Refresh details if the currently viewed household was updated
+
       if (selectedHouseholdDetails && selectedHouseholdDetails.id === currentId) {
         const updatedH = await db.households.getById(currentId);
         setSelectedHouseholdDetails(updatedH);
       }
     } catch (err: any) {
-      setFormError(err.message || 'An error occurred.');
+      setFormError(err.message || 'Unable to save household. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -156,14 +239,11 @@ export const Households: React.FC = () => {
   const handleViewDetails = (h: Household) => {
     setSelectedHouseholdDetails(h);
     const houseMembers = members.filter((m) => m.household_id === h.id);
-    
-    // Latest active year
-    const activeYear = years.find(y => y.status === 'active') || years[0];
-    
+    const activeYear = years.find((y) => y.status === 'active') || years[0];
+
     const details = houseMembers.map((m) => {
-      // Find sub for latest year
-      const sub = activeYear 
-        ? subscriptions.find(s => s.member_id === m.id && s.subscription_year_id === activeYear.id)
+      const sub = activeYear
+        ? subscriptions.find((s) => s.member_id === m.id && s.subscription_year_id === activeYear.id)
         : null;
 
       return {
@@ -179,118 +259,197 @@ export const Households: React.FC = () => {
     setHouseholdMembersDetails(details);
   };
 
-  // Filters calculation
-  const uniqueAreas = Array.from(new Set(households.map((h) => h.area).filter(Boolean)));
+  // Unique Areas list for Filter
+  const uniqueAreas = useMemo(() => {
+    return Array.from(new Set(households.map((h) => h.area).filter(Boolean))) as string[];
+  }, [households]);
 
-  const filteredHouseholds = households.filter((h) => {
-    const matchesSearch =
-      h.house_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      h.house_owner_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (h.house_owner_phone && h.house_owner_phone.includes(searchQuery));
-    const matchesArea = selectedArea ? h.area === selectedArea : true;
-    const matchesStatus = selectedStatus ? h.status === selectedStatus : true;
+  // Filtered Households list
+  const filteredHouseholds = useMemo(() => {
+    return households.filter((h) => {
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        h.house_number.toLowerCase().includes(q) ||
+        h.house_owner_name.toLowerCase().includes(q) ||
+        (h.area && h.area.toLowerCase().includes(q)) ||
+        (h.house_owner_phone && h.house_owner_phone.includes(q));
 
-    return matchesSearch && matchesArea && matchesStatus;
-  });
+      const matchesArea = selectedArea ? h.area === selectedArea : true;
+      const matchesStatus = selectedStatus ? h.status === selectedStatus : true;
+
+      return matchesSearch && matchesArea && matchesStatus;
+    });
+  }, [households, searchQuery, selectedArea, selectedStatus]);
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedArea('');
+    setSelectedStatus('');
+  };
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
-      maximumFractionDigits: 0
+      maximumFractionDigits: 0,
     }).format(val);
   };
 
   return (
-    <div className="households-page">
+    <div className="households-page animate-fade-in">
+      {/* TOAST NOTIFICATION */}
+      {toastMessage && (
+        <div className={`toast-notification ${toastMessage.type} animate-bounce-in`}>
+          {toastMessage.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+          <span>{toastMessage.text}</span>
+        </div>
+      )}
+
+      {/* PAGE HEADER */}
       <div className="page-header-actions">
-        <h3>{t('household.householdsTitle')}</h3>
+        <div>
+          <h3>{t('household.householdsTitle')}</h3>
+          <p className="page-subtitle">Manage Mahallu households, ward directories, and member financial balances.</p>
+        </div>
         <button className="add-btn primary-btn" onClick={openAddModal}>
           <Plus size={16} />
           <span>{t('household.addHousehold')}</span>
         </button>
       </div>
 
-      {/* SEARCH AND FILTER BAR */}
+      {/* SEARCH AND FILTER TOOLBAR */}
       <div className="filter-bar glass-card">
         <div className="search-box">
           <Search size={18} className="search-icon" />
           <input
             type="text"
-            placeholder={t('common.search')}
+            placeholder="Search by house number, owner name, phone, or ward..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+          {searchQuery && (
+            <button className="clear-search-btn" onClick={() => setSearchQuery('')}>
+              <X size={14} />
+            </button>
+          )}
         </div>
 
         <div className="filter-selectors">
           <div className="filter-select-wrapper">
-            <Filter size={16} className="select-icon" />
+            <Filter size={15} className="select-icon" />
             <select value={selectedArea} onChange={(e) => setSelectedArea(e.target.value)}>
-              <option value="">{t('common.all')}</option>
+              <option value="">All Wards / Areas</option>
               {uniqueAreas.map((a) => (
-                <option key={a} value={a as string}>{a}</option>
+                <option key={a} value={a}>
+                  {a}
+                </option>
               ))}
             </select>
           </div>
 
           <div className="filter-select-wrapper">
-            <Filter size={16} className="select-icon" />
+            <Filter size={15} className="select-icon" />
             <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
               <option value="">Status: All</option>
               <option value="active">{t('household.active')}</option>
               <option value="inactive">{t('household.inactive')}</option>
             </select>
           </div>
+
+          {(searchQuery || selectedArea || selectedStatus) && (
+            <button className="clear-filters-link" onClick={clearFilters}>
+              Clear Filters
+            </button>
+          )}
         </div>
       </div>
 
-      {/* MAIN LAYOUT SPLIT */}
+      {/* MAIN CONTENT SPLIT */}
       <div className="households-content-split">
-        {/* HOUSEHOLDS TABLE */}
+        {/* HOUSEHOLDS TABLE & MOBILE DIRECTORY */}
         <div className={`table-container-card glass-card ${selectedHouseholdDetails ? 'narrow' : ''}`}>
           {loading ? (
-            <div className="loading-text">{t('common.loading')}</div>
+            <div className="skeleton-loading-container">
+              <div className="skeleton-row"></div>
+              <div className="skeleton-row"></div>
+              <div className="skeleton-row"></div>
+            </div>
+          ) : households.length === 0 ? (
+            /* EMPTY STATE 1: NO HOUSEHOLDS IN DATABASE */
+            <div className="empty-state-card">
+              <div className="empty-state-icon emerald">
+                <Home size={32} />
+              </div>
+              <h4>No households yet</h4>
+              <p>Start building your household directory by adding your first household.</p>
+              <button className="add-btn primary-btn margin-top" onClick={openAddModal}>
+                <Plus size={16} />
+                <span>Add Household</span>
+              </button>
+            </div>
+          ) : filteredHouseholds.length === 0 ? (
+            /* EMPTY STATE 2: SEARCH / FILTER RETURNS 0 RESULTS */
+            <div className="empty-state-card">
+              <div className="empty-state-icon neutral">
+                <Search size={32} />
+              </div>
+              <h4>No households found</h4>
+              <p>Try changing your search keywords or filter criteria.</p>
+              <button className="btn-cancel margin-top" onClick={clearFilters}>
+                Clear Filters
+              </button>
+            </div>
           ) : (
-            <div className="table-responsive">
-              <table className="households-table">
-                <thead>
-                  <tr>
-                    <th>{t('household.houseNumber')}</th>
-                    <th>{t('household.houseOwner')}</th>
-                    <th>{t('household.area')}</th>
-                    <th>{t('household.membersCount')}</th>
-                    <th>{t('household.balance')}</th>
-                    <th>{t('household.status')}</th>
-                    <th>{t('common.actions')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredHouseholds.length === 0 ? (
+            <>
+              {/* DESKTOP & TABLET DATA TABLE */}
+              <div className="table-responsive desktop-view-only">
+                <table className="households-table">
+                  <thead>
                     <tr>
-                      <td colSpan={7} className="no-data-cell">{t('common.noData')}</td>
+                      <th>{t('household.houseNumber')}</th>
+                      <th>{t('household.houseOwner')}</th>
+                      <th>{t('household.area')}</th>
+                      <th>{t('household.membersCount')}</th>
+                      <th>{t('household.balance')}</th>
+                      <th>{t('household.status')}</th>
+                      <th style={{ textAlign: 'right' }}>{t('common.actions')}</th>
                     </tr>
-                  ) : (
-                    filteredHouseholds.map((h) => {
+                  </thead>
+                  <tbody>
+                    {filteredHouseholds.map((h) => {
                       const financials = getHouseholdFinancials(h.id);
+                      const isSelected = selectedHouseholdDetails?.id === h.id;
                       return (
-                        <tr 
-                          key={h.id} 
-                          className={`household-row ${selectedHouseholdDetails?.id === h.id ? 'selected' : ''}`}
+                        <tr
+                          key={h.id}
+                          className={`household-row ${isSelected ? 'selected' : ''}`}
                           onClick={() => handleViewDetails(h)}
                         >
-                          <td className="bold-text">House No. {h.house_number}</td>
-                          <td>
-                            <div className="owner-profile-td">
-                              <span>{h.house_owner_name}</span>
-                              <span className="owner-phone-sub">{h.house_owner_phone || 'No phone'}</span>
+                          <td className="bold-text">
+                            <div className="house-no-cell">
+                              <span className="house-tag">H-{h.house_number}</span>
                             </div>
                           </td>
-                          <td>{h.area || 'N/A'}</td>
+                          <td>
+                            <div className="owner-profile-td">
+                              <span className="owner-name">{h.house_owner_name}</span>
+                              <span className="owner-phone-sub">
+                                <Phone size={11} />
+                                {h.house_owner_phone || 'No phone'}
+                              </span>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="area-tag">
+                              <MapPin size={11} />
+                              {h.area || 'N/A'}
+                            </span>
+                          </td>
                           <td>
                             <span className="members-badge">
-                              <Users size={12} />
-                              {financials.membersCount}
+                              <Users size={13} />
+                              <span>{financials.membersCount}</span>
                             </span>
                           </td>
                           <td className={`balance-td ${financials.balance > 0 ? 'outstanding' : 'paid'}`}>
@@ -298,42 +457,120 @@ export const Households: React.FC = () => {
                           </td>
                           <td>
                             <span className={`status-pill ${h.status}`}>
+                              <span className="dot"></span>
                               {t(`household.${h.status}`)}
                             </span>
                           </td>
-                          <td>
+                          <td style={{ textAlign: 'right' }}>
                             <div className="actions-button-wrapper" onClick={(e) => e.stopPropagation()}>
-                              <button 
-                                className="action-icon-btn edit" 
-                                onClick={() => openEditModal(h)}
+                              <button
+                                className="action-icon-btn edit"
+                                onClick={(e) => openEditModal(h, e)}
                                 title={t('common.edit')}
                               >
-                                <Edit2 size={14} />
+                                <Edit2 size={15} />
+                              </button>
+                              <button
+                                className="action-icon-btn delete"
+                                onClick={(e) => openDeleteModal(h, e)}
+                                title="Delete Household"
+                              >
+                                <Trash2 size={15} />
                               </button>
                             </div>
                           </td>
                         </tr>
                       );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* MOBILE CARD DIRECTORY VIEW */}
+              <div className="mobile-cards-directory">
+                {filteredHouseholds.map((h) => {
+                  const financials = getHouseholdFinancials(h.id);
+                  return (
+                    <div
+                      key={h.id}
+                      className={`mobile-household-card ${selectedHouseholdDetails?.id === h.id ? 'selected' : ''}`}
+                      onClick={() => handleViewDetails(h)}
+                    >
+                      <div className="card-head">
+                        <div className="house-no-badge">H-{h.house_number}</div>
+                        <span className={`status-pill ${h.status}`}>
+                          <span className="dot"></span>
+                          {t(`household.${h.status}`)}
+                        </span>
+                      </div>
+
+                      <div className="card-body">
+                        <h4 className="owner-title">{h.house_owner_name}</h4>
+                        <div className="card-info-row">
+                          <Phone size={13} className="info-icon" />
+                          <span>{h.house_owner_phone || 'No phone'}</span>
+                        </div>
+                        {h.area && (
+                          <div className="card-info-row">
+                            <MapPin size={13} className="info-icon" />
+                            <span>{h.area}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="card-footer">
+                        <div className="card-stats">
+                          <span className="members-badge">
+                            <Users size={12} />
+                            <span>{financials.membersCount}</span>
+                          </span>
+                          <span className={`balance-tag ${financials.balance > 0 ? 'outstanding' : 'paid'}`}>
+                            {formatCurrency(financials.balance)}
+                          </span>
+                        </div>
+
+                        <div className="mobile-card-actions" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            className="mobile-action-btn edit"
+                            onClick={(e) => openEditModal(h, e)}
+                          >
+                            <Edit2 size={14} />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            className="mobile-action-btn delete"
+                            onClick={(e) => openDeleteModal(h, e)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
 
-        {/* HOUSEHOLD DETAILS FINANCIAL SUMMARY SIDE PANEL */}
+        {/* HOUSEHOLD DETAILS FINANCIAL LEDGER SIDE PANEL */}
         {selectedHouseholdDetails && (
           <div className="details-panel-card glass-card">
             <div className="panel-header">
               <div className="panel-title-wrapper">
-                <Home size={20} className="panel-title-icon" />
+                <div className="panel-icon-box">
+                  <Home size={20} color="#00966b" />
+                </div>
                 <div>
                   <h4>House No. {selectedHouseholdDetails.house_number}</h4>
                   <p>{selectedHouseholdDetails.house_owner_name}</p>
                 </div>
               </div>
-              <button className="panel-close-btn" onClick={() => setSelectedHouseholdDetails(null)}>
+              <button
+                className="panel-close-btn"
+                onClick={() => setSelectedHouseholdDetails(null)}
+                aria-label="Close household details panel"
+              >
                 <X size={18} />
               </button>
             </div>
@@ -345,7 +582,7 @@ export const Households: React.FC = () => {
                   <span className="meta-value">{selectedHouseholdDetails.house_owner_phone || 'N/A'}</span>
                 </div>
                 <div className="meta-item">
-                  <span className="meta-label">Area/Ward</span>
+                  <span className="meta-label">Area / Ward</span>
                   <span className="meta-value">{selectedHouseholdDetails.area || 'N/A'}</span>
                 </div>
                 <div className="meta-item">
@@ -361,27 +598,30 @@ export const Households: React.FC = () => {
                     <thead>
                       <tr>
                         <th>{t('member.memberName')}</th>
-                        <th>{t('subscription.totalDue')}</th>
-                        <th>{t('subscription.totalPaid')}</th>
-                        <th>{t('subscription.outstandingBalance')}</th>
+                        <th>Due</th>
+                        <th>Paid</th>
+                        <th>Balance</th>
                       </tr>
                     </thead>
                     <tbody>
                       {householdMembersDetails.length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="no-data-cell">No members in household</td>
+                          <td colSpan={4} className="no-data-cell">
+                            No members added to this household yet.
+                          </td>
                         </tr>
                       ) : (
                         <>
                           {householdMembersDetails.map((m) => (
                             <tr key={m.id}>
-                              <td className="bold-text">{m.name} <span className="rel-tag">({m.relationship})</span></td>
+                              <td className="bold-text">
+                                {m.name} <span className="rel-tag">({m.relationship})</span>
+                              </td>
                               <td>{formatCurrency(m.totalDue)}</td>
                               <td>{formatCurrency(m.totalPaid)}</td>
                               <td className={m.balance > 0 ? 'outstanding' : ''}>{formatCurrency(m.balance)}</td>
                             </tr>
                           ))}
-                          {/* House Consolidated Total Row */}
                           <tr className="consolidated-total-row">
                             <td>House Total</td>
                             <td>{formatCurrency(householdMembersDetails.reduce((sum, m) => sum + m.totalDue, 0))}</td>
@@ -401,18 +641,31 @@ export const Households: React.FC = () => {
         )}
       </div>
 
-      {/* ADD/EDIT MODAL DIALOG */}
+      {/* ADD / EDIT HOUSEHOLD MODAL DIALOG */}
       {isModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-dialog-card animate-fade-in">
+          <div className="modal-dialog-card animate-scale-up">
             <div className="modal-header">
-              <h4>{modalMode === 'add' ? t('household.addHousehold') : t('household.editHousehold')}</h4>
-              <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}>
-                <X size={18} />
+              <div>
+                <h4>{modalMode === 'add' ? 'Add Household' : 'Edit Household'}</h4>
+                <p className="modal-subtitle">
+                  {modalMode === 'add'
+                    ? 'Add a new household to the Mahall system directory.'
+                    : `Update details for House No. ${houseNumber}`}
+                </p>
+              </div>
+              <button
+                className="modal-close-btn"
+                onClick={() => setIsModalOpen(false)}
+                aria-label="Close Add Household dialog"
+              >
+                <X size={20} />
               </button>
             </div>
-            
+
             <form onSubmit={handleSave} className="modal-form">
+              <div className="form-section-title">Household Information</div>
+
               {formError && (
                 <div className="form-alert error">
                   <AlertCircle size={16} />
@@ -422,48 +675,75 @@ export const Households: React.FC = () => {
 
               <div className="form-row-grid">
                 <div className="form-group">
-                  <label htmlFor="house-no-input">{t('household.houseNumber')} *</label>
+                  <label htmlFor="house-no-input">House Number *</label>
                   <input
                     id="house-no-input"
                     type="text"
                     required
-                    placeholder={t('household.enterHouseNumber')}
+                    placeholder="e.g. H-12"
                     value={houseNumber}
-                    onChange={(e) => setHouseNumber(e.target.value)}
+                    className={fieldErrors.houseNumber ? 'input-error' : ''}
+                    onChange={(e) => {
+                      setHouseNumber(e.target.value);
+                      if (fieldErrors.houseNumber) {
+                        setFieldErrors({ ...fieldErrors, houseNumber: '' });
+                      }
+                    }}
                   />
+                  {fieldErrors.houseNumber && (
+                    <span className="field-error-text">⚠ {fieldErrors.houseNumber}</span>
+                  )}
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="owner-name-input">{t('household.houseOwner')} *</label>
+                  <label htmlFor="owner-name-input">House Owner Name *</label>
                   <input
                     id="owner-name-input"
                     type="text"
                     required
-                    placeholder={t('household.enterOwnerName')}
+                    placeholder="e.g. Ashraf K."
                     value={ownerName}
-                    onChange={(e) => setOwnerName(e.target.value)}
+                    className={fieldErrors.ownerName ? 'input-error' : ''}
+                    onChange={(e) => {
+                      setOwnerName(e.target.value);
+                      if (fieldErrors.ownerName) {
+                        setFieldErrors({ ...fieldErrors, ownerName: '' });
+                      }
+                    }}
                   />
+                  {fieldErrors.ownerName && (
+                    <span className="field-error-text">⚠ {fieldErrors.ownerName}</span>
+                  )}
                 </div>
               </div>
 
               <div className="form-row-grid">
                 <div className="form-group">
-                  <label htmlFor="phone-input">{t('household.houseOwnerPhone')}</label>
+                  <label htmlFor="phone-input">Owner Phone Number</label>
                   <input
                     id="phone-input"
                     type="tel"
-                    placeholder={t('household.enterOwnerPhone')}
+                    placeholder="e.g. 9876543210"
                     value={ownerPhone}
-                    onChange={(e) => setOwnerPhone(e.target.value)}
+                    className={fieldErrors.ownerPhone ? 'input-error' : ''}
+                    onChange={(e) => {
+                      setOwnerPhone(e.target.value);
+                      if (fieldErrors.ownerPhone) {
+                        setFieldErrors({ ...fieldErrors, ownerPhone: '' });
+                      }
+                    }}
                   />
+                  {fieldErrors.ownerPhone && (
+                    <span className="field-error-text">⚠ {fieldErrors.ownerPhone}</span>
+                  )}
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="area-input">{t('household.area')}</label>
+                  <label htmlFor="area-input">Area / Ward</label>
                   <input
                     id="area-input"
                     type="text"
-                    placeholder={t('household.enterArea')}
+                    placeholder="e.g. Ward 4 / North Area"
                     value={area}
                     onChange={(e) => setArea(e.target.value)}
                   />
@@ -471,18 +751,18 @@ export const Households: React.FC = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="address-input">{t('household.address')}</label>
+                <label htmlFor="address-input">Address</label>
                 <textarea
                   id="address-input"
                   rows={3}
-                  placeholder={t('household.enterAddress')}
+                  placeholder="Detailed house address..."
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                 />
               </div>
 
               <div className="form-group">
-                <label>{t('household.status')}</label>
+                <label>Status</label>
                 <div className="status-pill-toggle-group">
                   <button
                     type="button"
@@ -490,7 +770,7 @@ export const Households: React.FC = () => {
                     onClick={() => setStatus('active')}
                   >
                     <span className="dot active-dot"></span>
-                    <span>{t('household.active')}</span>
+                    <span>Active</span>
                   </button>
                   <button
                     type="button"
@@ -498,17 +778,29 @@ export const Households: React.FC = () => {
                     onClick={() => setStatus('inactive')}
                   >
                     <span className="dot inactive-dot"></span>
-                    <span>{t('household.inactive')}</span>
+                    <span>Inactive</span>
                   </button>
                 </div>
               </div>
 
               <div className="modal-actions">
-                <button type="button" className="btn-cancel" onClick={() => setIsModalOpen(false)}>
-                  {t('common.cancel')}
+                <button
+                  type="button"
+                  className="btn-cancel"
+                  onClick={() => setIsModalOpen(false)}
+                  disabled={isSaving}
+                >
+                  Cancel
                 </button>
-                <button type="submit" className="primary-btn">
-                  {t('common.save')}
+                <button type="submit" className="primary-btn submit-pill-btn" disabled={isSaving}>
+                  {isSaving ? (
+                    <>
+                      <Loader2 size={16} className="spinner-icon" />
+                      <span>Saving Household...</span>
+                    </>
+                  ) : (
+                    <span>{modalMode === 'add' ? 'Save Household' : 'Update Household'}</span>
+                  )}
                 </button>
               </div>
             </form>
@@ -516,11 +808,84 @@ export const Households: React.FC = () => {
         </div>
       )}
 
+      {/* DELETE CONFIRMATION MODAL */}
+      {isDeleteModalOpen && householdToDelete && (
+        <div className="modal-overlay">
+          <div className="modal-dialog-card delete-card animate-scale-up">
+            <div className="modal-header delete-header">
+              <div className="delete-badge-icon">
+                <Trash2 size={22} color="#dc2626" />
+              </div>
+              <div>
+                <h4>Delete Household?</h4>
+                <p className="modal-subtitle">
+                  Are you sure you want to delete household <strong>H-{householdToDelete.house_number}</strong> (
+                  {householdToDelete.house_owner_name})? This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn-cancel"
+                onClick={() => setIsDeleteModalOpen(false)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="delete-danger-btn"
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 size={16} className="spinner-icon" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <span>Delete Household</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PAGE STYLES */}
       <style>{`
         .households-page {
           display: flex;
           flex-direction: column;
           gap: 24px;
+        }
+
+        /* TOAST NOTIFICATION */
+        .toast-notification {
+          position: fixed;
+          top: 24px;
+          right: 24px;
+          z-index: 999;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 14px 20px;
+          border-radius: var(--radius-pill);
+          font-weight: 700;
+          font-size: 13.5px;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+        .toast-notification.success {
+          background: #d1fae5;
+          color: #065f46;
+          border: 1px solid #6ee7b7;
+        }
+        .toast-notification.error {
+          background: #fee2e2;
+          color: #991b1b;
+          border: 1px solid #fca5a5;
         }
 
         .page-header-actions {
@@ -530,18 +895,47 @@ export const Households: React.FC = () => {
         }
 
         .page-header-actions h3 {
-          font-size: 20px;
-          font-weight: 700;
-          color: var(--primary);
+          font-size: 22px;
+          font-weight: 800;
+          color: #111827;
         }
 
-        /* FILTER BAR */
+        .page-subtitle {
+          font-size: 13px;
+          color: #6b7280;
+          margin-top: 2px;
+        }
+
+        .add-btn.primary-btn {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 20px;
+          border-radius: var(--radius-pill);
+          background: var(--primary);
+          color: #ffffff;
+          font-weight: 700;
+          font-size: 13.5px;
+          border: none;
+          cursor: pointer;
+          box-shadow: 0 4px 14px rgba(0, 150, 107, 0.35);
+          transition: var(--transition-all);
+        }
+
+        .add-btn.primary-btn:hover {
+          background: var(--primary-light);
+        }
+
+        /* TOOLBAR FILTER BAR */
         .filter-bar {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 16px 24px;
+          padding: 16px 20px;
           gap: 16px;
+          background: #ffffff;
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-xl);
           flex-wrap: wrap;
         }
 
@@ -550,34 +944,51 @@ export const Households: React.FC = () => {
           display: flex;
           align-items: center;
           flex: 1;
-          min-width: 250px;
+          min-width: 280px;
         }
 
         .search-icon {
           position: absolute;
           left: 14px;
-          color: var(--text-muted);
+          color: #9ca3af;
         }
 
         .search-box input {
           width: 100%;
-          padding: 10px 10px 10px 42px;
+          padding: 11px 36px 11px 42px;
           border: 1px solid var(--border-color);
-          border-radius: var(--radius-sm);
-          background: var(--bg-app);
-          color: var(--text-main);
+          border-radius: var(--radius-pill);
+          background: #f9fafb;
+          color: #111827;
+          font-size: 13.5px;
           transition: var(--transition-all);
         }
 
         .search-box input:focus {
           outline: none;
           border-color: var(--primary);
-          background: var(--bg-card);
+          background: #ffffff;
+          box-shadow: 0 0 0 3px rgba(0, 150, 107, 0.12);
+        }
+
+        .clear-search-btn {
+          position: absolute;
+          right: 12px;
+          background: #e5e7eb;
+          border: none;
+          border-radius: 50%;
+          width: 20px;
+          height: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #4b5563;
+          cursor: pointer;
         }
 
         .filter-selectors {
           display: flex;
-          gap: 16px;
+          gap: 12px;
           align-items: center;
         }
 
@@ -589,24 +1000,34 @@ export const Households: React.FC = () => {
 
         .select-icon {
           position: absolute;
-          left: 12px;
-          color: var(--text-muted);
+          left: 14px;
+          color: #9ca3af;
           pointer-events: none;
         }
 
         .filter-select-wrapper select {
-          padding: 10px 32px 10px 36px;
+          padding: 10px 36px 10px 38px;
           border: 1px solid var(--border-color);
-          border-radius: var(--radius-sm);
-          background: var(--bg-app);
-          color: var(--text-main);
+          border-radius: var(--radius-pill);
+          background: #f9fafb;
+          color: #374151;
           appearance: none;
           cursor: pointer;
           font-weight: 600;
           font-size: 13px;
         }
 
-        /* WORKSPACE SPLIT */
+        .clear-filters-link {
+          background: transparent;
+          border: none;
+          color: var(--primary);
+          font-weight: 700;
+          font-size: 13px;
+          cursor: pointer;
+          padding: 6px 12px;
+        }
+
+        /* MAIN CONTENT SPLIT */
         .households-content-split {
           display: flex;
           gap: 24px;
@@ -615,7 +1036,10 @@ export const Households: React.FC = () => {
 
         .table-container-card {
           flex: 1;
-          padding: 24px;
+          background: #ffffff;
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-xl);
+          padding: 20px;
           transition: var(--transition-all);
         }
 
@@ -623,12 +1047,14 @@ export const Households: React.FC = () => {
           flex: 1.4;
         }
 
-        .details-panel-card {
-          flex: 1;
-          padding: 24px;
-          position: sticky;
-          top: 94px;
-          animation: slideInLeft 0.3s ease;
+        /* DESKTOP TABLE STYLES */
+        .desktop-view-only {
+          display: block;
+        }
+
+        .table-responsive {
+          width: 100%;
+          overflow-x: auto;
         }
 
         .households-table {
@@ -639,20 +1065,20 @@ export const Households: React.FC = () => {
 
         .households-table th {
           font-size: 11px;
-          font-weight: 600;
-          color: var(--text-muted);
+          font-weight: 700;
+          color: #6b7280;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
-          padding: 12px 16px;
-          background-color: var(--bg-app);
-          border-bottom: 1px solid var(--border-color);
+          letter-spacing: 0.06em;
+          padding: 14px 16px;
+          background-color: #f9fafb;
+          border-bottom: 1px solid #e5e7eb;
         }
 
         .households-table td {
           padding: 14px 16px;
-          font-size: 13px;
-          border-bottom: 1px solid var(--border-color);
-          color: var(--text-main);
+          font-size: 13.5px;
+          border-bottom: 1px solid #f3f4f6;
+          color: #111827;
         }
 
         .household-row {
@@ -661,12 +1087,21 @@ export const Households: React.FC = () => {
         }
 
         .household-row:hover {
-          background-color: var(--primary-10);
+          background-color: #f9fafb;
         }
 
         .household-row.selected {
-          background-color: var(--primary-20);
-          border-left: 3px solid var(--primary);
+          background-color: #ecfdf5;
+        }
+
+        .house-tag {
+          font-weight: 800;
+          color: #00966b;
+          background: #ecfdf5;
+          padding: 4px 10px;
+          border-radius: 8px;
+          border: 1px solid #a7f3d0;
+          font-size: 13px;
         }
 
         .owner-profile-td {
@@ -674,55 +1109,92 @@ export const Households: React.FC = () => {
           flex-direction: column;
         }
 
+        .owner-name {
+          font-weight: 700;
+          color: #111827;
+        }
+
         .owner-phone-sub {
           font-size: 11px;
-          color: var(--text-muted);
+          color: #6b7280;
           margin-top: 2px;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .area-tag {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 12px;
+          color: #4b5563;
+          background: #f3f4f6;
+          padding: 3px 8px;
+          border-radius: 6px;
         }
 
         .members-badge {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          padding: 4px 8px;
-          background-color: var(--primary-10);
-          color: var(--primary);
-          border-radius: var(--radius-sm);
-          font-size: 12px;
-          font-weight: 600;
+          padding: 4px 10px;
+          background-color: #ecfdf5;
+          color: #00966b;
+          border-radius: var(--radius-pill);
+          font-size: 12.5px;
+          font-weight: 700;
         }
 
         .balance-td {
-          font-weight: 700;
+          font-weight: 800;
         }
 
-        .balance-td.outstanding { color: var(--error); }
-        .balance-td.paid { color: var(--success); }
+        .balance-td.outstanding { color: #dc2626; }
+        .balance-td.paid { color: #059669; }
 
         .status-pill {
-          display: inline-block;
-          font-size: 10px;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11px;
           font-weight: 700;
-          padding: 3px 8px;
-          border-radius: 12px;
+          padding: 4px 10px;
+          border-radius: var(--radius-pill);
           text-transform: uppercase;
         }
 
-        .status-pill.active { background-color: var(--success-bg); color: var(--success); }
-        .status-pill.inactive { background-color: var(--error-bg); color: var(--error); }
+        .status-pill .dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+        }
+
+        .status-pill.active {
+          background-color: #d1fae5;
+          color: #065f46;
+        }
+        .status-pill.active .dot { background-color: #10b981; }
+
+        .status-pill.inactive {
+          background-color: #fee2e2;
+          color: #991b1b;
+        }
+        .status-pill.inactive .dot { background-color: #ef4444; }
 
         .actions-button-wrapper {
           display: flex;
-          gap: 8px;
+          gap: 6px;
+          justify-content: flex-end;
         }
 
         .action-icon-btn {
-          border: none;
-          background: var(--bg-app);
-          color: var(--text-muted);
-          width: 28px;
-          height: 28px;
-          border-radius: var(--radius-sm);
+          border: 1px solid var(--border-color);
+          background: #ffffff;
+          color: #6b7280;
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -730,17 +1202,166 @@ export const Households: React.FC = () => {
           transition: var(--transition-all);
         }
 
-        .action-icon-btn:hover {
-          background: var(--primary-10);
-          color: var(--primary);
+        .action-icon-btn.edit:hover {
+          background: #ecfdf5;
+          color: #00966b;
+          border-color: #a7f3d0;
         }
 
-        /* DETAILS SIDE PANEL */
+        .action-icon-btn.delete:hover {
+          background: #fee2e2;
+          color: #dc2626;
+          border-color: #fca5a5;
+        }
+
+        /* MOBILE CARDS DIRECTORY VIEW */
+        .mobile-cards-directory {
+          display: none;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .mobile-household-card {
+          background: #ffffff;
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-lg);
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          cursor: pointer;
+          transition: var(--transition-all);
+        }
+
+        .mobile-household-card.selected {
+          border-color: var(--primary);
+          background: #f0fdf4;
+        }
+
+        .mobile-household-card .card-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .house-no-badge {
+          font-weight: 800;
+          color: #00966b;
+          background: #ecfdf5;
+          padding: 4px 10px;
+          border-radius: 8px;
+          border: 1px solid #a7f3d0;
+          font-size: 13px;
+        }
+
+        .owner-title {
+          font-size: 16px;
+          font-weight: 800;
+          color: #111827;
+        }
+
+        .card-info-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 12.5px;
+          color: #4b5563;
+          margin-top: 4px;
+        }
+
+        .card-footer {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding-top: 12px;
+          border-top: 1px solid #f3f4f6;
+        }
+
+        .card-stats {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .balance-tag {
+          font-weight: 800;
+          font-size: 13px;
+        }
+        .balance-tag.outstanding { color: #dc2626; }
+        .balance-tag.paid { color: #059669; }
+
+        .mobile-card-actions {
+          display: flex;
+          gap: 8px;
+        }
+
+        .mobile-action-btn {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          padding: 6px 12px;
+          border-radius: var(--radius-pill);
+          border: 1px solid var(--border-color);
+          font-size: 12px;
+          font-weight: 700;
+          cursor: pointer;
+        }
+        .mobile-action-btn.edit { background: #ecfdf5; color: #00966b; border-color: #a7f3d0; }
+        .mobile-action-btn.delete { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+
+        /* EMPTY STATES */
+        .empty-state-card {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          padding: 48px 24px;
+        }
+
+        .empty-state-icon {
+          width: 64px;
+          height: 64px;
+          border-radius: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 16px;
+        }
+        .empty-state-icon.emerald { background: #ecfdf5; color: #00966b; }
+        .empty-state-icon.neutral { background: #f3f4f6; color: #6b7280; }
+
+        .empty-state-card h4 {
+          font-size: 18px;
+          font-weight: 800;
+          color: #111827;
+        }
+
+        .empty-state-card p {
+          font-size: 13px;
+          color: #6b7280;
+          margin-top: 4px;
+          max-width: 320px;
+        }
+
+        .margin-top { margin-top: 16px; }
+
+        /* DETAILS LEDGER PANEL */
+        .details-panel-card {
+          flex: 1;
+          background: #ffffff;
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-xl);
+          padding: 24px;
+          position: sticky;
+          top: 94px;
+          animation: slideInLeft 0.3s ease;
+        }
+
         .panel-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          border-bottom: 1px solid var(--border-color);
+          border-bottom: 1px solid #e5e7eb;
           padding-bottom: 16px;
           margin-bottom: 20px;
         }
@@ -751,31 +1372,43 @@ export const Households: React.FC = () => {
           gap: 12px;
         }
 
-        .panel-title-icon {
-          color: var(--gold);
+        .panel-icon-box {
+          width: 42px;
+          height: 42px;
+          background: #ecfdf5;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .panel-title-wrapper h4 {
-          font-size: 16px;
-          font-weight: 700;
-          color: var(--primary);
+          font-size: 17px;
+          font-weight: 800;
+          color: #111827;
+        }
+
+        .panel-title-wrapper p {
+          font-size: 12px;
+          color: #6b7280;
         }
 
         .panel-close-btn {
           background: transparent;
           border: none;
-          color: var(--text-muted);
+          color: #9ca3af;
           cursor: pointer;
         }
 
         .details-meta-section {
-          background: var(--bg-app);
+          background: #f9fafb;
           border-radius: var(--radius-md);
           padding: 16px;
           display: flex;
           flex-direction: column;
-          gap: 12px;
-          margin-bottom: 24px;
+          gap: 10px;
+          margin-bottom: 20px;
+          border: 1px solid #f3f4f6;
         }
 
         .meta-item {
@@ -784,275 +1417,64 @@ export const Households: React.FC = () => {
           align-items: center;
         }
 
-        .meta-label {
-          font-size: 12px;
-          color: var(--text-muted);
-          font-weight: 600;
-        }
-
-        .meta-value {
-          font-size: 13px;
-          font-weight: 700;
-          color: var(--text-main);
-        }
-
-        .meta-value.font-sm {
-          font-size: 12px;
-          text-align: right;
-          max-width: 60%;
-        }
+        .meta-label { font-size: 12px; color: #6b7280; font-weight: 600; }
+        .meta-value { font-size: 13px; font-weight: 700; color: #111827; }
 
         .financials-breakdown h5 {
           font-size: 14px;
-          font-weight: 700;
+          font-weight: 800;
           margin-bottom: 12px;
-          color: var(--primary);
+          color: #111827;
         }
 
         .members-ledger-table-wrapper {
           overflow-x: auto;
-          border: 1px solid var(--border-color);
-          border-radius: var(--radius-sm);
+          border: 1px solid #e5e7eb;
+          border-radius: var(--radius-md);
         }
 
         .mini-ledger-table {
           width: 100%;
           border-collapse: collapse;
-          font-size: 11px;
+          font-size: 12px;
           text-align: left;
         }
 
         .mini-ledger-table th {
           padding: 10px 12px;
-          background: var(--bg-app);
-          color: var(--text-muted);
-          font-weight: 600;
-          border-bottom: 1px solid var(--border-color);
+          background: #f9fafb;
+          color: #6b7280;
+          font-weight: 700;
+          border-bottom: 1px solid #e5e7eb;
         }
 
         .mini-ledger-table td {
           padding: 10px 12px;
-          border-bottom: 1px solid var(--border-color);
-          color: var(--text-main);
+          border-bottom: 1px solid #f3f4f6;
+          color: #111827;
         }
 
-        .rel-tag {
-          font-size: 9px;
-          color: var(--text-muted);
-          font-weight: normal;
-        }
-
-        .mini-ledger-table td.outstanding {
-          color: var(--error);
-          font-weight: 700;
-        }
+        .rel-tag { font-size: 10px; color: #9ca3af; }
+        .mini-ledger-table td.outstanding { color: #dc2626; font-weight: 800; }
 
         .consolidated-total-row {
-          background-color: var(--primary-10);
-          font-weight: 700;
-        }
-
-        .consolidated-total-row td {
-          border-bottom: none;
-        .households-table th {
-          padding: 12px 14px;
-          font-size: 12px;
-          font-weight: 600;
-          color: #6b7280;
-          text-transform: uppercase;
-          border-bottom: 1px solid #e5e7eb;
-        }
-
-        .households-table td {
-          padding: 14px;
-          font-size: 13.5px;
-          border-bottom: 1px solid #f3f4f6;
-          color: #374151;
-        }
-
-        .clickable-row {
-          cursor: pointer;
-          transition: var(--transition-all);
-        }
-
-        .clickable-row:hover {
-          background: #f9fafb;
-        }
-
-        .clickable-row.selected {
-          background: #ecfdf5;
-        }
-
-        .bold-text {
-          font-weight: 700;
-          color: #111827;
-        }
-
-        .amount-text {
+          background-color: #ecfdf5;
           font-weight: 800;
-          color: var(--primary);
         }
+        .consolidated-total-row td { border-bottom: none; }
+        .grand-balance { color: #dc2626; font-weight: 800; }
 
-        .status-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          padding: 3px 10px;
-          border-radius: var(--radius-pill);
-          font-size: 11.5px;
-          font-weight: 600;
-        }
-
-        .status-badge.active {
-          background: #d1fae5;
-          color: #065f46;
-        }
-
-        .status-badge.inactive {
-          background: #fee2e2;
-          color: #991b1b;
-        }
-
-        .action-cell {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .icon-action-btn {
-          background: transparent;
-          border: none;
-          color: #6b7280;
-          cursor: pointer;
-          padding: 6px;
-          border-radius: 50%;
-          transition: var(--transition-all);
-        }
-
-        .icon-action-btn:hover {
-          color: var(--primary);
-          background: #f3f4f6;
-        }
-
-        .no-data-cell {
-          text-align: center;
-          color: #9ca3af;
-          padding: 24px;
-        }
-
-        /* DETAILS PANEL */
-        .details-panel-card {
-          width: 360px;
-          padding: 24px;
-          position: sticky;
-          top: 90px;
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-
-        .panel-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding-bottom: 14px;
-          border-bottom: 1px solid #e5e7eb;
-        }
-
-        .panel-header-title h4 {
-          font-size: 16px;
-          font-weight: 800;
-          color: #111827;
-        }
-
-        .panel-header-title p {
-          font-size: 12px;
-          color: #6b7280;
-          margin-top: 2px;
-        }
-
-        .panel-close-btn {
-          background: transparent;
-          border: none;
-          color: #9ca3af;
-          cursor: pointer;
-        }
-
-        .panel-body {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-
-        .info-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 12px;
-        }
-
-        .info-item {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-        }
-
-        .info-item .label {
-          font-size: 11px;
-          color: #6b7280;
-          font-weight: 600;
-        }
-
-        .info-item .value {
-          font-size: 13px;
-          font-weight: 700;
-          color: #111827;
-        }
-
-        .panel-section-title {
-          font-size: 13.5px;
-          font-weight: 700;
-          color: #111827;
-          margin-bottom: 10px;
-        }
-
-        .panel-members-list {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .panel-member-item {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 10px 12px;
-          background: #f9fafb;
-          border-radius: var(--radius-md);
-          border: 1px solid #f3f4f6;
-        }
-
-        .member-name-tag h5 {
-          font-size: 13px;
-          font-weight: 700;
-          color: #111827;
-        }
-
-        .member-name-tag p {
-          font-size: 11px;
-          color: #6b7280;
-        }
-
-        /* MODAL DIALOG */
+        /* MODAL DIALOGS */
         .modal-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(0, 0, 0, 0.45);
-          z-index: 200;
+          background: rgba(17, 24, 39, 0.55);
+          backdrop-filter: blur(4px);
+          z-index: 300;
           display: flex;
           align-items: center;
           justify-content: center;
           padding: 20px;
-          animation: fadeIn 0.2s ease;
         }
 
         .modal-dialog-card {
@@ -1060,30 +1482,30 @@ export const Households: React.FC = () => {
           max-width: 540px;
           background: #ffffff;
           border-radius: var(--radius-xl);
-          box-shadow: var(--shadow-floating);
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
           overflow: hidden;
+          border: 1px solid var(--border-color);
         }
 
         .modal-header {
           padding: 20px 24px;
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           justify-content: space-between;
           border-bottom: 1px solid #e5e7eb;
           background: #f9fafb;
         }
 
         .modal-header h4 {
-          font-size: 16px;
+          font-size: 18px;
           font-weight: 800;
           color: #111827;
         }
 
-        .modal-close-btn {
-          background: transparent;
-          border: none;
-          color: #9ca3af;
-          cursor: pointer;
+        .modal-subtitle {
+          font-size: 12.5px;
+          color: #6b7280;
+          margin-top: 2px;
         }
 
         .modal-form {
@@ -1091,6 +1513,15 @@ export const Households: React.FC = () => {
           display: flex;
           flex-direction: column;
           gap: 16px;
+        }
+
+        .form-section-title {
+          font-size: 11px;
+          font-weight: 800;
+          color: #00966b;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          margin-bottom: 4px;
         }
 
         .form-row-grid {
@@ -1107,12 +1538,12 @@ export const Households: React.FC = () => {
 
         .form-group label {
           font-size: 12.5px;
-          font-weight: 600;
+          font-weight: 700;
           color: #374151;
         }
 
         .form-group input, .form-group textarea {
-          padding: 10px 14px;
+          padding: 11px 14px;
           border: 1px solid var(--border-color);
           border-radius: var(--radius-md);
           background: #f9fafb;
@@ -1120,6 +1551,34 @@ export const Households: React.FC = () => {
           font-size: 13.5px;
           transition: var(--transition-all);
         }
+
+        .form-group input:focus, .form-group textarea:focus {
+          outline: none;
+          border-color: var(--primary);
+          background: #ffffff;
+          box-shadow: 0 0 0 3px rgba(0, 150, 107, 0.12);
+        }
+
+        .input-error {
+          border-color: #ef4444 !important;
+          background: #fff5f5 !important;
+        }
+
+        .field-error-text {
+          font-size: 11.5px;
+          font-weight: 600;
+          color: #dc2626;
+        }
+
+        .form-alert {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 14px;
+          border-radius: var(--radius-md);
+          font-size: 13px;
+        }
+        .form-alert.error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
 
         .status-pill-toggle-group {
           display: flex;
@@ -1131,13 +1590,13 @@ export const Households: React.FC = () => {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          padding: 8px 16px;
+          padding: 9px 18px;
           border-radius: var(--radius-pill);
           border: 1px solid var(--border-color);
           background: #f9fafb;
           color: #4b5563;
           font-size: 13px;
-          font-weight: 600;
+          font-weight: 700;
           cursor: pointer;
           transition: var(--transition-all);
         }
@@ -1154,25 +1613,21 @@ export const Households: React.FC = () => {
           color: #065f46;
           border-color: #a7f3d0;
         }
-        .status-toggle-pill.active-pill.selected .dot {
-          background: #10b981;
-        }
+        .status-toggle-pill.active-pill.selected .dot { background: #10b981; }
 
         .status-toggle-pill.inactive-pill.selected {
           background: #fee2e2;
           color: #991b1b;
           border-color: #fca5a5;
         }
-        .status-toggle-pill.inactive-pill.selected .dot {
-          background: #ef4444;
-        }
+        .status-toggle-pill.inactive-pill.selected .dot { background: #ef4444; }
 
         .modal-actions {
           display: flex;
           justify-content: flex-end;
           gap: 12px;
-          margin-top: 20px;
-          padding-top: 14px;
+          margin-top: 16px;
+          padding-top: 16px;
           border-top: 1px solid #e5e7eb;
         }
 
@@ -1182,11 +1637,61 @@ export const Households: React.FC = () => {
           color: #374151;
           padding: 10px 20px;
           border-radius: var(--radius-pill);
-          font-weight: 600;
+          font-weight: 700;
           cursor: pointer;
         }
 
-        /* RESPONSIVE */
+        .submit-pill-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 24px;
+          border-radius: var(--radius-pill);
+          background: var(--primary);
+          color: #ffffff;
+          font-weight: 700;
+          border: none;
+          cursor: pointer;
+          box-shadow: 0 4px 14px rgba(0, 150, 107, 0.35);
+        }
+
+        .spinner-icon {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        /* DELETE DIALOG */
+        .delete-card { max-width: 440px; }
+        .delete-header { display: flex; gap: 14px; align-items: flex-start; }
+        .delete-badge-icon {
+          width: 44px;
+          height: 44px;
+          background: #fee2e2;
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .delete-danger-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 20px;
+          border-radius: var(--radius-pill);
+          background: #dc2626;
+          color: #ffffff;
+          font-weight: 700;
+          border: none;
+          cursor: pointer;
+          box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+        }
+
+        /* RESPONSIVE OPTIMIZATION */
         @media (max-width: 991px) {
           .households-content-split {
             flex-direction: column;
@@ -1197,15 +1702,35 @@ export const Households: React.FC = () => {
             position: relative;
             top: 0;
           }
+
+          .filter-bar {
+            flex-direction: column;
+            align-items: stretch;
+          }
         }
 
-        @media (max-width: 576px) {
+        @media (max-width: 640px) {
+          .desktop-view-only { display: none; }
+          .mobile-cards-directory { display: flex; }
+
           .form-row-grid {
             grid-template-columns: 1fr;
+          }
+
+          .modal-overlay {
+            padding: 0;
+            align-items: flex-end;
+          }
+
+          .modal-dialog-card {
+            border-radius: 24px 24px 0 0;
+            max-height: 90vh;
+            overflow-y: auto;
           }
         }
       `}</style>
     </div>
   );
 };
+
 export default Households;
