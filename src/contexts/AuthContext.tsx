@@ -57,11 +57,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const parsed = JSON.parse(savedSession);
             const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
             if (parsed && parsed.id && !uuidRegex.test(parsed.id)) {
-              parsed.id = '00000000-0000-0000-0000-000000000001';
-              localStorage.setItem('mahal_session', JSON.stringify(parsed));
+              // Stale non-UUID session — clear it when Supabase is configured
+              // so Supabase's own getSession() below takes precedence
+              if (isSupabaseConfigured) {
+                localStorage.removeItem('mahal_session');
+              } else {
+                // Offline mode — keep the session as-is
+                setUser(parsed);
+              }
+            } else {
+              setUser(parsed);
             }
-            setUser(parsed);
-          } catch (e) {}
+          } catch (e) {
+            localStorage.removeItem('mahal_session');
+          }
         }
 
         if (isSupabaseConfigured && supabase) {
@@ -178,45 +187,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // 1. TRY SUPABASE AUTH SIGNIN FIRST IF SUPABASE IS CONFIGURED
       if (isSupabaseConfigured && supabase) {
-        try {
-          const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
-          if (!error && data.user) {
-            let profile = await db.profiles.getById(data.user.id);
-            if (!profile) {
-              const fallbackProfile: Profile = {
-                id: data.user.id,
-                name: data.user.user_metadata?.name || cleanEmail.split('@')[0] || 'User',
-                email: data.user.email || cleanEmail,
-                phone: data.user.phone || null,
-                role: (data.user.user_metadata?.role || (cleanEmail.includes('admin') ? 'admin' : 'member')) as 'admin' | 'member',
-                language: 'en',
-                status: 'active',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              };
-              try { profile = await db.profiles.create(fallbackProfile); } catch (e) { profile = fallbackProfile; }
-            }
+        const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
 
-            const validProfile = profile as Profile;
-            const session: UserSession = {
-              id: validProfile.id,
-              email: validProfile.email,
-              phone: validProfile.phone,
-              name: validProfile.name,
-              role: validProfile.role,
-              language: validProfile.language || 'en',
-            };
-            setUser(session);
-            localStorage.setItem('mahal_session', JSON.stringify(session));
-            return session;
+        // When Supabase IS configured, auth errors are real errors — fail immediately.
+        // Do NOT fall through to offline demo mode.
+        if (error) {
+          if (error.message === 'Invalid login credentials') {
+            throw new Error('Incorrect email or password. Please check your credentials and try again.');
           }
-        } catch (supabaseErr) {
-          console.warn('Supabase auth signin notice:', supabaseErr);
+          throw new Error(error.message || 'Login failed. Please try again.');
         }
+
+        if (data.user) {
+          let profile = await db.profiles.getById(data.user.id);
+          if (!profile) {
+            const fallbackProfile: Profile = {
+              id: data.user.id,
+              name: data.user.user_metadata?.name || cleanEmail.split('@')[0] || 'User',
+              email: data.user.email || cleanEmail,
+              phone: data.user.phone || null,
+              role: (data.user.user_metadata?.role || (cleanEmail.includes('admin') ? 'admin' : 'member')) as 'admin' | 'member',
+              language: 'en',
+              status: 'active',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            };
+            try { profile = await db.profiles.create(fallbackProfile); } catch (e) { profile = fallbackProfile; }
+          }
+
+          const validProfile = profile as Profile;
+          const session: UserSession = {
+            id: validProfile.id,
+            email: validProfile.email,
+            phone: validProfile.phone,
+            name: validProfile.name,
+            role: validProfile.role,
+            language: validProfile.language || 'en',
+          };
+          setUser(session);
+          localStorage.setItem('mahal_session', JSON.stringify(session));
+          return session;
+        }
+
+        // signInWithPassword returned no error and no user — unexpected state
+        throw new Error('Login failed. Please try again.');
       }
 
-      // 2. FAST MATCH FOR DEFAULT DEMO ADMIN IN OFFLINE / LOCAL MODE
-      if (cleanEmail === 'admin@mahal.com' && (password === 'admin' || password.length >= 4)) {
+      // 2. OFFLINE / LOCAL DEMO MODE — only when Supabase is NOT configured
+      if (!isSupabaseConfigured && cleanEmail === 'admin@mahal.com' && (password === 'admin' || password.length >= 4)) {
         const demoAdminSession: UserSession = {
           id: '00000000-0000-0000-0000-000000000001',
           email: 'admin@mahal.com',
