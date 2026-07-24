@@ -1293,5 +1293,42 @@ export const db = {
         saveLocalData('mahal_recipients', list);
       }
     },
+    getById: async (id: string): Promise<Notification | null> => {
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase.from('notifications').select('*').eq('id', id).single();
+        if (error) throw error;
+        return data as Notification;
+      }
+      return getLocalData<Notification>('mahal_notifications').find((n) => n.id === id) || null;
+    },
+    update: async (id: string, updates: Partial<Notification>): Promise<Notification> => {
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase
+          .from('notifications')
+          .update(updates)
+          .eq('id', id)
+          .select()
+          .single();
+        if (error) throw error;
+        return data as Notification;
+      }
+      const list = getLocalData<Notification>('mahal_notifications');
+      const idx = list.findIndex((n) => n.id === id);
+      if (idx === -1) throw new Error('Notification record not found');
+      list[idx] = { ...list[idx], ...updates };
+      saveLocalData('mahal_notifications', list);
+      return list[idx];
+    },
+    delete: async (id: string): Promise<boolean> => {
+      if (isSupabaseConfigured && supabase) {
+        const { error } = await supabase.from('notifications').delete().eq('id', id);
+        if (error) throw error;
+        return true;
+      }
+      const list = getLocalData<Notification>('mahal_notifications');
+      const filtered = list.filter((n) => n.id !== id);
+      saveLocalData('mahal_notifications', filtered);
+      return true;
+    },
   },
 };
