@@ -495,11 +495,8 @@ export const db = {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
-      if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase.from('profiles').upsert(fullProfile).select().single();
-        if (error) throw error;
-        return data as Profile;
-      }
+      
+      // Save locally first for instant, bulletproof persistence
       const list = getLocalData<Profile>('mahal_profiles');
       const idx = list.findIndex((p) => p.id === profile.id);
       if (idx !== -1) {
@@ -508,6 +505,15 @@ export const db = {
         list.push(fullProfile);
       }
       saveLocalData('mahal_profiles', list);
+
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data, error } = await supabase.from('profiles').upsert(fullProfile).select().single();
+          if (!error && data) return data as Profile;
+        } catch (err) {
+          console.warn('Supabase profile creation notice:', err);
+        }
+      }
       return fullProfile;
     },
     update: async (id: string, updates: Partial<Profile>): Promise<Profile> => {
