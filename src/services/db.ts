@@ -1040,6 +1040,43 @@ export const db = {
 
       return newPayment;
     },
+    getById: async (id: string): Promise<Payment | null> => {
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase.from('payments').select('*').eq('id', id).single();
+        if (error) throw error;
+        return data as Payment;
+      }
+      return getLocalData<Payment>('mahal_payments').find((p) => p.id === id) || null;
+    },
+    update: async (id: string, updates: Partial<Payment>): Promise<Payment> => {
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase
+          .from('payments')
+          .update(updates)
+          .eq('id', id)
+          .select()
+          .single();
+        if (error) throw error;
+        return data as Payment;
+      }
+      const list = getLocalData<Payment>('mahal_payments');
+      const idx = list.findIndex((p) => p.id === id);
+      if (idx === -1) throw new Error('Payment record not found');
+      list[idx] = { ...list[idx], ...updates, updated_at: new Date().toISOString() };
+      saveLocalData('mahal_payments', list);
+      return list[idx];
+    },
+    delete: async (id: string): Promise<boolean> => {
+      if (isSupabaseConfigured && supabase) {
+        const { error } = await supabase.from('payments').delete().eq('id', id);
+        if (error) throw error;
+        return true;
+      }
+      const list = getLocalData<Payment>('mahal_payments');
+      const filtered = list.filter((p) => p.id !== id);
+      saveLocalData('mahal_payments', filtered);
+      return true;
+    },
   },
 
   // NOTIFICATIONS
