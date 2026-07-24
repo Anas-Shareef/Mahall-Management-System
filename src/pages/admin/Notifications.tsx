@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { db } from '../../services/db';
+import { db, sanitizeUuid } from '../../services/db';
 import type { Household, Member, Notification } from '../../services/db';
 import { 
   Plus, Edit2, Trash2, Search, Filter, Bell, X, AlertCircle, 
@@ -193,7 +193,7 @@ export const Notifications: React.FC = () => {
         title_ml: titleMl.trim() || titleEn.trim(),
         message_ml: msgMl.trim() || msgEn.trim(),
         type: notifType,
-        created_by: user?.id || '00000000-0000-0000-0000-000000000001',
+        created_by: sanitizeUuid(user?.id),
       };
 
       if (modalMode === 'add') {

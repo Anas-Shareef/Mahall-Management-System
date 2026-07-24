@@ -176,7 +176,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     const cleanEmail = email.trim().toLowerCase();
     try {
-      // 1. FAST MATCH FOR DEFAULT DEMO ADMIN (admin@mahal.com / admin)
+      // 1. TRY SUPABASE AUTH SIGNIN FIRST IF SUPABASE IS CONFIGURED
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
+          if (!error && data.user) {
+            let profile = await db.profiles.getById(data.user.id);
+            if (!profile) {
+              const fallbackProfile: Profile = {
+                id: data.user.id,
+                name: data.user.user_metadata?.name || cleanEmail.split('@')[0] || 'User',
+                email: data.user.email || cleanEmail,
+                phone: data.user.phone || null,
+                role: (data.user.user_metadata?.role || (cleanEmail.includes('admin') ? 'admin' : 'member')) as 'admin' | 'member',
+                language: 'en',
+                status: 'active',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              };
+              try { profile = await db.profiles.create(fallbackProfile); } catch (e) { profile = fallbackProfile; }
+            }
+
+            const validProfile = profile as Profile;
+            const session: UserSession = {
+              id: validProfile.id,
+              email: validProfile.email,
+              phone: validProfile.phone,
+              name: validProfile.name,
+              role: validProfile.role,
+              language: validProfile.language || 'en',
+            };
+            setUser(session);
+            localStorage.setItem('mahal_session', JSON.stringify(session));
+            return session;
+          }
+        } catch (supabaseErr) {
+          console.warn('Supabase auth signin notice:', supabaseErr);
+        }
+      }
+
+      // 2. FAST MATCH FOR DEFAULT DEMO ADMIN IN OFFLINE / LOCAL MODE
       if (cleanEmail === 'admin@mahal.com' && (password === 'admin' || password.length >= 4)) {
         const demoAdminSession: UserSession = {
           id: '00000000-0000-0000-0000-000000000001',
@@ -204,7 +243,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return demoAdminSession;
       }
 
-      // 2. CHECK LOCAL REGISTERED PROFILES
+      // 3. CHECK LOCAL REGISTERED PROFILES FOR OFFLINE MODE
       const savedProfiles = JSON.parse(localStorage.getItem('mahal_profiles') || '[]');
       const localMatch = savedProfiles.find((p: any) => p.email && p.email.toLowerCase() === cleanEmail);
       if (localMatch) {
@@ -219,45 +258,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('mahal_session', JSON.stringify(session));
         setUser(session);
         return session;
-      }
-
-      // 3. TRY SUPABASE AUTH SIGNIN
-      if (isSupabaseConfigured && supabase) {
-        try {
-          const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
-          if (!error && data.user) {
-            let profile = await db.profiles.getById(data.user.id);
-            if (!profile) {
-              const fallbackProfile: Profile = {
-                id: data.user.id,
-                name: data.user.user_metadata?.name || cleanEmail.split('@')[0] || 'User',
-                email: data.user.email || cleanEmail,
-                phone: data.user.phone || null,
-                role: (data.user.user_metadata?.role || 'admin') as 'admin' | 'member',
-                language: 'en',
-                status: 'active',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              };
-              try { profile = await db.profiles.create(fallbackProfile); } catch (e) { profile = fallbackProfile; }
-            }
-
-            const validProfile = profile as Profile;
-            const session: UserSession = {
-              id: validProfile.id,
-              email: validProfile.email,
-              phone: validProfile.phone,
-              name: validProfile.name,
-              role: validProfile.role,
-              language: validProfile.language,
-            };
-            setUser(session);
-            localStorage.setItem('mahal_session', JSON.stringify(session));
-            return session;
-          }
-        } catch (supabaseErr) {
-          console.warn('Supabase auth signin notice:', supabaseErr);
-        }
       }
 
       throw new Error('Invalid email or password. If you do not have an account, please click "Register New Admin Account" below.');

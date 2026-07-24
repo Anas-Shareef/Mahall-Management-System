@@ -1,7 +1,6 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const DEFAULT_UUID = '00000000-0000-0000-0000-000000000001';
 
 export const sanitizeUuid = (val: string | null | undefined): string | null => {
   if (!val) return null;
@@ -1510,7 +1509,7 @@ export const db = {
     ): Promise<Notification> => {
       const cleanNotifData = {
         ...notifData,
-        created_by: sanitizeUuid(notifData.created_by) || DEFAULT_UUID,
+        created_by: sanitizeUuid(notifData.created_by),
       };
       if (isSupabaseConfigured && supabase) {
         const { data: newNotif, error: notifErr } = await supabase
@@ -1733,11 +1732,23 @@ export const db = {
       );
     },
     create: async (data: Omit<DeathRecord, 'id' | 'created_at' | 'updated_at'>): Promise<DeathRecord> => {
-      const cleanData = { ...data, created_by: sanitizeUuid(data.created_by) };
+      const cleanData = {
+        ...data,
+        member_id: sanitizeUuid(data.member_id),
+        created_by: sanitizeUuid(data.created_by),
+      };
       if (isSupabaseConfigured && supabase) {
         try {
           const { data: created, error } = await supabase.from('death_records').insert([cleanData]).select().single();
           if (!error && created) return created as DeathRecord;
+          if (error && (error.code === '23503' || error.message?.includes('foreign key'))) {
+            const { data: retryData, error: retryErr } = await supabase
+              .from('death_records')
+              .insert([{ ...cleanData, member_id: null, created_by: null }])
+              .select()
+              .single();
+            if (!retryErr && retryData) return retryData as DeathRecord;
+          }
         } catch (e) {
           console.warn('Supabase deaths create notice:', e);
         }
@@ -1802,11 +1813,24 @@ export const db = {
       );
     },
     create: async (data: Omit<MarriageRecord, 'id' | 'created_at' | 'updated_at'>): Promise<MarriageRecord> => {
-      const cleanData = { ...data, created_by: sanitizeUuid(data.created_by) };
+      const cleanData = {
+        ...data,
+        groom_member_id: sanitizeUuid(data.groom_member_id),
+        bride_member_id: sanitizeUuid(data.bride_member_id),
+        created_by: sanitizeUuid(data.created_by),
+      };
       if (isSupabaseConfigured && supabase) {
         try {
           const { data: created, error } = await supabase.from('marriage_records').insert([cleanData]).select().single();
           if (!error && created) return created as MarriageRecord;
+          if (error && (error.code === '23503' || error.message?.includes('foreign key'))) {
+            const { data: retryData, error: retryErr } = await supabase
+              .from('marriage_records')
+              .insert([{ ...cleanData, groom_member_id: null, bride_member_id: null, created_by: null }])
+              .select()
+              .single();
+            if (!retryErr && retryData) return retryData as MarriageRecord;
+          }
         } catch (e) {
           console.warn('Supabase marriages create notice:', e);
         }
@@ -1938,11 +1962,24 @@ export const db = {
       );
     },
     create: async (data: Omit<Donation, 'id' | 'created_at' | 'updated_at'>): Promise<Donation> => {
-      const cleanData = { ...data, recorded_by: sanitizeUuid(data.recorded_by) };
+      const cleanData = {
+        ...data,
+        campaign_id: sanitizeUuid(data.campaign_id),
+        donor_member_id: sanitizeUuid(data.donor_member_id),
+        recorded_by: sanitizeUuid(data.recorded_by),
+      };
       if (isSupabaseConfigured && supabase) {
         try {
           const { data: created, error } = await supabase.from('donations').insert([cleanData]).select().single();
           if (!error && created) return created as Donation;
+          if (error && (error.code === '23503' || error.message?.includes('foreign key'))) {
+            const { data: retryData, error: retryErr } = await supabase
+              .from('donations')
+              .insert([{ ...cleanData, campaign_id: null, donor_member_id: null, recorded_by: null }])
+              .select()
+              .single();
+            if (!retryErr && retryData) return retryData as Donation;
+          }
         } catch (e) {
           console.warn('Supabase donations create notice:', e);
         }
@@ -1959,8 +1996,13 @@ export const db = {
       return newRecord;
     },
     update: async (id: string, updates: Partial<Donation>): Promise<Donation> => {
-      const cleanUpdates = { ...updates, updated_at: new Date().toISOString() };
-      if (cleanUpdates.recorded_by) cleanUpdates.recorded_by = sanitizeUuid(cleanUpdates.recorded_by);
+      const cleanUpdates: Partial<Donation> = {
+        ...updates,
+        updated_at: new Date().toISOString(),
+      };
+      if (updates.campaign_id !== undefined) cleanUpdates.campaign_id = sanitizeUuid(updates.campaign_id);
+      if (updates.donor_member_id !== undefined) cleanUpdates.donor_member_id = sanitizeUuid(updates.donor_member_id);
+      if (updates.recorded_by !== undefined) cleanUpdates.recorded_by = sanitizeUuid(updates.recorded_by);
       if (isSupabaseConfigured && supabase) {
         try {
           const { data: updated, error } = await supabase.from('donations').update(cleanUpdates).eq('id', id).select().single();
@@ -2007,11 +2049,23 @@ export const db = {
       );
     },
     create: async (data: Omit<GalleryAlbum, 'id' | 'created_at' | 'updated_at'>): Promise<GalleryAlbum> => {
-      const cleanData = { ...data, created_by: sanitizeUuid(data.created_by) };
+      const cleanData = {
+        ...data,
+        related_campaign_id: sanitizeUuid(data.related_campaign_id),
+        created_by: sanitizeUuid(data.created_by),
+      };
       if (isSupabaseConfigured && supabase) {
         try {
           const { data: created, error } = await supabase.from('gallery_albums').insert([cleanData]).select().single();
           if (!error && created) return created as GalleryAlbum;
+          if (error && (error.code === '23503' || error.message?.includes('foreign key'))) {
+            const { data: retryData, error: retryErr } = await supabase
+              .from('gallery_albums')
+              .insert([{ ...cleanData, related_campaign_id: null, created_by: null }])
+              .select()
+              .single();
+            if (!retryErr && retryData) return retryData as GalleryAlbum;
+          }
         } catch (e) {
           console.warn('Supabase galleryAlbums create notice:', e);
         }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { db } from '../../services/db';
+import { db, sanitizeUuid } from '../../services/db';
 import type { Household, Member, MemberSubscription, Payment, SubscriptionYear } from '../../services/db';
 import { 
   Plus, Edit2, Trash2, Search, Filter, Receipt, X, AlertCircle, 
@@ -234,7 +234,7 @@ export const Payments: React.FC = () => {
         payment_date: formDate,
         reference_number: formRefNumber.trim() || null,
         notes: formNotes.trim() || null,
-        recorded_by: user?.id || '00000000-0000-0000-0000-000000000001',
+        recorded_by: sanitizeUuid(user?.id),
       };
 
       if (modalMode === 'add') {
