@@ -1,21 +1,31 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '../../contexts/LanguageContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../services/db';
-import type { Household, Member, MemberSubscription, SubscriptionYear } from '../../services/db';
+import type { 
+  Household, Member, MemberSubscription, SubscriptionYear, Payment, ArrearAdjustment 
+} from '../../services/db';
 import { 
-  Plus, Edit2, Trash2, Search, Filter, Calendar, X, AlertCircle, 
-  CheckCircle, FileText, Download, Loader2, Home, CreditCard 
+  Plus, Search, Filter, Calendar, X, AlertCircle, 
+  CheckCircle, Loader2, Home, CreditCard, 
+  Layers, Sparkles, UserCheck, DollarSign, Eye
 } from 'lucide-react';
 
 export const Subscriptions: React.FC = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
+
+  // Primary Sub-Tab State ('overview' | 'ledgers' | 'years')
+  const [activeTab, setActiveTab] = useState<'overview' | 'ledgers' | 'years'>('overview');
 
   // Data States
   const [years, setYears] = useState<SubscriptionYear[]>([]);
-  const [selectedYearId, setSelectedYearId] = useState<string>('all');
+  const [selectedYearId, setSelectedYearId] = useState<string>('');
   const [subscriptions, setSubscriptions] = useState<MemberSubscription[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [households, setHouseholds] = useState<Household[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [arrearsList, setArrearsList] = useState<ArrearAdjustment[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Search & Filter States
@@ -23,44 +33,39 @@ export const Subscriptions: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedHouseholdId, setSelectedHouseholdId] = useState('');
 
-  // Add / Edit Subscription Modal States
-  const [isSubModalOpen, setIsSubModalOpen] = useState(false);
-  const [subModalMode, setSubModalMode] = useState<'add' | 'edit'>('add');
-  const [currentSubId, setCurrentSubId] = useState<string | null>(null);
+  // Selected Member Ledger View Modal State
+  const [ledgerMember, setLedgerMember] = useState<Member | null>(null);
+  const [isLedgerModalOpen, setIsLedgerModalOpen] = useState(false);
 
-  // Form Fields
-  const [memberId, setMemberId] = useState('');
-  const [yearId, setYearId] = useState('');
-  const [annualFee, setAnnualFee] = useState<number>(1000);
-  const [previousArrears, setPreviousArrears] = useState<number>(0);
-  const [totalPaid, setTotalPaid] = useState<number>(0);
-  const [subStatus, setSubStatus] = useState<'paid' | 'partially_paid' | 'unpaid'>('unpaid');
-
-  // Form Validation & Saving States
-  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
-  const [formError, setFormError] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
+  // Add Arrear Adjustment Modal State
+  const [isArrearModalOpen, setIsArrearModalOpen] = useState(false);
+  const [arrearYearId, setArrearYearId] = useState('');
+  const [arrearAmount, setArrearAmount] = useState<number>(0);
+  const [arrearReason, setArrearReason] = useState('');
+  const [isSavingArrear, setIsSavingArrear] = useState(false);
 
   // Configure Year Modal State
   const [isYearModalOpen, setIsYearModalOpen] = useState(false);
   const [yearVal, setYearVal] = useState<number>(new Date().getFullYear());
-  const [defaultFee, setDefaultFee] = useState<number>(1000);
+  const [defaultFee, setDefaultFee] = useState<number>(1200);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [yearStatus, setYearStatus] = useState<'active' | 'inactive'>('active');
   const [yearError, setYearError] = useState('');
   const [isSavingYear, setIsSavingYear] = useState(false);
 
-  // Delete Modal State
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [subToDelete, setSubToDelete] = useState<MemberSubscription | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  // Ledger Generation State & Modal
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [genResult, setGenResult] = useState<{
+    yearName: number;
+    fee: number;
+    accountableCount: number;
+    createdCount: number;
+    existingCount: number;
+  } | null>(null);
 
   // Toast Notification State
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
-  // Selected Subscription Details Panel
-  const [selectedSubDetails, setSelectedSubDetails] = useState<MemberSubscription | null>(null);
 
   const showToast = (type: 'success' | 'error', text: string) => {
     setToastMessage({ type, text });
@@ -70,19 +75,23 @@ export const Subscriptions: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [yearList, memberList, houseList, subList] = await Promise.all([
+      const [yearList, memberList, houseList, subList, payList, arrList] = await Promise.all([
         db.years.get(),
         db.members.get(),
         db.households.get(),
         db.subscriptions.get(),
+        db.payments.get(),
+        db.arrears.get(),
       ]);
       setYears(yearList);
       setMembers(memberList);
       setHouseholds(houseList);
       setSubscriptions(subList);
+      setPayments(payList);
+      setArrearsList(arrList);
 
-      const activeYr = yearList.find(y => y.status === 'active') || yearList[0];
-      if (activeYr && selectedYearId === 'all') {
+      if (yearList.length > 0 && !selectedYearId) {
+        const activeYr = yearList.find((y) => y.status === 'active') || yearList[0];
         setSelectedYearId(activeYr.id);
       }
     } catch (err) {
@@ -97,281 +106,208 @@ export const Subscriptions: React.FC = () => {
     loadData();
   }, []);
 
-  // Open Add Subscription Modal
-  const openAddSubModal = () => {
-    setSubModalMode('add');
-    setCurrentSubId(null);
-    setMemberId(members[0]?.id || '');
-    setYearId(selectedYearId !== 'all' ? selectedYearId : (years[0]?.id || ''));
-    setAnnualFee(years.find((y) => y.id === (selectedYearId !== 'all' ? selectedYearId : years[0]?.id))?.default_fee || 1000);
-    setPreviousArrears(0);
-    setTotalPaid(0);
-    setSubStatus('unpaid');
-    setFieldErrors({});
-    setFormError('');
-    setIsSubModalOpen(true);
-  };
+  const currentYearObj = useMemo(() => {
+    return years.find((y) => y.id === selectedYearId) || years[0] || null;
+  }, [years, selectedYearId]);
 
-  // Open Edit Subscription Modal
-  const openEditSubModal = (sub: MemberSubscription, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setSubModalMode('edit');
-    setCurrentSubId(sub.id);
-    setMemberId(sub.member_id);
-    setYearId(sub.subscription_year_id);
-    setAnnualFee(sub.annual_fee);
-    setPreviousArrears(sub.previous_arrears);
-    setTotalPaid(sub.total_paid);
-    setSubStatus(sub.status);
-    setFieldErrors({});
-    setFormError('');
-    setIsSubModalOpen(true);
-  };
-
-  // Open Delete Subscription Modal
-  const openDeleteSubModal = (sub: MemberSubscription, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setSubToDelete(sub);
-    setIsDeleteModalOpen(true);
-  };
-
-  // Confirm Delete Subscription
-  const handleConfirmDelete = async () => {
-    if (!subToDelete) return;
-    setIsDeleting(true);
-    try {
-      await db.subscriptions.delete(subToDelete.id);
-      showToast('success', '✓ Subscription record deleted successfully.');
-      setIsDeleteModalOpen(false);
-      setSubToDelete(null);
-      if (selectedSubDetails?.id === subToDelete.id) {
-        setSelectedSubDetails(null);
-      }
-      loadData();
-    } catch (err: any) {
-      showToast('error', err.message || 'Failed to delete subscription.');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  // Validate Subscription Form
-  const validateSubForm = (): boolean => {
-    const errors: { [key: string]: string } = {};
-
-    if (!memberId) {
-      errors.memberId = 'Please select a member.';
-    }
-
-    if (!yearId) {
-      errors.yearId = 'Please select a subscription year.';
-    }
-
-    if (annualFee < 0) {
-      errors.annualFee = 'Annual fee cannot be negative.';
-    }
-
-    if (previousArrears < 0) {
-      errors.previousArrears = 'Arrears cannot be negative.';
-    }
-
-    if (totalPaid < 0) {
-      errors.totalPaid = 'Total paid cannot be negative.';
-    }
-
-    setFieldErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  // Save Subscription Form
-  const handleSaveSub = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError('');
-
-    if (!validateSubForm()) return;
-
-    setIsSaving(true);
-
-    try {
-      const data = {
-        member_id: memberId,
-        subscription_year_id: yearId,
-        annual_fee: Number(annualFee),
-        previous_arrears: Number(previousArrears),
-        total_paid: Number(totalPaid),
-        total_due: Number(annualFee) + Number(previousArrears),
-        balance: Number(annualFee) + Number(previousArrears) - Number(totalPaid),
-        status: subStatus,
+  // CALCULATED DYNAMIC STATISTICS FOR CURRENT SELECTED YEAR
+  const yearStats = useMemo(() => {
+    if (!selectedYearId) {
+      return {
+        accountableMembers: 0,
+        paidCount: 0,
+        partiallyPaidCount: 0,
+        unpaidCount: 0,
+        totalExpected: 0,
+        totalCollected: 0,
+        totalOutstanding: 0,
       };
-
-      if (subModalMode === 'add') {
-        await db.subscriptions.create(data);
-        showToast('success', '✓ Subscription created successfully.');
-      } else if (currentSubId) {
-        await db.subscriptions.update(currentSubId, data);
-        showToast('success', '✓ Subscription updated successfully.');
-      }
-
-      setIsSubModalOpen(false);
-      loadData();
-    } catch (err: any) {
-      setFormError(err.message || 'Unable to save subscription. Please try again.');
-    } finally {
-      setIsSaving(false);
     }
-  };
 
+    const yearSubs = subscriptions.filter((s) => s.subscription_year_id === selectedYearId);
+    const accountableMembers = members.filter((m) => m.status === 'active' && m.is_subscription_accountable !== false);
+
+    const paidCount = yearSubs.filter((s) => s.status === 'paid').length;
+    const partiallyPaidCount = yearSubs.filter((s) => s.status === 'partially_paid').length;
+    const unpaidCount = yearSubs.filter((s) => s.status === 'unpaid').length;
+
+    const totalExpected = yearSubs.reduce((sum, s) => sum + s.total_due, 0);
+    const totalCollected = yearSubs.reduce((sum, s) => sum + s.total_paid, 0);
+    const totalOutstanding = yearSubs.reduce((sum, s) => sum + s.balance, 0);
+
+    return {
+      accountableMembers: accountableMembers.length,
+      paidCount,
+      partiallyPaidCount,
+      unpaidCount,
+      totalExpected,
+      totalCollected,
+      totalOutstanding,
+    };
+  }, [subscriptions, selectedYearId, members]);
+
+  // Open Configure Year Modal
   const openConfigureYearModal = () => {
-    const existingYearsList = years.map((y) => y.year);
-    const maxYear = existingYearsList.length > 0 ? Math.max(...existingYearsList) : new Date().getFullYear() - 1;
-    const nextYear = maxYear + 1;
+    const existingYears = years.map((y) => y.year);
+    const nextYear = existingYears.length > 0 ? Math.max(...existingYears) + 1 : new Date().getFullYear();
 
     setYearVal(nextYear);
-    setDefaultFee(1000);
+    setDefaultFee(1200);
     setStartDate(`${nextYear}-01-01`);
     setEndDate(`${nextYear}-12-31`);
+    setYearStatus('active');
     setYearError('');
     setIsYearModalOpen(true);
   };
 
-  // Handle Configure Year Save
+  // Save Configure Year Form
   const handleSaveYear = async (e: React.FormEvent) => {
     e.preventDefault();
     setYearError('');
 
-    if (!yearVal || !defaultFee || !startDate || !endDate) {
-      setYearError('All fields are required.');
-      return;
-    }
-
-    const yrNum = Number(yearVal);
-
-    if (years.some((y) => y.year === yrNum)) {
-      const existingYearsList = years.map((y) => y.year);
-      const maxYear = Math.max(...existingYearsList);
-      setYearError(`Subscription year ${yrNum} already exists. Please choose a new year (e.g. ${maxYear + 1}).`);
+    if (years.some((y) => y.year === yearVal)) {
+      setYearError(`⚠ Subscription year ${yearVal} already exists. Please choose a different year.`);
       return;
     }
 
     setIsSavingYear(true);
 
     try {
-      const newYear = await db.years.create({
-        year: yrNum,
+      const newYearRecord = await db.years.create({
+        year: yearVal,
         default_fee: Number(defaultFee),
-        start_date: startDate,
-        end_date: endDate,
-        status: 'active',
+        start_date: startDate || `${yearVal}-01-01`,
+        end_date: endDate || `${yearVal}-12-31`,
+        status: yearStatus,
       });
 
-      showToast('success', `✓ Subscription year ${yrNum} configured successfully.`);
+      showToast('success', `✓ Subscription year ${yearVal} configured successfully.`);
       setIsYearModalOpen(false);
-      setSelectedYearId(newYear.id);
-      loadData();
+
+      // Reload dataset and auto-select new year
+      await loadData();
+      setSelectedYearId(newYearRecord.id);
     } catch (err: any) {
-      if (err.message && err.message.includes('subscription_years_year_key')) {
-        setYearError(`Subscription year ${yrNum} already exists. Please choose a new year.`);
-      } else {
-        setYearError(err.message || 'Failed to configure subscription year.');
-      }
+      setYearError(err.message || 'Failed to save subscription year.');
     } finally {
       setIsSavingYear(false);
     }
   };
 
-  // Dynamic CSV Report Export
-  const handleDownloadReport = () => {
-    if (filteredSubscriptions.length === 0) {
-      showToast('error', 'No subscription records to export.');
+  // TRIGGER IDEMPOTENT LEDGER GENERATION
+  const handleGenerateLedger = async (targetYearId?: string) => {
+    const yearToGenId = targetYearId || selectedYearId;
+    const targetYr = years.find((y) => y.id === yearToGenId);
+    if (!targetYr) {
+      showToast('error', 'Please select a valid subscription year.');
       return;
     }
 
-    setIsExporting(true);
+    setIsGenerating(true);
 
-    setTimeout(() => {
-      try {
-        const selectedYearObj = years.find((y) => y.id === selectedYearId);
-        const yearLabel = selectedYearObj ? selectedYearObj.year : 'All_Years';
+    try {
+      const summary = await db.subscriptions.generateLedger(yearToGenId);
+      setGenResult({
+        yearName: targetYr.year,
+        fee: targetYr.default_fee,
+        accountableCount: summary.accountableCount,
+        createdCount: summary.createdCount,
+        existingCount: summary.existingCount,
+      });
 
-        const headers = [
-          'Subscription ID',
-          'Member Name',
-          'House Number',
-          'Year',
-          'Annual Fee (INR)',
-          'Previous Arrears (INR)',
-          'Total Due (INR)',
-          'Total Paid (INR)',
-          'Outstanding Balance (INR)',
-          'Payment Status',
-          'Created Date',
-        ];
-
-        const rows = filteredSubscriptions.map((sub) => {
-          const mem = members.find((m) => m.id === sub.member_id);
-          const house = mem ? households.find((h) => h.id === mem.household_id) : null;
-          const yrObj = years.find((y) => y.id === sub.subscription_year_id);
-
-          return [
-            `"${sub.id}"`,
-            `"${(mem ? mem.name : 'Unknown').replace(/"/g, '""')}"`,
-            `"${house ? `H-${house.house_number}` : 'N/A'}"`,
-            `"${yrObj ? yrObj.year : 'N/A'}"`,
-            sub.annual_fee,
-            sub.previous_arrears,
-            sub.total_due,
-            sub.total_paid,
-            sub.balance,
-            `"${sub.status.toUpperCase()}"`,
-            `"${new Date(sub.created_at).toLocaleDateString()}"`,
-          ];
-        });
-
-        const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.setAttribute('href', url);
-        link.setAttribute('download', `Mahallu_Subscriptions_Report_${yearLabel}_${new Date().toISOString().slice(0, 10)}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        showToast('success', '✓ Subscriptions Report downloaded successfully!');
-      } catch (err) {
-        showToast('error', 'Failed to generate report.');
-      } finally {
-        setIsExporting(false);
-      }
-    }, 600);
+      showToast('success', `✓ Subscription ledger for ${targetYr.year} generated successfully!`);
+      loadData();
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to generate subscription ledger.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  // Filtered subscriptions list
-  const filteredSubscriptions = useMemo(() => {
-    return subscriptions.filter((sub) => {
-      const mem = members.find((m) => m.id === sub.member_id);
-      const house = mem ? households.find((h) => h.id === mem.household_id) : null;
+  // OPEN MEMBER LEDGER DETAIL MODAL
+  const openMemberLedgerModal = (member: Member) => {
+    setLedgerMember(member);
+    setIsLedgerModalOpen(true);
+  };
+
+  // TOGGLE MEMBER ACCOUNTABILITY FROM LEDGER MODAL
+  const handleToggleAccountability = async (member: Member, newValue: boolean) => {
+    try {
+      await db.members.update(member.id, { is_subscription_accountable: newValue });
+      showToast('success', `✓ Member accountability set to ${newValue ? 'ON' : 'OFF'}.`);
+      setLedgerMember((prev) => (prev ? { ...prev, is_subscription_accountable: newValue } : null));
+      loadData();
+    } catch (err: any) {
+      showToast('error', 'Failed to update member accountability setting.');
+    }
+  };
+
+  // ADD ARREAR ADJUSTMENT TO MEMBER LEDGER
+  const handleSaveArrearAdjustment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ledgerMember || !arrearYearId || arrearAmount <= 0) {
+      showToast('error', 'Please provide a valid year and arrear amount.');
+      return;
+    }
+
+    setIsSavingArrear(true);
+
+    try {
+      await db.arrears.create({
+        member_id: ledgerMember.id,
+        subscription_year_id: arrearYearId,
+        amount: Number(arrearAmount),
+        reason: arrearReason.trim() || 'Manual arrear adjustment',
+        created_by: user?.id || null,
+      });
+
+      // Also update or add arrear to current subscription
+      const sub = subscriptions.find(
+        (s) => s.member_id === ledgerMember.id && s.subscription_year_id === arrearYearId
+      );
+      if (sub) {
+        await db.subscriptions.update(sub.id, {
+          previous_arrears: sub.previous_arrears + Number(arrearAmount),
+        });
+      }
+
+      showToast('success', '✓ Arrear adjustment added successfully.');
+      setIsArrearModalOpen(false);
+      setArrearAmount(0);
+      setArrearReason('');
+      loadData();
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to add arrear adjustment.');
+    } finally {
+      setIsSavingArrear(false);
+    }
+  };
+
+  // Dynamic Member Ledgers List Filtered
+  const filteredLedgerMembers = useMemo(() => {
+    return members.filter((m) => {
+      if (m.status !== 'active') return false;
+
+      const house = households.find((h) => h.id === m.household_id);
       const q = searchQuery.toLowerCase().trim();
-      
       const matchesSearch =
         !q ||
-        (mem && mem.name.toLowerCase().includes(q)) ||
-        (house && house.house_number.toLowerCase().includes(q)) ||
-        (house && house.house_owner_name.toLowerCase().includes(q));
+        m.name.toLowerCase().includes(q) ||
+        (m.phone && m.phone.includes(q)) ||
+        (house && (house.house_number.includes(q) || house.house_owner_name.toLowerCase().includes(q)));
 
-      const matchesYear = selectedYearId !== 'all' ? sub.subscription_year_id === selectedYearId : true;
-      const matchesStatus = selectedStatus ? sub.status === selectedStatus : true;
-      const matchesHouse = selectedHouseholdId ? (mem && mem.household_id === selectedHouseholdId) : true;
+      const matchesHouse = selectedHouseholdId ? m.household_id === selectedHouseholdId : true;
 
-      return matchesSearch && matchesYear && matchesStatus && matchesHouse;
+      // Status filter matching for current selected year
+      const sub = subscriptions.find(
+        (s) => s.member_id === m.id && s.subscription_year_id === selectedYearId
+      );
+      const subStatusVal = sub ? sub.status : 'unpaid';
+      const matchesStatus = selectedStatus ? subStatusVal === selectedStatus : true;
+
+      return matchesSearch && matchesHouse && matchesStatus;
     });
-  }, [subscriptions, members, households, searchQuery, selectedYearId, selectedStatus, selectedHouseholdId]);
-
-  const clearFilters = () => {
-    setSearchQuery('');
-    setSelectedStatus('');
-    setSelectedHouseholdId('');
-  };
+  }, [members, households, searchQuery, selectedHouseholdId, selectedStatus, subscriptions, selectedYearId]);
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -394,508 +330,708 @@ export const Subscriptions: React.FC = () => {
       {/* PAGE HEADER */}
       <div className="page-header-actions">
         <div>
-          <h3>{t('subscription.subscriptionsTitle')}</h3>
-          <p className="page-subtitle">Manage annual subscriptions, member ledgers, and rolling arrears balances.</p>
+          <h3>{t('subscription.subscriptionTitle')}</h3>
+          <p className="page-subtitle">Scalable year-based subscription ledgers, rolling arrears & payment allocation.</p>
         </div>
 
         <div className="header-cta-group">
-          <button className="configure-btn secondary-btn" onClick={openConfigureYearModal}>
-            <Calendar size={16} />
-            <span>{t('subscription.configureYear')}</span>
-          </button>
-          
-          <button className="add-btn primary-btn" onClick={openAddSubModal}>
-            <Plus size={16} />
-            <span>Add Subscription</span>
-          </button>
-        </div>
-      </div>
-
-      {/* SEARCH AND FILTER TOOLBAR */}
-      <div className="filter-bar glass-card">
-        <div className="search-box">
-          <Search size={18} className="search-icon" />
-          <input
-            type="text"
-            placeholder="Search by member name or house number..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          {searchQuery && (
-            <button className="clear-search-btn" onClick={() => setSearchQuery('')}>
-              <X size={14} />
-            </button>
-          )}
-        </div>
-
-        <div className="filter-selectors-grid">
-          <div className="filter-select-wrapper">
-            <Calendar size={15} className="select-icon" />
-            <select value={selectedYearId} onChange={(e) => setSelectedYearId(e.target.value)}>
-              <option value="all">Subscription Year: All</option>
+          <div className="year-selector-pill">
+            <Calendar size={15} className="calendar-icon" />
+            <span>Active Year:</span>
+            <select
+              value={selectedYearId}
+              onChange={(e) => setSelectedYearId(e.target.value)}
+              className="year-dropdown-select"
+            >
               {years.map((y) => (
                 <option key={y.id} value={y.id}>
-                  Year: {y.year} {y.status === 'active' ? '(Active)' : ''}
+                  {y.year} (₹{y.default_fee}) {y.status === 'active' ? '• Active' : ''}
                 </option>
               ))}
             </select>
           </div>
 
-          <div className="filter-select-wrapper">
-            <Home size={15} className="select-icon" />
-            <select value={selectedHouseholdId} onChange={(e) => setSelectedHouseholdId(e.target.value)}>
-              <option value="">Household: All</option>
-              {households.map((h) => (
-                <option key={h.id} value={h.id}>
-                  House No. H-{h.house_number}
-                </option>
-              ))}
-            </select>
-          </div>
+          <button className="add-btn secondary-btn" onClick={openConfigureYearModal}>
+            <Plus size={15} />
+            <span>Configure Year</span>
+          </button>
 
-          <div className="filter-select-wrapper">
-            <Filter size={15} className="select-icon" />
-            <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
-              <option value="">Status: All</option>
-              <option value="paid">{t('subscription.paid')}</option>
-              <option value="partially_paid">{t('subscription.partiallyPaid')}</option>
-              <option value="unpaid">{t('subscription.unpaid')}</option>
-            </select>
-          </div>
-
-          <button 
-            className="report-export-btn" 
-            onClick={handleDownloadReport} 
-            disabled={isExporting}
-            title="Download Subscriptions CSV Report"
+          <button
+            className="add-btn primary-btn"
+            onClick={() => handleGenerateLedger()}
+            disabled={isGenerating}
           >
-            {isExporting ? (
+            {isGenerating ? (
               <>
-                <Loader2 size={15} className="spinner-icon" />
+                <Loader2 size={16} className="spinner-icon" />
                 <span>Generating...</span>
               </>
             ) : (
               <>
-                <Download size={15} />
-                <span>Download Report</span>
+                <Sparkles size={16} />
+                <span>Generate Subscription Ledger</span>
               </>
             )}
           </button>
         </div>
       </div>
 
-      {/* MAIN CONTENT SPLIT */}
-      <div className="subscriptions-content-split">
-        {/* SUBSCRIPTIONS TABLE & MOBILE DIRECTORY */}
-        <div className={`table-container-card glass-card ${selectedSubDetails ? 'narrow' : ''}`}>
-          {loading ? (
-            <div className="skeleton-loading-container">
-              <div className="skeleton-row"></div>
-              <div className="skeleton-row"></div>
-              <div className="skeleton-row"></div>
-            </div>
-          ) : subscriptions.length === 0 ? (
-            /* EMPTY STATE 1: NO SUBSCRIPTIONS IN DATABASE */
-            <div className="empty-state-card">
-              <div className="empty-state-icon emerald">
-                <FileText size={32} />
-              </div>
-              <h4>No subscriptions yet</h4>
-              <p>Start managing subscription records by creating your first subscription.</p>
-              <button className="add-btn primary-btn margin-top" onClick={openAddSubModal}>
-                <Plus size={16} />
-                <span>Add Subscription</span>
-              </button>
-            </div>
-          ) : filteredSubscriptions.length === 0 ? (
-            /* EMPTY STATE 2: SEARCH / FILTER RETURNS 0 RESULTS */
-            <div className="empty-state-card">
-              <div className="empty-state-icon neutral">
-                <Search size={32} />
-              </div>
-              <h4>No matching subscriptions</h4>
-              <p>Try changing your search keywords or filter criteria.</p>
-              <button className="btn-cancel margin-top" onClick={clearFilters}>
-                Clear Filters
-              </button>
-            </div>
-          ) : (
-            <>
-              {/* DESKTOP & TABLET DATA TABLE */}
-              <div className="table-responsive desktop-view-only">
-                <table className="subscriptions-table">
-                  <thead>
-                    <tr>
-                      <th>{t('member.memberName')}</th>
-                      <th>{t('household.houseNumber')}</th>
-                      <th>{t('subscription.annualSubscription')}</th>
-                      <th>{t('subscription.previousArrears')}</th>
-                      <th>{t('subscription.totalDue')}</th>
-                      <th>{t('subscription.totalPaid')}</th>
-                      <th>{t('subscription.outstandingBalance')}</th>
-                      <th>{t('subscription.paymentStatus')}</th>
-                      <th style={{ textAlign: 'right' }}>{t('common.actions')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredSubscriptions.map((sub) => {
-                      const mem = members.find((m) => m.id === sub.member_id);
-                      const house = mem ? households.find((h) => h.id === mem.household_id) : null;
-                      const isSelected = selectedSubDetails?.id === sub.id;
-                      return (
-                        <tr
-                          key={sub.id}
-                          className={`sub-row ${isSelected ? 'selected' : ''}`}
-                          onClick={() => setSelectedSubDetails(sub)}
-                        >
-                          <td className="bold-text">
-                            <div className="member-name-td">
-                              <span className="name-text">{mem ? mem.name : 'Unknown'}</span>
-                              <span className="rel-sub">{mem ? mem.relationship : ''}</span>
-                            </div>
-                          </td>
-                          <td>
-                            {house ? (
-                              <span className="house-tag">H-{house.house_number}</span>
-                            ) : (
-                              'N/A'
-                            )}
-                          </td>
-                          <td>{formatCurrency(sub.annual_fee)}</td>
-                          <td className={sub.previous_arrears > 0 ? 'has-arrears-text' : ''}>
-                            {formatCurrency(sub.previous_arrears)}
-                          </td>
-                          <td className="bold-text">{formatCurrency(sub.total_due)}</td>
-                          <td className="paid-text">{formatCurrency(sub.total_paid)}</td>
-                          <td className={`balance-td ${sub.balance > 0 ? 'outstanding' : 'paid'}`}>
-                            {formatCurrency(sub.balance)}
-                          </td>
-                          <td>
-                            <span className={`status-pill ${sub.status}`}>
-                              <span className="dot"></span>
-                              {t(`subscription.${sub.status === 'paid' ? 'paid' : sub.status === 'partially_paid' ? 'partiallyPaid' : 'unpaid'}`)}
-                            </span>
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            <div className="actions-button-wrapper" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                className="action-icon-btn edit"
-                                onClick={(e) => openEditSubModal(sub, e)}
-                                title="Edit Subscription"
-                              >
-                                <Edit2 size={15} />
-                              </button>
-                              <button
-                                className="action-icon-btn delete"
-                                onClick={(e) => openDeleteSubModal(sub, e)}
-                                title="Delete Record"
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+      {/* PRIMARY NAVIGATION TABS */}
+      <div className="subscription-nav-tabs">
+        <button
+          className={`tab-pill-btn ${activeTab === 'overview' ? 'active' : ''}`}
+          onClick={() => setActiveTab('overview')}
+        >
+          <Layers size={16} />
+          <span>Overview & Stats</span>
+        </button>
 
-              {/* MOBILE SUBSCRIPTION CARDS DIRECTORY VIEW */}
-              <div className="mobile-cards-directory">
-                {filteredSubscriptions.map((sub) => {
-                  const mem = members.find((m) => m.id === sub.member_id);
-                  const house = mem ? households.find((h) => h.id === mem.household_id) : null;
-                  const yrObj = years.find((y) => y.id === sub.subscription_year_id);
-                  const isSelected = selectedSubDetails?.id === sub.id;
+        <button
+          className={`tab-pill-btn ${activeTab === 'ledgers' ? 'active' : ''}`}
+          onClick={() => setActiveTab('ledgers')}
+        >
+          <UserCheck size={16} />
+          <span>Member Ledgers</span>
+        </button>
 
-                  return (
-                    <div
-                      key={sub.id}
-                      className={`mobile-sub-card ${isSelected ? 'selected' : ''}`}
-                      onClick={() => setSelectedSubDetails(sub)}
-                    >
-                      <div className="card-head">
-                        <div className="member-head-info">
-                          <h4 className="member-name">{mem ? mem.name : 'Unknown'}</h4>
-                          <div className="badges-group">
-                            {house && <span className="house-tag">H-{house.house_number}</span>}
-                            {yrObj && <span className="year-pill">{yrObj.year}</span>}
-                          </div>
-                        </div>
-                        <span className={`status-pill ${sub.status}`}>
-                          <span className="dot"></span>
-                          {t(`subscription.${sub.status === 'paid' ? 'paid' : sub.status === 'partially_paid' ? 'partiallyPaid' : 'unpaid'}`)}
-                        </span>
-                      </div>
+        <button
+          className={`tab-pill-btn ${activeTab === 'years' ? 'active' : ''}`}
+          onClick={() => setActiveTab('years')}
+        >
+          <Calendar size={16} />
+          <span>Subscription Years</span>
+        </button>
+      </div>
 
-                      <div className="card-body">
-                        <div className="financial-grid">
-                          <div className="fin-item">
-                            <span className="fin-label">Annual Fee</span>
-                            <span className="fin-val">{formatCurrency(sub.annual_fee)}</span>
-                          </div>
-                          <div className="fin-item">
-                            <span className="fin-label">Arrears</span>
-                            <span className={`fin-val ${sub.previous_arrears > 0 ? 'has-arrears-text' : ''}`}>
-                              {formatCurrency(sub.previous_arrears)}
-                            </span>
-                          </div>
-                          <div className="fin-item">
-                            <span className="fin-label">Paid Amount</span>
-                            <span className="fin-val paid-text">{formatCurrency(sub.total_paid)}</span>
-                          </div>
-                          <div className="fin-item">
-                            <span className="fin-label">Outstanding Balance</span>
-                            <span className={`fin-val bold-text ${sub.balance > 0 ? 'outstanding' : 'paid'}`}>
-                              {formatCurrency(sub.balance)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="card-footer">
-                        <span className="sub-id-tag">ID: {sub.id.slice(0, 12)}</span>
-                        <div className="mobile-card-actions" onClick={(e) => e.stopPropagation()}>
-                          <button className="mobile-action-btn edit" onClick={(e) => openEditSubModal(sub, e)}>
-                            <Edit2 size={14} />
-                            <span>Edit</span>
-                          </button>
-                          <button className="mobile-action-btn delete" onClick={(e) => openDeleteSubModal(sub, e)}>
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+      {/* ════════════════════════════════════════════════
+          TAB 1: OVERVIEW & FINANCIAL STATS DASHBOARD
+      ════════════════════════════════════════════════ */}
+      {activeTab === 'overview' && (
+        <div className="overview-tab-content animate-fade-in">
+          {/* STATS CARDS GRID */}
+          <div className="stats-dashboard-grid">
+            <div className="stat-metric-card shadow-sm">
+              <div className="metric-icon-box emerald">
+                <UserCheck size={22} />
               </div>
-            </>
-          )}
-        </div>
-
-        {/* SELECTED SUBSCRIPTION SUMMARY SIDE PANEL */}
-        {selectedSubDetails && (
-          <div className="details-panel-card glass-card">
-            <div className="panel-header">
-              <div className="panel-title-wrapper">
-                <div className="panel-icon-box">
-                  <CreditCard size={20} color="#00966b" />
-                </div>
-                <div>
-                  <h4>
-                    {members.find((m) => m.id === selectedSubDetails.member_id)?.name || 'Subscription Details'}
-                  </h4>
-                  <p>
-                    Year:{' '}
-                    {years.find((y) => y.id === selectedSubDetails.subscription_year_id)?.year || 'N/A'}
-                  </p>
-                </div>
+              <div className="metric-info">
+                <span className="metric-label">Accountable Members</span>
+                <h3 className="metric-value">{yearStats.accountableMembers}</h3>
+                <span className="metric-sub">Eligible for {currentYearObj?.year} ledger</span>
               </div>
-              <button
-                className="panel-close-btn"
-                onClick={() => setSelectedSubDetails(null)}
-                aria-label="Close subscription details panel"
-              >
-                <X size={18} />
-              </button>
             </div>
 
-            <div className="panel-body">
-              <div className="details-meta-section">
-                <div className="meta-item">
-                  <span className="meta-label">Annual Fee</span>
-                  <span className="meta-value">{formatCurrency(selectedSubDetails.annual_fee)}</span>
-                </div>
-                <div className="meta-item">
-                  <span className="meta-label">Previous Arrears</span>
-                  <span className="meta-value">{formatCurrency(selectedSubDetails.previous_arrears)}</span>
-                </div>
-                <div className="meta-item">
-                  <span className="meta-label">Total Due</span>
-                  <span className="meta-value bold-text">{formatCurrency(selectedSubDetails.total_due)}</span>
-                </div>
-                <div className="meta-item">
-                  <span className="meta-label">Total Paid</span>
-                  <span className="meta-value paid-text">{formatCurrency(selectedSubDetails.total_paid)}</span>
-                </div>
-                <div className="meta-item">
-                  <span className="meta-label">Balance Outstanding</span>
-                  <span className={`meta-value bold-text ${selectedSubDetails.balance > 0 ? 'outstanding' : 'paid'}`}>
-                    {formatCurrency(selectedSubDetails.balance)}
-                  </span>
-                </div>
+            <div className="stat-metric-card shadow-sm">
+              <div className="metric-icon-box green">
+                <CheckCircle size={22} />
+              </div>
+              <div className="metric-info">
+                <span className="metric-label">Fully Paid</span>
+                <h3 className="metric-value text-success">{yearStats.paidCount}</h3>
+                <span className="metric-sub">{yearStats.partiallyPaidCount} Partially paid</span>
+              </div>
+            </div>
+
+            <div className="stat-metric-card shadow-sm">
+              <div className="metric-icon-box amber">
+                <AlertCircle size={22} />
+              </div>
+              <div className="metric-info">
+                <span className="metric-label">Unpaid Dues</span>
+                <h3 className="metric-value text-warning">{yearStats.unpaidCount}</h3>
+                <span className="metric-sub">Pending members count</span>
+              </div>
+            </div>
+
+            <div className="stat-metric-card shadow-sm">
+              <div className="metric-icon-box primary">
+                <DollarSign size={22} />
+              </div>
+              <div className="metric-info">
+                <span className="metric-label">Total Expected</span>
+                <h3 className="metric-value text-primary">{formatCurrency(yearStats.totalExpected)}</h3>
+                <span className="metric-sub">Annual + Rolling Arrears</span>
+              </div>
+            </div>
+
+            <div className="stat-metric-card shadow-sm">
+              <div className="metric-icon-box teal">
+                <CreditCard size={22} />
+              </div>
+              <div className="metric-info">
+                <span className="metric-label">Total Collected</span>
+                <h3 className="metric-value text-success">{formatCurrency(yearStats.totalCollected)}</h3>
+                <span className="metric-sub">Actual payments received</span>
+              </div>
+            </div>
+
+            <div className="stat-metric-card shadow-sm">
+              <div className="metric-icon-box red">
+                <AlertCircle size={22} />
+              </div>
+              <div className="metric-info">
+                <span className="metric-label">Total Outstanding</span>
+                <h3 className="metric-value text-danger">{formatCurrency(yearStats.totalOutstanding)}</h3>
+                <span className="metric-sub">Remaining balance to collect</span>
               </div>
             </div>
           </div>
-        )}
-      </div>
 
-      {/* ADD / EDIT SUBSCRIPTION MODAL DIALOG */}
-      {isSubModalOpen && (
+          {/* PROGRESS & QUICK ACTIONS CARD */}
+          <div className="overview-summary-card glass-card">
+            <div className="card-head">
+              <div>
+                <h4>{currentYearObj?.year} Financial Collection Overview</h4>
+                <p>Consolidated progress of active subscription year collections vs expected obligations.</p>
+              </div>
+              <span className="year-fee-tag">Annual Rate: ₹{currentYearObj?.default_fee}</span>
+            </div>
+
+            <div className="progress-bar-container">
+              <div className="progress-labels">
+                <span>Collected: {formatCurrency(yearStats.totalCollected)}</span>
+                <span>
+                  {yearStats.totalExpected > 0
+                    ? Math.round((yearStats.totalCollected / yearStats.totalExpected) * 100)
+                    : 0}
+                  % Target Achieved
+                </span>
+              </div>
+              <div className="progress-track">
+                <div
+                  className="progress-fill"
+                  style={{
+                    width: `${
+                      yearStats.totalExpected > 0
+                        ? Math.min(100, (yearStats.totalCollected / yearStats.totalExpected) * 100)
+                        : 0
+                    }%`,
+                  }}
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════
+          TAB 2: MEMBER LEDGERS DIRECTORY & SEARCH
+      ════════════════════════════════════════════════ */}
+      {activeTab === 'ledgers' && (
+        <div className="ledgers-tab-content animate-fade-in">
+          {/* SEARCH & FILTER TOOLBAR */}
+          <div className="filter-bar glass-card">
+            <div className="search-box">
+              <Search size={18} className="search-icon" />
+              <input
+                type="text"
+                placeholder="Search member name, house number, or phone..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button className="clear-search-btn" onClick={() => setSearchQuery('')}>
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            <div className="filter-selectors-grid">
+              <div className="filter-select-wrapper">
+                <Filter size={15} className="select-icon" />
+                <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
+                  <option value="">Status: All</option>
+                  <option value="paid">{t('subscription.paid')}</option>
+                  <option value="partially_paid">{t('subscription.partiallyPaid')}</option>
+                  <option value="unpaid">{t('subscription.unpaid')}</option>
+                </select>
+              </div>
+
+              <div className="filter-select-wrapper">
+                <Home size={15} className="select-icon" />
+                <select
+                  value={selectedHouseholdId}
+                  onChange={(e) => setSelectedHouseholdId(e.target.value)}
+                >
+                  <option value="">Household: All</option>
+                  {households.map((h) => (
+                    <option key={h.id} value={h.id}>
+                      House {h.house_number} ({h.house_owner_name})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {(searchQuery || selectedStatus || selectedHouseholdId) && (
+                <button
+                  className="clear-filters-link"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedStatus('');
+                    setSelectedHouseholdId('');
+                  }}
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* MEMBER LEDGERS TABLE / CARDS */}
+          <div className="table-container-card glass-card">
+            {loading ? (
+              <div className="skeleton-loading-container">
+                <div className="skeleton-row"></div>
+                <div className="skeleton-row"></div>
+                <div className="skeleton-row"></div>
+              </div>
+            ) : filteredLedgerMembers.length === 0 ? (
+              <div className="empty-state-card">
+                <div className="empty-state-icon neutral">
+                  <Search size={32} />
+                </div>
+                <h4>No member ledgers found</h4>
+                <p>Try adjusting your search criteria or select another subscription year.</p>
+              </div>
+            ) : (
+              <>
+                {/* DESKTOP TABLE */}
+                <div className="table-responsive desktop-view-only">
+                  <table className="subscriptions-table">
+                    <thead>
+                      <tr>
+                        <th>Member</th>
+                        <th>Household</th>
+                        <th>Annual Rate</th>
+                        <th>Previous Arrears</th>
+                        <th>Total Due</th>
+                        <th>Paid</th>
+                        <th>Balance</th>
+                        <th>Status</th>
+                        <th style={{ textAlign: 'right' }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredLedgerMembers.map((m) => {
+                        const house = households.find((h) => h.id === m.household_id);
+                        const sub = subscriptions.find(
+                          (s) => s.member_id === m.id && s.subscription_year_id === selectedYearId
+                        );
+
+                        const annualFeeVal = sub ? sub.annual_fee : currentYearObj?.default_fee || 0;
+                        const prevArrearsVal = sub ? sub.previous_arrears : 0;
+                        const totalDueVal = sub ? sub.total_due : annualFeeVal;
+                        const totalPaidVal = sub ? sub.total_paid : 0;
+                        const balanceVal = sub ? sub.balance : totalDueVal;
+                        const statusVal = sub ? sub.status : 'unpaid';
+
+                        return (
+                          <tr key={m.id} className="sub-row" onClick={() => openMemberLedgerModal(m)}>
+                            <td className="bold-text">
+                              <div className="name-cell">
+                                <span>{m.name}</span>
+                                {m.is_subscription_accountable === false && (
+                                  <span className="opted-out-badge">Non-Accountable</span>
+                                )}
+                              </div>
+                            </td>
+                            <td>
+                              {house ? `H-${house.house_number} (${house.house_owner_name})` : 'N/A'}
+                            </td>
+                            <td>{formatCurrency(annualFeeVal)}</td>
+                            <td>{formatCurrency(prevArrearsVal)}</td>
+                            <td className="bold-text">{formatCurrency(totalDueVal)}</td>
+                            <td className="text-success">{formatCurrency(totalPaidVal)}</td>
+                            <td className={`balance-td ${balanceVal > 0 ? 'outstanding' : 'paid'}`}>
+                              {formatCurrency(balanceVal)}
+                            </td>
+                            <td>
+                              <span className={`status-pill ${statusVal}`}>
+                                {statusVal.replace('_', ' ').toUpperCase()}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <button
+                                className="action-icon-btn view"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openMemberLedgerModal(m);
+                                }}
+                                title="View Member Subscription Ledger"
+                              >
+                                <Eye size={15} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* MOBILE CARDS */}
+                <div className="mobile-cards-directory">
+                  {filteredLedgerMembers.map((m) => {
+                    const house = households.find((h) => h.id === m.household_id);
+                    const sub = subscriptions.find(
+                      (s) => s.member_id === m.id && s.subscription_year_id === selectedYearId
+                    );
+
+                    const totalDueVal = sub ? sub.total_due : currentYearObj?.default_fee || 0;
+                    const balanceVal = sub ? sub.balance : totalDueVal;
+                    const statusVal = sub ? sub.status : 'unpaid';
+
+                    return (
+                      <div
+                        key={m.id}
+                        className="mobile-notif-card"
+                        onClick={() => openMemberLedgerModal(m)}
+                      >
+                        <div className="card-head">
+                          <div>
+                            <h4 className="notif-title">{m.name}</h4>
+                            <span className="notif-date">
+                              {house ? `House H-${house.house_number}` : 'N/A'}
+                            </span>
+                          </div>
+                          <span className={`status-pill ${statusVal}`}>
+                            {statusVal.replace('_', ' ').toUpperCase()}
+                          </span>
+                        </div>
+
+                        <div className="card-body">
+                          <div className="card-info-row">
+                            <span>Total Due: {formatCurrency(totalDueVal)}</span>
+                            <span className={`balance-td ${balanceVal > 0 ? 'outstanding' : 'paid'}`}>
+                              Balance: {formatCurrency(balanceVal)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="card-footer">
+                          <span className="sub-id-tag">
+                            {m.is_subscription_accountable !== false ? 'Accountable' : 'Non-Accountable'}
+                          </span>
+                          <button
+                            className="mobile-action-btn edit"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openMemberLedgerModal(m);
+                            }}
+                          >
+                            <Eye size={14} />
+                            <span>View Ledger</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════
+          TAB 3: SUBSCRIPTION YEARS MANAGEMENT
+      ════════════════════════════════════════════════ */}
+      {activeTab === 'years' && (
+        <div className="years-tab-content animate-fade-in">
+          <div className="table-container-card glass-card">
+            <div className="years-table-header">
+              <div>
+                <h4>Configured Subscription Years</h4>
+                <p>Database-driven annual subscription rates and obligation triggers.</p>
+              </div>
+              <button className="add-btn primary-btn" onClick={openConfigureYearModal}>
+                <Plus size={16} />
+                <span>+ Create Subscription Year</span>
+              </button>
+            </div>
+
+            <div className="table-responsive">
+              <table className="subscriptions-table">
+                <thead>
+                  <tr>
+                    <th>Year</th>
+                    <th>Annual Subscription Rate</th>
+                    <th>Period</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {years.map((y) => (
+                    <tr key={y.id}>
+                      <td className="bold-text">
+                        <span className="year-badge">{y.year}</span>
+                      </td>
+                      <td className="bold-text text-primary">{formatCurrency(y.default_fee)}</td>
+                      <td>
+                        {y.start_date} to {y.end_date}
+                      </td>
+                      <td>
+                        <span className={`status-pill ${y.status === 'active' ? 'paid' : 'unpaid'}`}>
+                          {y.status.toUpperCase()}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button
+                          className="action-icon-btn edit"
+                          onClick={() => handleGenerateLedger(y.id)}
+                          title="Generate Subscription Ledger for this year"
+                        >
+                          <Sparkles size={15} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════
+          MODAL: MEMBER SUBSCRIPTION LEDGER DRAWER
+      ════════════════════════════════════════════════ */}
+      {isLedgerModalOpen && ledgerMember && (
         <div className="modal-overlay">
-          <div className="modal-dialog-card animate-scale-up">
+          <div className="modal-dialog-card ledger-drawer-card animate-scale-up">
             <div className="modal-header">
               <div>
-                <h4>{subModalMode === 'add' ? 'Add Subscription' : 'Edit Subscription'}</h4>
+                <h4>{ledgerMember.name} — Subscription Ledger</h4>
                 <p className="modal-subtitle">
-                  {subModalMode === 'add'
-                    ? 'Record an annual subscription ledger entry for a member.'
-                    : 'Update subscription fee, arrears, and payment amounts.'}
+                  {households.find((h) => h.id === ledgerMember.household_id)
+                    ? `House H-${households.find((h) => h.id === ledgerMember.household_id)?.house_number} (${households.find((h) => h.id === ledgerMember.household_id)?.house_owner_name})`
+                    : 'Registered Member'}
                 </p>
               </div>
               <button
                 className="modal-close-btn"
-                onClick={() => setIsSubModalOpen(false)}
-                aria-label="Close Add Subscription dialog"
+                onClick={() => setIsLedgerModalOpen(false)}
+                aria-label="Close Member Ledger"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveSub} className="modal-form">
-              <div className="form-section-title">Subscription & Member Link</div>
-
-              {formError && (
-                <div className="form-alert error">
-                  <AlertCircle size={16} />
-                  <span>{formError}</span>
-                </div>
-              )}
-
-              <div className="form-row-grid">
-                <div className="form-group">
-                  <label htmlFor="sub-year-select">Subscription Year *</label>
-                  <select
-                    id="sub-year-select"
-                    value={yearId}
-                    className={fieldErrors.yearId ? 'input-error' : ''}
-                    onChange={(e) => {
-                      setYearId(e.target.value);
-                      if (fieldErrors.yearId) setFieldErrors({ ...fieldErrors, yearId: '' });
-                      const yrObj = years.find((y) => y.id === e.target.value);
-                      if (yrObj) setAnnualFee(yrObj.default_fee);
-                    }}
-                  >
-                    <option value="">-- Select Year --</option>
-                    {years.map((y) => (
-                      <option key={y.id} value={y.id}>
-                        Year: {y.year} (Fee: ₹{y.default_fee})
-                      </option>
-                    ))}
-                  </select>
-                  {fieldErrors.yearId && (
-                    <span className="field-error-text">⚠ {fieldErrors.yearId}</span>
-                  )}
+            <div className="modal-body-scrollable">
+              {/* ACCOUNTABILITY TOGGLE */}
+              <div className="accountability-toggle-card">
+                <div>
+                  <span className="toggle-title">Subscription Accountability</span>
+                  <p className="toggle-desc">
+                    Is this member eligible to receive future annual subscription obligations?
+                  </p>
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="sub-member-select">Member *</label>
-                  <select
-                    id="sub-member-select"
-                    value={memberId}
-                    className={fieldErrors.memberId ? 'input-error' : ''}
-                    onChange={(e) => {
-                      setMemberId(e.target.value);
-                      if (fieldErrors.memberId) setFieldErrors({ ...fieldErrors, memberId: '' });
+                <div className="toggle-btn-group">
+                  <button
+                    className={`accountable-btn ${
+                      ledgerMember.is_subscription_accountable !== false ? 'active-on' : ''
+                    }`}
+                    onClick={() => handleToggleAccountability(ledgerMember, true)}
+                  >
+                    ON (Accountable)
+                  </button>
+                  <button
+                    className={`accountable-btn ${
+                      ledgerMember.is_subscription_accountable === false ? 'active-off' : ''
+                    }`}
+                    onClick={() => handleToggleAccountability(ledgerMember, false)}
+                  >
+                    OFF
+                  </button>
+                </div>
+              </div>
+
+              {/* YEAR-BY-YEAR OBLIGATIONS BREAKDOWN */}
+              <div className="drawer-section">
+                <div className="drawer-section-head">
+                  <h5>Yearly Subscription History</h5>
+                </div>
+
+                <div className="table-responsive">
+                  <table className="mini-ledger-table">
+                    <thead>
+                      <tr>
+                        <th>Year</th>
+                        <th>Annual Rate</th>
+                        <th>Previous Arrears</th>
+                        <th>Total Due</th>
+                        <th>Paid</th>
+                        <th>Balance</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {subscriptions
+                        .filter((s) => s.member_id === ledgerMember.id)
+                        .map((s) => {
+                          const yObj = years.find((y) => y.id === s.subscription_year_id);
+                          return (
+                            <tr key={s.id}>
+                              <td className="bold-text">{yObj?.year || 'N/A'}</td>
+                              <td>{formatCurrency(s.annual_fee)}</td>
+                              <td>{formatCurrency(s.previous_arrears)}</td>
+                              <td className="bold-text">{formatCurrency(s.total_due)}</td>
+                              <td className="text-success">{formatCurrency(s.total_paid)}</td>
+                              <td className={`balance-td ${s.balance > 0 ? 'outstanding' : 'paid'}`}>
+                                {formatCurrency(s.balance)}
+                              </td>
+                              <td>
+                                <span className={`status-pill ${s.status}`}>
+                                  {s.status.replace('_', ' ').toUpperCase()}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* ARREAR ADJUSTMENTS AUDIT TRAIL */}
+              <div className="drawer-section">
+                <div className="drawer-section-head flex-between">
+                  <h5>Auditable Arrear Adjustments</h5>
+                  <button
+                    className="add-btn secondary-btn compact-btn"
+                    onClick={() => {
+                      setArrearYearId(years[0]?.id || '');
+                      setArrearAmount(0);
+                      setArrearReason('');
+                      setIsArrearModalOpen(true);
                     }}
                   >
-                    <option value="">-- Select Member --</option>
-                    {members.map((m) => {
-                      const h = households.find((house) => house.id === m.household_id);
-                      return (
-                        <option key={m.id} value={m.id}>
-                          {m.name} {h ? `(House H-${h.house_number})` : ''}
-                        </option>
-                      );
-                    })}
-                  </select>
-                  {fieldErrors.memberId && (
-                    <span className="field-error-text">⚠ {fieldErrors.memberId}</span>
+                    <Plus size={14} />
+                    <span>+ Add Arrear Adjustment</span>
+                  </button>
+                </div>
+
+                <div className="arrears-history-list">
+                  {arrearsList.filter((a) => a.member_id === ledgerMember.id).length === 0 ? (
+                    <div className="empty-small-text">No manual arrear adjustments logged.</div>
+                  ) : (
+                    arrearsList
+                      .filter((a) => a.member_id === ledgerMember.id)
+                      .map((arr) => {
+                        const yObj = years.find((y) => y.id === arr.subscription_year_id);
+                        return (
+                          <div key={arr.id} className="arrear-item-box">
+                            <div>
+                              <span className="arr-amount">+{formatCurrency(arr.amount)}</span>
+                              <span className="arr-reason">{arr.reason}</span>
+                            </div>
+                            <span className="arr-date">
+                              Year {yObj?.year} • {new Date(arr.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                        );
+                      })
                   )}
                 </div>
               </div>
 
-              <div className="form-section-title margin-top-sm">Financial Amounts</div>
-
-              <div className="form-row-grid">
-                <div className="form-group">
-                  <label htmlFor="annual-fee-input">Annual Fee (₹) *</label>
-                  <input
-                    id="annual-fee-input"
-                    type="number"
-                    required
-                    min={0}
-                    value={annualFee}
-                    className={fieldErrors.annualFee ? 'input-error' : ''}
-                    onChange={(e) => setAnnualFee(Number(e.target.value))}
-                  />
-                  {fieldErrors.annualFee && (
-                    <span className="field-error-text">⚠ {fieldErrors.annualFee}</span>
-                  )}
+              {/* LINKED PAYMENT TRANSACTIONS */}
+              <div className="drawer-section">
+                <div className="drawer-section-head">
+                  <h5>Payment History Receipts</h5>
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="arrears-input">Previous Arrears (₹)</label>
-                  <input
-                    id="arrears-input"
-                    type="number"
-                    min={0}
-                    value={previousArrears}
-                    className={fieldErrors.previousArrears ? 'input-error' : ''}
-                    onChange={(e) => setPreviousArrears(Number(e.target.value))}
-                  />
-                  {fieldErrors.previousArrears && (
-                    <span className="field-error-text">⚠ {fieldErrors.previousArrears}</span>
+                <div className="arrears-history-list">
+                  {payments.filter((p) => p.member_id === ledgerMember.id).length === 0 ? (
+                    <div className="empty-small-text">No payment receipts logged for this member yet.</div>
+                  ) : (
+                    payments
+                      .filter((p) => p.member_id === ledgerMember.id)
+                      .map((pay) => (
+                        <div key={pay.id} className="arrear-item-box payment-box">
+                          <div>
+                            <span className="arr-amount text-success">
+                              ✓ {formatCurrency(pay.amount)} ({pay.payment_method.toUpperCase()})
+                            </span>
+                            <span className="arr-reason">
+                              Ref: {pay.reference_number || 'N/A'} {pay.notes ? `• ${pay.notes}` : ''}
+                            </span>
+                          </div>
+                          <span className="arr-date">{pay.payment_date}</span>
+                        </div>
+                      ))
                   )}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-              <div className="form-row-grid">
-                <div className="form-group">
-                  <label htmlFor="paid-input">Total Paid Amount (₹)</label>
-                  <input
-                    id="paid-input"
-                    type="number"
-                    min={0}
-                    value={totalPaid}
-                    className={fieldErrors.totalPaid ? 'input-error' : ''}
-                    onChange={(e) => setTotalPaid(Number(e.target.value))}
-                  />
-                </div>
+      {/* ════════════════════════════════════════════════
+          MODAL: ADD ARREAR ADJUSTMENT
+      ════════════════════════════════════════════════ */}
+      {isArrearModalOpen && ledgerMember && (
+        <div className="modal-overlay">
+          <div className="modal-dialog-card animate-scale-up">
+            <div className="modal-header">
+              <div>
+                <h4>Add Arrear Adjustment</h4>
+                <p className="modal-subtitle">Log auditable prior arrears adjustment for {ledgerMember.name}</p>
+              </div>
+              <button className="modal-close-btn" onClick={() => setIsArrearModalOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
 
-                <div className="form-group">
-                  <label htmlFor="status-select">Payment Status</label>
-                  <select
-                    id="status-select"
-                    value={subStatus}
-                    onChange={(e) => setSubStatus(e.target.value as any)}
-                  >
-                    <option value="unpaid">Unpaid</option>
-                    <option value="partially_paid">Partially Paid</option>
-                    <option value="paid">Paid</option>
-                  </select>
-                </div>
+            <form onSubmit={handleSaveArrearAdjustment} className="modal-form">
+              <div className="form-group">
+                <label>Target Subscription Year</label>
+                <select value={arrearYearId} onChange={(e) => setArrearYearId(e.target.value)}>
+                  {years.map((y) => (
+                    <option key={y.id} value={y.id}>
+                      Year {y.year}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Arrear Adjustment Amount (₹) *</label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  placeholder="e.g. 500"
+                  value={arrearAmount || ''}
+                  onChange={(e) => setArrearAmount(Number(e.target.value))}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Reason / Audit Note *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Rollover unpaid dues from previous year"
+                  value={arrearReason}
+                  onChange={(e) => setArrearReason(e.target.value)}
+                />
               </div>
 
               <div className="modal-actions">
                 <button
                   type="button"
                   className="btn-cancel"
-                  onClick={() => setIsSubModalOpen(false)}
-                  disabled={isSaving}
+                  onClick={() => setIsArrearModalOpen(false)}
+                  disabled={isSavingArrear}
                 >
                   Cancel
                 </button>
-                <button type="submit" className="primary-btn submit-pill-btn" disabled={isSaving}>
-                  {isSaving ? (
-                    <>
-                      <Loader2 size={16} className="spinner-icon" />
-                      <span>Saving Subscription...</span>
-                    </>
-                  ) : (
-                    <span>{subModalMode === 'add' ? 'Save Subscription' : 'Update Subscription'}</span>
-                  )}
+                <button type="submit" className="primary-btn submit-pill-btn" disabled={isSavingArrear}>
+                  {isSavingArrear ? 'Saving...' : 'Add Arrear Adjustment'}
                 </button>
               </div>
             </form>
@@ -903,21 +1039,19 @@ export const Subscriptions: React.FC = () => {
         </div>
       )}
 
-      {/* CONFIGURE YEAR MODAL DIALOG */}
+      {/* ════════════════════════════════════════════════
+          MODAL: CONFIGURE SUBSCRIPTION YEAR
+      ════════════════════════════════════════════════ */}
       {isYearModalOpen && (
         <div className="modal-overlay">
           <div className="modal-dialog-card animate-scale-up">
             <div className="modal-header">
               <div>
                 <h4>Configure Subscription Year</h4>
-                <p className="modal-subtitle">Set up a new active financial period and auto-generate member ledgers.</p>
+                <p className="modal-subtitle">Define annual rate once for database-driven obligations.</p>
               </div>
-              <button
-                className="modal-close-btn"
-                onClick={() => setIsYearModalOpen(false)}
-                aria-label="Close year configuration dialog"
-              >
-                <X size={20} />
+              <button className="modal-close-btn" onClick={() => setIsYearModalOpen(false)}>
+                <X size={18} />
               </button>
             </div>
 
@@ -929,54 +1063,53 @@ export const Subscriptions: React.FC = () => {
                 </div>
               )}
 
-              <div className="form-row-grid">
-                <div className="form-group">
-                  <label htmlFor="year-val-input">Subscription Year *</label>
-                  <input
-                    id="year-val-input"
-                    type="number"
-                    required
-                    placeholder="e.g. 2026"
-                    value={yearVal}
-                    onChange={(e) => setYearVal(Number(e.target.value))}
-                  />
-                </div>
+              <div className="form-group">
+                <label>Subscription Year *</label>
+                <input
+                  type="number"
+                  required
+                  min="2000"
+                  max="2100"
+                  value={yearVal}
+                  onChange={(e) => setYearVal(Number(e.target.value))}
+                />
+              </div>
 
-                <div className="form-group">
-                  <label htmlFor="default-fee-input">Default Annual Fee (₹) *</label>
-                  <input
-                    id="default-fee-input"
-                    type="number"
-                    required
-                    placeholder="e.g. 1000"
-                    value={defaultFee}
-                    onChange={(e) => setDefaultFee(Number(e.target.value))}
-                  />
-                </div>
+              <div className="form-group">
+                <label>Annual Subscription Rate (₹) *</label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  value={defaultFee}
+                  onChange={(e) => setDefaultFee(Number(e.target.value))}
+                />
               </div>
 
               <div className="form-row-grid">
                 <div className="form-group">
-                  <label htmlFor="start-date-input">Start Date *</label>
+                  <label>Start Date</label>
                   <input
-                    id="start-date-input"
                     type="date"
-                    required
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                   />
                 </div>
-
                 <div className="form-group">
-                  <label htmlFor="end-date-input">End Date *</label>
-                  <input
-                    id="end-date-input"
-                    type="date"
-                    required
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
+                  <label>End Date</label>
+                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label>Status</label>
+                <select
+                  value={yearStatus}
+                  onChange={(e) => setYearStatus(e.target.value as any)}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Draft / Closed</option>
+                </select>
               </div>
 
               <div className="modal-actions">
@@ -989,14 +1122,7 @@ export const Subscriptions: React.FC = () => {
                   Cancel
                 </button>
                 <button type="submit" className="primary-btn submit-pill-btn" disabled={isSavingYear}>
-                  {isSavingYear ? (
-                    <>
-                      <Loader2 size={16} className="spinner-icon" />
-                      <span>Configuring Year...</span>
-                    </>
-                  ) : (
-                    <span>Create Subscription Year</span>
-                  )}
+                  {isSavingYear ? 'Configuring...' : 'Configure Year'}
                 </button>
               </div>
             </form>
@@ -1004,49 +1130,56 @@ export const Subscriptions: React.FC = () => {
         </div>
       )}
 
-      {/* DELETE CONFIRMATION MODAL */}
-      {isDeleteModalOpen && subToDelete && (
+      {/* ════════════════════════════════════════════════
+          MODAL: GENERATION RESULT SUMMARY
+      ════════════════════════════════════════════════ */}
+      {genResult && (
         <div className="modal-overlay">
-          <div className="modal-dialog-card delete-card animate-scale-up">
-            <div className="delete-card-body">
-              <div className="delete-header">
-                <div className="delete-badge-icon">
-                  <Trash2 size={22} color="#dc2626" />
+          <div className="modal-dialog-card animate-scale-up">
+            <div className="modal-header">
+              <div>
+                <h4>Subscription Ledger Generated</h4>
+                <p className="modal-subtitle">Summary of obligation trigger execution</p>
+              </div>
+              <button className="modal-close-btn" onClick={() => setGenResult(null)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="gen-result-body">
+              <div className="gen-result-icon">
+                <Sparkles size={32} color="#00966b" />
+              </div>
+
+              <div className="gen-stats-list">
+                <div className="gen-stat-row">
+                  <span>Target Year:</span>
+                  <strong>{genResult.yearName}</strong>
                 </div>
-                <div>
-                  <h4>Delete Subscription?</h4>
-                  <p className="delete-subtitle">
-                    Are you sure you want to delete this subscription record for{' '}
-                    <strong>{members.find((m) => m.id === subToDelete.member_id)?.name}</strong>? This action cannot be undone.
-                  </p>
+                <div className="gen-stat-row">
+                  <span>Annual Rate:</span>
+                  <strong>₹{genResult.fee}</strong>
+                </div>
+                <div className="gen-stat-row">
+                  <span>Accountable Members:</span>
+                  <strong>{genResult.accountableCount}</strong>
+                </div>
+                <div className="gen-stat-row text-success">
+                  <span>New Records Created:</span>
+                  <strong>{genResult.createdCount}</strong>
+                </div>
+                <div className="gen-stat-row text-muted">
+                  <span>Already Existing:</span>
+                  <strong>{genResult.existingCount}</strong>
                 </div>
               </div>
 
-              <div className="delete-actions">
-                <button
-                  type="button"
-                  className="btn-cancel"
-                  onClick={() => setIsDeleteModalOpen(false)}
-                  disabled={isDeleting}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="delete-danger-btn"
-                  onClick={handleConfirmDelete}
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? (
-                    <>
-                      <Loader2 size={16} className="spinner-icon" />
-                      <span>Deleting...</span>
-                    </>
-                  ) : (
-                    <span>Delete Subscription</span>
-                  )}
-                </button>
-              </div>
+              <button
+                className="add-btn primary-btn full-width"
+                onClick={() => setGenResult(null)}
+              >
+                <span>Done</span>
+              </button>
             </div>
           </div>
         </div>
@@ -1059,560 +1192,247 @@ export const Subscriptions: React.FC = () => {
           flex-direction: column;
           gap: 20px;
           width: 100%;
-          max-width: 100%;
           box-sizing: border-box;
         }
 
-        /* TOAST NOTIFICATION */
         .toast-notification {
           position: fixed;
-          top: 24px;
-          right: 24px;
+          top: 24px; right: 24px;
           z-index: 999;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 14px 20px;
-          border-radius: var(--radius-pill);
-          font-weight: 700;
-          font-size: 13.5px;
+          display: flex; align-items: center; gap: 10px;
+          padding: 14px 20px; border-radius: var(--radius-pill);
+          font-weight: 700; font-size: 13.5px;
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
         }
         .toast-notification.success { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
         .toast-notification.error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
 
         .page-header-actions {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
-          flex-wrap: wrap;
-          width: 100%;
-          box-sizing: border-box;
+          display: flex; align-items: center; justify-content: space-between;
+          gap: 16px; flex-wrap: wrap; width: 100%; box-sizing: border-box;
         }
-
         .page-header-actions h3 { font-size: 22px; font-weight: 800; color: #111827; }
         .page-subtitle { font-size: 13px; color: #6b7280; margin-top: 2px; }
 
         .header-cta-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
+        .year-selector-pill {
+          display: flex; align-items: center; gap: 8px;
+          background: #ffffff; border: 1px solid var(--border-color);
+          padding: 6px 14px; border-radius: var(--radius-pill);
+          font-size: 13px; font-weight: 700; color: #374151;
+        }
+        .calendar-icon { color: #00966b; }
+        .year-dropdown-select {
+          border: none; background: transparent; font-weight: 800; color: #00966b; cursor: pointer; font-size: 13px; outline: none;
+        }
+
         .add-btn.primary-btn {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          padding: 10px 20px;
-          border-radius: var(--radius-pill);
-          background: var(--primary);
-          color: #ffffff;
-          font-weight: 700;
-          font-size: 13.5px;
-          border: none;
-          cursor: pointer;
-          box-shadow: 0 4px 14px rgba(0, 150, 107, 0.35);
-          transition: var(--transition-all);
+          display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+          padding: 10px 20px; border-radius: var(--radius-pill); background: var(--primary);
+          color: #ffffff; font-weight: 700; font-size: 13.5px; border: none; cursor: pointer;
+          box-shadow: 0 4px 14px rgba(0, 150, 107, 0.35); transition: var(--transition-all);
+        }
+        .add-btn.secondary-btn {
+          display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+          padding: 10px 18px; border-radius: var(--radius-pill); background: #ffffff;
+          color: #374151; font-weight: 700; font-size: 13.5px; border: 1px solid var(--border-color); cursor: pointer;
         }
 
-        .add-btn.primary-btn:hover { background: var(--primary-light); }
-
-        .configure-btn.secondary-btn {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          padding: 10px 18px;
-          border-radius: var(--radius-pill);
-          background: #ffffff;
-          color: #374151;
-          font-weight: 700;
-          font-size: 13px;
-          border: 1px solid var(--border-color);
-          cursor: pointer;
+        /* PRIMARY TABS */
+        .subscription-nav-tabs {
+          display: flex; gap: 8px; background: #ffffff; padding: 6px;
+          border-radius: var(--radius-pill); border: 1px solid var(--border-color);
+          width: fit-content; flex-wrap: wrap;
+        }
+        .tab-pill-btn {
+          display: flex; align-items: center; gap: 8px; padding: 10px 18px;
+          border-radius: var(--radius-pill); border: none; background: transparent;
+          color: #4b5563; font-weight: 700; font-size: 13px; cursor: pointer; transition: var(--transition-all);
+        }
+        .tab-pill-btn.active {
+          background: #ecfdf5; color: #00966b; box-shadow: 0 2px 8px rgba(0, 150, 107, 0.15);
         }
 
-        .configure-btn.secondary-btn:hover { background: #f9fafb; border-color: #d1d5db; }
+        /* STATS DASHBOARD GRID */
+        .stats-dashboard-grid {
+          display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px;
+        }
+        .stat-metric-card {
+          background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-xl);
+          padding: 20px; display: flex; align-items: center; gap: 16px;
+        }
+        .metric-icon-box {
+          width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .metric-icon-box.emerald { background: #ecfdf5; color: #00966b; }
+        .metric-icon-box.green { background: #d1fae5; color: #059669; }
+        .metric-icon-box.amber { background: #fef3c7; color: #d97706; }
+        .metric-icon-box.primary { background: #e0e7ff; color: #4338ca; }
+        .metric-icon-box.teal { background: #ccfbf1; color: #0d9488; }
+        .metric-icon-box.red { background: #fee2e2; color: #dc2626; }
 
-        /* FILTER BAR */
+        .metric-info { display: flex; flex-direction: column; gap: 2px; }
+        .metric-label { font-size: 11.5px; font-weight: 800; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+        .metric-value { font-size: 22px; font-weight: 800; color: #111827; }
+        .metric-sub { font-size: 11px; color: #9ca3af; }
+
+        .text-success { color: #059669 !important; }
+        .text-warning { color: #d97706 !important; }
+        .text-danger { color: #dc2626 !important; }
+        .text-primary { color: #00966b !important; }
+
+        /* OVERVIEW SUMMARY CARD */
+        .overview-summary-card {
+          background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-xl); padding: 24px;
+        }
+        .overview-summary-card .card-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+        .overview-summary-card h4 { font-size: 17px; font-weight: 800; color: #111827; }
+        .overview-summary-card p { font-size: 12.5px; color: #6b7280; }
+        .year-fee-tag { background: #ecfdf5; color: #00966b; font-weight: 800; font-size: 12px; padding: 6px 12px; border-radius: var(--radius-pill); }
+
+        .progress-bar-container { display: flex; flex-direction: column; gap: 8px; }
+        .progress-labels { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: #374151; }
+        .progress-track { width: 100%; height: 12px; background: #e5e7eb; border-radius: var(--radius-pill); overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #00966b 0%, #10b981 100%); border-radius: var(--radius-pill); transition: width 0.5s ease; }
+
+        /* FILTER BAR & TABLES */
         .filter-bar {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 16px 20px;
-          gap: 14px;
-          background: #ffffff;
-          border: 1px solid var(--border-color);
-          border-radius: var(--radius-xl);
-          flex-wrap: wrap;
-          width: 100%;
-          box-sizing: border-box;
+          display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; gap: 14px;
+          background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-xl); flex-wrap: wrap; margin-bottom: 16px;
         }
-
-        .search-box {
-          position: relative;
-          display: flex;
-          align-items: center;
-          flex: 1;
-          min-width: 260px;
-        }
-
+        .search-box { position: relative; display: flex; align-items: center; flex: 1; min-width: 260px; }
         .search-icon { position: absolute; left: 14px; color: #9ca3af; }
-
         .search-box input {
-          width: 100%;
-          padding: 11px 36px 11px 42px;
-          border: 1px solid var(--border-color);
-          border-radius: var(--radius-pill);
-          background: #f9fafb;
-          color: #111827;
-          font-size: 13.5px;
-          transition: var(--transition-all);
+          width: 100%; padding: 11px 36px 11px 42px; border: 1px solid var(--border-color);
+          border-radius: var(--radius-pill); background: #f9fafb; color: #111827; font-size: 13.5px;
         }
-
-        .search-box input:focus {
-          outline: none;
-          border-color: var(--primary);
-          background: #ffffff;
-          box-shadow: 0 0 0 3px rgba(0, 150, 107, 0.12);
-        }
-
-        .clear-search-btn {
-          position: absolute;
-          right: 12px;
-          background: #e5e7eb;
-          border: none;
-          border-radius: 50%;
-          width: 20px;
-          height: 20px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #4b5563;
-          cursor: pointer;
-        }
-
-        .filter-selectors-grid {
-          display: flex;
-          gap: 10px;
-          align-items: center;
-          flex-wrap: wrap;
-        }
-
-        .filter-select-wrapper {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-
+        .clear-search-btn { position: absolute; right: 12px; background: #e5e7eb; border: none; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .filter-selectors-grid { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .filter-select-wrapper { position: relative; display: flex; align-items: center; }
         .select-icon { position: absolute; left: 14px; color: #9ca3af; pointer-events: none; }
-
         .filter-select-wrapper select {
-          padding: 10px 32px 10px 36px;
-          border: 1px solid var(--border-color);
-          border-radius: var(--radius-pill);
-          background: #f9fafb;
-          color: #374151;
-          appearance: none;
-          cursor: pointer;
-          font-weight: 600;
-          font-size: 13px;
+          padding: 10px 32px 10px 36px; border: 1px solid var(--border-color); border-radius: var(--radius-pill);
+          background: #f9fafb; color: #374151; appearance: none; cursor: pointer; font-weight: 600; font-size: 13px;
         }
+        .clear-filters-link { background: transparent; border: none; color: var(--primary); font-weight: 700; font-size: 13px; cursor: pointer; padding: 6px 12px; }
 
-        .report-export-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 10px 18px;
-          border-radius: var(--radius-pill);
-          background: #ecfdf5;
-          color: #00966b;
-          border: 1px solid #a7f3d0;
-          font-weight: 700;
-          font-size: 13px;
-          cursor: pointer;
-          transition: var(--transition-all);
-        }
-
-        .report-export-btn:hover { background: #d1fae5; }
-
-        /* MAIN CONTENT SPLIT */
-        .subscriptions-content-split {
-          display: flex;
-          gap: 24px;
-          align-items: flex-start;
-          width: 100%;
-          box-sizing: border-box;
-        }
-
-        .table-container-card {
-          flex: 1;
-          background: #ffffff;
-          border: 1px solid var(--border-color);
-          border-radius: var(--radius-xl);
-          padding: 20px;
-          transition: var(--transition-all);
-          width: 100%;
-          box-sizing: border-box;
-          min-width: 0;
-        }
-
-        .table-container-card.narrow { flex: 1.4; }
-
-        /* DESKTOP TABLE STYLES */
+        .table-container-card { background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-xl); padding: 20px; width: 100%; box-sizing: border-box; }
         .desktop-view-only { display: block; }
         .table-responsive { width: 100%; overflow-x: auto; }
         .subscriptions-table { width: 100%; border-collapse: collapse; text-align: left; }
-
-        .subscriptions-table th {
-          font-size: 11px;
-          font-weight: 700;
-          color: #6b7280;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          padding: 14px 16px;
-          background-color: #f9fafb;
-          border-bottom: 1px solid #e5e7eb;
-        }
-
-        .subscriptions-table td {
-          padding: 14px 16px;
-          font-size: 13.5px;
-          border-bottom: 1px solid #f3f4f6;
-          color: #111827;
-        }
-
+        .subscriptions-table th { font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; padding: 14px 16px; background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+        .subscriptions-table td { padding: 14px 16px; font-size: 13.5px; border-bottom: 1px solid #f3f4f6; color: #111827; }
         .sub-row { cursor: pointer; transition: var(--transition-all); }
         .sub-row:hover { background-color: #f9fafb; }
-        .sub-row.selected { background-color: #ecfdf5; }
-
-        .member-name-td { display: flex; flex-direction: column; }
-        .name-text { font-weight: 700; color: #111827; }
-        .rel-sub { font-size: 11px; color: #6b7280; margin-top: 1px; }
-
-        .house-tag {
-          font-weight: 800;
-          color: #00966b;
-          background: #ecfdf5;
-          padding: 4px 10px;
-          border-radius: 8px;
-          border: 1px solid #a7f3d0;
-          font-size: 12.5px;
-        }
-
-        .has-arrears-text { color: #dc2626; font-weight: 700; }
-        .paid-text { color: #059669; font-weight: 700; }
-        .balance-td { font-weight: 800; }
-        .balance-td.outstanding { color: #dc2626; }
-        .balance-td.paid { color: #059669; }
+        .name-cell { display: flex; flex-direction: column; gap: 2px; }
+        .opted-out-badge { font-size: 10px; font-weight: 700; color: #dc2626; background: #fee2e2; padding: 2px 6px; border-radius: 4px; width: fit-content; }
 
         .status-pill {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 11px;
-          font-weight: 700;
-          padding: 4px 10px;
-          border-radius: var(--radius-pill);
-          text-transform: uppercase;
+          display: inline-block; font-size: 10.5px; font-weight: 800; padding: 4px 10px; border-radius: var(--radius-pill); text-transform: uppercase;
         }
+        .status-pill.paid { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+        .status-pill.partially_paid { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+        .status-pill.unpaid { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
 
-        .status-pill .dot { width: 6px; height: 6px; border-radius: 50%; }
-        .status-pill.paid { background-color: #d1fae5; color: #065f46; }
-        .status-pill.paid .dot { background-color: #10b981; }
+        .balance-td.outstanding { color: #dc2626; font-weight: 800; }
+        .balance-td.paid { color: #059669; font-weight: 800; }
 
-        .status-pill.partially_paid { background-color: #fef3c7; color: #92400e; }
-        .status-pill.partially_paid .dot { background-color: #f59e0b; }
-
-        .status-pill.unpaid { background-color: #fee2e2; color: #991b1b; }
-        .status-pill.unpaid .dot { background-color: #ef4444; }
-
-        .actions-button-wrapper { display: flex; gap: 6px; justify-content: flex-end; }
-
-        .action-icon-btn {
-          border: 1px solid var(--border-color);
-          background: #ffffff;
-          color: #6b7280;
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-        }
-
-        .action-icon-btn.edit:hover { background: #ecfdf5; color: #00966b; border-color: #a7f3d0; }
-        .action-icon-btn.delete:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
-
-        /* MOBILE SUBSCRIPTION CARDS DIRECTORY VIEW */
-        .mobile-cards-directory {
-          display: none;
-          flex-direction: column;
-          gap: 14px;
-          width: 100%;
-          box-sizing: border-box;
-        }
-
-        .mobile-sub-card {
-          background: #ffffff;
-          border: 1px solid var(--border-color);
-          border-radius: var(--radius-lg);
-          padding: 16px;
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          cursor: pointer;
-          box-sizing: border-box;
-          width: 100%;
-        }
-
-        .mobile-sub-card.selected { border-color: var(--primary); background: #f0fdf4; }
-        .mobile-sub-card .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-
-        .member-head-info { display: flex; flex-direction: column; gap: 4px; }
-        .badges-group { display: flex; gap: 6px; align-items: center; margin-top: 2px; }
-
-        .year-pill {
-          font-size: 11px;
-          font-weight: 800;
-          color: #4b5563;
-          background: #f3f4f6;
-          padding: 3px 8px;
-          border-radius: 6px;
-        }
-
-        .financial-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 8px;
-          background: #f9fafb;
-          padding: 12px;
-          border-radius: 10px;
-          border: 1px solid #f3f4f6;
-        }
-
-        .fin-item { display: flex; flex-direction: column; gap: 2px; }
-        .fin-label { font-size: 11px; color: #6b7280; font-weight: 600; }
-        .fin-val { font-size: 12.5px; font-weight: 700; color: #111827; }
-
-        .card-footer {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding-top: 10px;
-          border-top: 1px solid #f3f4f6;
-        }
-
+        /* MOBILE CARDS */
+        .mobile-cards-directory { display: none; flex-direction: column; gap: 14px; width: 100%; box-sizing: border-box; }
+        .mobile-notif-card { background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 16px; display: flex; flex-direction: column; gap: 12px; cursor: pointer; width: 100%; box-sizing: border-box; }
+        .notif-title { font-size: 15px; font-weight: 800; color: #111827; }
+        .notif-date { font-size: 11.5px; color: #6b7280; }
+        .card-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 10px; border-top: 1px solid #f3f4f6; }
         .sub-id-tag { font-size: 11px; color: #9ca3af; }
-        .mobile-card-actions { display: flex; gap: 8px; }
-
-        .mobile-action-btn {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          padding: 6px 12px;
-          border-radius: var(--radius-pill);
-          border: 1px solid var(--border-color);
-          font-size: 12px;
-          font-weight: 700;
-          cursor: pointer;
-        }
+        .mobile-action-btn { display: flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: var(--radius-pill); border: 1px solid var(--border-color); font-size: 12px; font-weight: 700; cursor: pointer; }
         .mobile-action-btn.edit { background: #ecfdf5; color: #00966b; border-color: #a7f3d0; }
-        .mobile-action-btn.delete { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
 
-        /* EMPTY STATES */
-        .empty-state-card {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          text-align: center;
-          padding: 48px 20px;
-          width: 100%;
-          box-sizing: border-box;
+        /* LEDGER DRAWER MODAL */
+        .ledger-drawer-card { max-width: 720px; max-height: 85vh; display: flex; flex-direction: column; }
+        .modal-body-scrollable { padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+
+        .accountability-toggle-card {
+          background: #f9fafb; border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 16px;
+          display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
         }
-
-        .empty-state-icon {
-          width: 60px; height: 60px; border-radius: 18px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px;
+        .toggle-title { font-size: 14px; font-weight: 800; color: #111827; }
+        .toggle-desc { font-size: 12px; color: #6b7280; margin-top: 2px; }
+        .toggle-btn-group { display: flex; gap: 6px; }
+        .accountable-btn {
+          padding: 8px 14px; border-radius: var(--radius-pill); border: 1px solid var(--border-color); background: #ffffff; font-size: 12px; font-weight: 700; cursor: pointer;
         }
-        .empty-state-icon.emerald { background: #ecfdf5; color: #00966b; }
-        .empty-state-icon.neutral { background: #f3f4f6; color: #6b7280; }
+        .accountable-btn.active-on { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+        .accountable-btn.active-off { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
 
-        .empty-state-card h4 { font-size: 18px; font-weight: 800; color: #111827; }
-        .empty-state-card p { font-size: 13px; color: #6b7280; margin-top: 4px; max-width: 320px; }
-        .margin-top { margin-top: 16px; }
+        .drawer-section { display: flex; flex-direction: column; gap: 10px; }
+        .drawer-section-head h5 { font-size: 13px; font-weight: 800; color: #00966b; text-transform: uppercase; letter-spacing: 0.05em; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .compact-btn { padding: 6px 12px; font-size: 12px; }
 
-        /* DETAILS SUMMARY PANEL */
-        .details-panel-card {
-          flex: 1;
-          background: #ffffff;
-          border: 1px solid var(--border-color);
-          border-radius: var(--radius-xl);
-          padding: 20px;
-          position: sticky;
-          top: 94px;
-          box-sizing: border-box;
-          width: 100%;
-        }
+        .mini-ledger-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+        .mini-ledger-table th { background: #f9fafb; padding: 10px; text-transform: uppercase; font-size: 10.5px; font-weight: 800; color: #6b7280; border-bottom: 1px solid #e5e7eb; }
+        .mini-ledger-table td { padding: 10px; border-bottom: 1px solid #f3f4f6; }
 
-        .panel-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          border-bottom: 1px solid #e5e7eb;
-          padding-bottom: 14px;
-          margin-bottom: 16px;
-        }
+        .arrears-history-list { display: flex; flex-direction: column; gap: 8px; }
+        .arrear-item-box { background: #f9fafb; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .arrear-item-box.payment-box { background: #ecfdf5; border-color: #a7f3d0; }
+        .arr-amount { font-size: 13.5px; font-weight: 800; color: #111827; margin-right: 8px; }
+        .arr-reason { font-size: 12px; color: #6b7280; }
+        .arr-date { font-size: 11px; color: #9ca3af; }
+        .empty-small-text { font-size: 12px; color: #9ca3af; font-style: italic; }
 
-        .panel-title-wrapper { display: flex; align-items: center; gap: 10px; }
-        .panel-icon-box {
-          width: 40px; height: 40px; background: #ecfdf5; border-radius: 12px; display: flex; align-items: center; justify-content: center;
-        }
-        .panel-title-wrapper h4 { font-size: 16px; font-weight: 800; color: #111827; }
-        .panel-title-wrapper p { font-size: 12px; color: #6b7280; }
-        .panel-close-btn { background: transparent; border: none; color: #9ca3af; cursor: pointer; }
-
-        .details-meta-section {
-          background: #f9fafb;
-          border-radius: var(--radius-md);
-          padding: 14px;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          border: 1px solid #f3f4f6;
-        }
-
-        .meta-item { display: flex; justify-content: space-between; align-items: center; }
-        .meta-label { font-size: 12px; color: #6b7280; font-weight: 600; }
-        .meta-value { font-size: 13px; font-weight: 700; color: #111827; }
-
-        /* MODAL DIALOGS */
-        .modal-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(17, 24, 39, 0.55);
-          backdrop-filter: blur(4px);
-          z-index: 300;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 16px;
-          box-sizing: border-box;
-        }
-
-        .modal-dialog-card {
-          width: 100%;
-          max-width: 560px;
-          background: #ffffff;
-          border-radius: var(--radius-xl);
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-          overflow: hidden;
-          border: 1px solid var(--border-color);
-          box-sizing: border-box;
-        }
-
-        .modal-header {
-          padding: 18px 20px;
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          border-bottom: 1px solid #e5e7eb;
-          background: #f9fafb;
-        }
-
+        /* MODALS & OVERLAYS */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(17, 24, 39, 0.55); backdrop-filter: blur(4px); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; }
+        .modal-dialog-card { width: 100%; max-width: 560px; background: #ffffff; border-radius: var(--radius-xl); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2); overflow: hidden; border: 1px solid var(--border-color); box-sizing: border-box; }
+        .modal-header { padding: 18px 20px; display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 1px solid #e5e7eb; background: #f9fafb; }
         .modal-header h4 { font-size: 17px; font-weight: 800; color: #111827; }
         .modal-subtitle { font-size: 12px; color: #6b7280; margin-top: 2px; }
         .modal-close-btn { background: transparent; border: none; color: #9ca3af; cursor: pointer; }
-
         .modal-form { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
-        .form-section-title { font-size: 11px; font-weight: 800; color: #00966b; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2px; }
-        .margin-top-sm { margin-top: 6px; }
-
         .form-row-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
         .form-group { display: flex; flex-direction: column; gap: 5px; }
         .form-group label { font-size: 12.5px; font-weight: 700; color: #374151; }
-
-        .form-group input, .form-group select {
-          padding: 10px 12px;
-          border: 1px solid var(--border-color);
-          border-radius: var(--radius-md);
-          background: #f9fafb;
-          color: #111827;
-          font-size: 13.5px;
-        }
-
-        .form-group input:focus, .form-group select:focus {
-          outline: none; border-color: var(--primary); background: #ffffff; box-shadow: 0 0 0 3px rgba(0, 150, 107, 0.12);
-        }
-
-        .input-error { border-color: #ef4444 !important; background: #fff5f5 !important; }
-        .field-error-text { font-size: 11px; font-weight: 600; color: #dc2626; }
-
-        .form-alert { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: var(--radius-md); font-size: 13px; }
-        .form-alert.error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-
+        .form-group input, .form-group select { padding: 10px 12px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: #f9fafb; color: #111827; font-size: 13.5px; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); background: #ffffff; box-shadow: 0 0 0 3px rgba(0, 150, 107, 0.12); }
         .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid #e5e7eb; }
-
         .btn-cancel { background: #f3f4f6; border: 1px solid var(--border-color); color: #374151; padding: 10px 18px; border-radius: var(--radius-pill); font-weight: 700; cursor: pointer; }
         .submit-pill-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 22px; border-radius: var(--radius-pill); background: var(--primary); color: #ffffff; font-weight: 700; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 150, 107, 0.35); }
 
-        .spinner-icon { animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .gen-result-body { padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
+        .gen-result-icon { width: 64px; height: 64px; background: #ecfdf5; border-radius: 20px; display: flex; align-items: center; justify-content: center; }
+        .gen-stats-list { width: 100%; background: #f9fafb; border-radius: var(--radius-lg); padding: 16px; display: flex; flex-direction: column; gap: 10px; font-size: 13.5px; border: 1px solid #f3f4f6; }
+        .gen-stat-row { display: flex; justify-content: space-between; }
+        .full-width { width: 100%; justify-content: center; }
 
-        /* DELETE DIALOG REDESIGN */
-        .delete-card { max-width: 480px; background: #ffffff; border-radius: 20px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2); overflow: hidden; padding: 24px; border: 1px solid var(--border-color); }
-        .delete-card-body { display: flex; flex-direction: column; gap: 20px; }
-        .delete-header { display: flex; gap: 16px; align-items: flex-start; }
-        .delete-badge-icon { width: 44px; height: 44px; background: #fee2e2; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .delete-header h4 { font-size: 18px; font-weight: 800; color: #111827; margin: 0 0 6px 0; }
-        .delete-subtitle { font-size: 13px; color: #6b7280; line-height: 1.5; margin: 0; }
-        .delete-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 6px; }
-        .delete-danger-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 22px; border-radius: var(--radius-pill); background: #dc2626; color: #ffffff; font-weight: 700; font-size: 13.5px; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35); transition: var(--transition-all); }
-        .delete-danger-btn:hover { background: #b91c1c; }
+        .empty-state-card { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 48px 20px; width: 100%; box-sizing: border-box; }
+        .empty-state-icon { width: 60px; height: 60px; border-radius: 18px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+        .empty-state-icon.neutral { background: #f3f4f6; color: #6b7280; }
+        .empty-state-card h4 { font-size: 18px; font-weight: 800; color: #111827; }
+        .empty-state-card p { font-size: 13px; color: #6b7280; margin-top: 4px; max-width: 320px; }
 
-        /* ── RESPONSIVE STYLES FOR SAMSUNG GALAXY S8 & SMALL SMARTPHONES ── */
+        .years-table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+        .years-table-header h4 { font-size: 17px; font-weight: 800; color: #111827; }
+        .years-table-header p { font-size: 12.5px; color: #6b7280; }
+        .year-badge { background: #ecfdf5; color: #00966b; font-weight: 800; font-size: 13px; padding: 4px 10px; border-radius: var(--radius-pill); border: 1px solid #a7f3d0; }
+
+        /* RESPONSIVE */
         @media (max-width: 991px) {
-          .subscriptions-content-split { flex-direction: column; }
-          .details-panel-card { width: 100%; position: relative; top: 0; }
+          .stats-dashboard-grid { grid-template-columns: repeat(2, 1fr); }
         }
-
         @media (max-width: 768px) {
           .page-header-actions { flex-direction: column; align-items: stretch; gap: 12px; }
-          .header-cta-group { width: 100%; flex-direction: column; }
-          .add-btn.primary-btn, .configure-btn.secondary-btn { width: 100%; justify-content: center; }
-
-          .filter-bar { flex-direction: column; align-items: stretch; padding: 14px; gap: 12px; }
-          .search-box { width: 100%; min-width: 0; }
-
-          .filter-selectors-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            width: 100%;
-          }
-
-          .filter-select-wrapper select, .report-export-btn {
-            width: 100%;
-            justify-content: center;
-            box-sizing: border-box;
-          }
+          .header-cta-group { flex-direction: column; align-items: stretch; }
+          .year-selector-pill { justify-content: space-between; }
+          .filter-selectors-grid { grid-template-columns: 1fr; width: 100%; }
+          .filter-select-wrapper select { width: 100%; }
         }
-
         @media (max-width: 640px) {
           .desktop-view-only { display: none; }
           .mobile-cards-directory { display: flex; }
-
-          .filter-selectors-grid { grid-template-columns: 1fr; }
-          .form-row-grid { grid-template-columns: 1fr; }
-
-          .modal-overlay {
-            padding: 0;
-            align-items: flex-end;
-          }
-
-          .modal-dialog-card {
-            border-radius: 20px 20px 0 0;
-            max-height: 90vh;
-            overflow-y: auto;
-          }
+          .stats-dashboard-grid { grid-template-columns: 1fr; }
+          .modal-overlay { padding: 0; align-items: flex-end; }
+          .modal-dialog-card { border-radius: 20px 20px 0 0; max-height: 90vh; }
         }
       `}</style>
     </div>

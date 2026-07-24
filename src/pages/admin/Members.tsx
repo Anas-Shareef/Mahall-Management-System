@@ -35,6 +35,7 @@ export const Members: React.FC = () => {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
   const [enableLogin, setEnableLogin] = useState(false);
+  const [isSubscriptionAccountable, setIsSubscriptionAccountable] = useState(true);
 
   // Form Validation & Saving States
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
@@ -96,6 +97,7 @@ export const Members: React.FC = () => {
     setEmail('');
     setStatus('active');
     setEnableLogin(false);
+    setIsSubscriptionAccountable(true);
     setFieldErrors({});
     setFormError('');
     setIsModalOpen(true);
@@ -113,6 +115,7 @@ export const Members: React.FC = () => {
     setEmail(m.email || '');
     setStatus(m.status);
     setEnableLogin(Boolean(m.user_id));
+    setIsSubscriptionAccountable(m.is_subscription_accountable !== false);
     setFieldErrors({});
     setFormError('');
     setIsModalOpen(true);
@@ -217,7 +220,8 @@ export const Members: React.FC = () => {
         phone: phone.trim() || null,
         email: email.trim() || null,
         status,
-        user_id: enableLogin ? userId : null
+        user_id: enableLogin ? userId : null,
+        is_subscription_accountable: isSubscriptionAccountable,
       };
 
       if (modalMode === 'add') {
@@ -592,6 +596,12 @@ export const Members: React.FC = () => {
                     {selectedMemberDetails.user_id ? 'Enabled' : 'Disabled'}
                   </span>
                 </div>
+                <div className="meta-item">
+                  <span className="meta-label">Subscription</span>
+                  <span className="meta-value">
+                    {selectedMemberDetails.is_subscription_accountable !== false ? 'Accountable (ON)' : 'Non-Accountable (OFF)'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -763,6 +773,21 @@ export const Members: React.FC = () => {
                     <div className="checkbox-text font-sm">
                       <span className="bold-text">Enable Portal Login</span>
                       <p>Allows OTP login via phone number</p>
+                    </div>
+                  </label>
+                </div>
+
+                <div className="form-group">
+                  <label>Subscription Accountability</label>
+                  <label className="checkbox-toggle-card">
+                    <input
+                      type="checkbox"
+                      checked={isSubscriptionAccountable}
+                      onChange={(e) => setIsSubscriptionAccountable(e.target.checked)}
+                    />
+                    <div className="checkbox-text font-sm">
+                      <span className="bold-text">Accountable for Annual Subscription</span>
+                      <p>If ON, member is included in yearly subscription ledgers</p>
                     </div>
                   </label>
                 </div>

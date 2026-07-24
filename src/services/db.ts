@@ -33,6 +33,7 @@ export interface Member {
   phone: string | null;
   email: string | null;
   status: 'active' | 'inactive';
+  is_subscription_accountable?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -74,6 +75,16 @@ export interface Payment {
   recorded_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface ArrearAdjustment {
+  id: string;
+  member_id: string;
+  subscription_year_id: string;
+  amount: number;
+  reason: string;
+  created_by: string | null;
+  created_at: string;
 }
 
 export interface Notification {
@@ -962,6 +973,103 @@ export const db = {
       saveLocalData('mahal_subscriptions', filtered);
       return true;
     },
+    generateLedger: async (yearId: string): Promise<{
+      accountableCount: number;
+      createdCount: number;
+      existingCount: number;
+      skippedCount: number;
+    }> => {
+      // Fetch target year
+      let yearObj: SubscriptionYear | null = null;
+      if (isSupabaseConfigured && supabase) {
+        const { data } = await supabase.from('subscription_years').select('*').eq('id', yearId).single();
+        yearObj = data as SubscriptionYear;
+      } else {
+        const yearList = getLocalData<SubscriptionYear>('mahal_years');
+        yearObj = yearList.find((y) => y.id === yearId) || null;
+      }
+
+      if (!yearObj) throw new Error('Subscription year record not found');
+
+      // Fetch active accountable members
+      let activeMembers: Member[] = [];
+      if (isSupabaseConfigured && supabase) {
+        const { data } = await supabase.from('members').select('*').eq('status', 'active');
+        activeMembers = (data || []).filter((m: any) => m.is_subscription_accountable !== false);
+      } else {
+        activeMembers = getLocalData<Member>('mahal_members').filter(
+          (m) => m.status === 'active' && m.is_subscription_accountable !== false
+        );
+      }
+
+      // Fetch existing member subscriptions for this year
+      let existingSubs: MemberSubscription[] = [];
+      if (isSupabaseConfigured && supabase) {
+        const { data } = await supabase.from('member_subscriptions').select('*').eq('subscription_year_id', yearId);
+        existingSubs = (data || []) as MemberSubscription[];
+      } else {
+        existingSubs = getLocalData<MemberSubscription>('mahal_subscriptions').filter(
+          (s) => s.subscription_year_id === yearId
+        );
+      }
+
+      const existingMemberIds = new Set(existingSubs.map((s) => s.member_id));
+      let createdCount = 0;
+      let existingCount = 0;
+
+      // Fetch all member subscriptions for arrears calculation
+      let allSubs: MemberSubscription[] = [];
+      if (isSupabaseConfigured && supabase) {
+        const { data } = await supabase.from('member_subscriptions').select('*');
+        allSubs = (data || []) as MemberSubscription[];
+      } else {
+        allSubs = getLocalData<MemberSubscription>('mahal_subscriptions');
+      }
+
+      for (const member of activeMembers) {
+        if (existingMemberIds.has(member.id)) {
+          existingCount++;
+          continue;
+        }
+
+        const prevBalances = allSubs
+          .filter((s) => s.member_id === member.id && s.subscription_year_id !== yearId)
+          .reduce((sum, s) => sum + Math.max(0, s.balance), 0);
+
+        const newSubData = {
+          member_id: member.id,
+          subscription_year_id: yearId,
+          annual_fee: yearObj.default_fee,
+          previous_arrears: prevBalances,
+          total_paid: 0,
+          status: 'unpaid' as const,
+        };
+
+        if (isSupabaseConfigured && supabase) {
+          await supabase.from('member_subscriptions').insert([newSubData]);
+        } else {
+          const list = getLocalData<MemberSubscription>('mahal_subscriptions');
+          const total_due = yearObj.default_fee + prevBalances;
+          list.push({
+            ...newSubData,
+            id: 'sub-' + Math.random().toString(36).substr(2, 9),
+            total_due,
+            balance: total_due,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+          saveLocalData('mahal_subscriptions', list);
+        }
+        createdCount++;
+      }
+
+      return {
+        accountableCount: activeMembers.length,
+        createdCount,
+        existingCount,
+        skippedCount: 0,
+      };
+    },
   },
 
   // PAYMENTS
@@ -1329,6 +1437,44 @@ export const db = {
       const filtered = list.filter((n) => n.id !== id);
       saveLocalData('mahal_notifications', filtered);
       return true;
+    },
+  },
+
+  // ARREARS
+  arrears: {
+    get: async (): Promise<ArrearAdjustment[]> => {
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase.from('arrears').select('*').order('created_at', { ascending: false });
+        if (!error && data) return data as ArrearAdjustment[];
+      }
+      return getLocalData<ArrearAdjustment>('mahal_arrears').sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    },
+    getByMember: async (memberId: string): Promise<ArrearAdjustment[]> => {
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase.from('arrears').select('*').eq('member_id', memberId).order('created_at', { ascending: false });
+        if (!error && data) return data as ArrearAdjustment[];
+      }
+      return getLocalData<ArrearAdjustment>('mahal_arrears')
+        .filter((a) => a.member_id === memberId)
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    },
+    create: async (data: Omit<ArrearAdjustment, 'id' | 'created_at'>): Promise<ArrearAdjustment> => {
+      if (isSupabaseConfigured && supabase) {
+        const { data: created, error } = await supabase.from('arrears').insert([data]).select().single();
+        if (error) throw error;
+        return created as ArrearAdjustment;
+      }
+      const list = getLocalData<ArrearAdjustment>('mahal_arrears');
+      const newRecord: ArrearAdjustment = {
+        ...data,
+        id: 'arrear-' + Math.random().toString(36).substr(2, 9),
+        created_at: new Date().toISOString(),
+      };
+      list.push(newRecord);
+      saveLocalData('mahal_arrears', list);
+      return newRecord;
     },
   },
 };
