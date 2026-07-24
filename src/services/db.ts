@@ -672,9 +672,16 @@ export const db = {
     },
     create: async (member: Omit<Member, 'id' | 'created_at' | 'updated_at'>): Promise<Member> => {
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase.from('members').insert([member]).select().single();
+        try {
+          const { data, error } = await supabase.from('members').insert([member]).select().single();
+          if (!error && data) return data as Member;
+        } catch (e) {
+          console.warn('Supabase member create notice:', e);
+        }
+        const { is_subscription_accountable, ...safePayload } = member as any;
+        const { data, error } = await supabase.from('members').insert([safePayload]).select().single();
+        if (!error && data) return { ...data, is_subscription_accountable: member.is_subscription_accountable !== false } as Member;
         if (error) throw error;
-        return data as Member;
       }
       const list = getLocalData<Member>('mahal_members');
       const newMember: Member = {
@@ -711,14 +718,35 @@ export const db = {
     },
     update: async (id: string, updates: Partial<Member>): Promise<Member> => {
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase
-          .from('members')
-          .update(updates)
-          .eq('id', id)
-          .select()
-          .single();
-        if (error) throw error;
-        return data as Member;
+        try {
+          const { data, error } = await supabase
+            .from('members')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+          if (!error && data) return data as Member;
+        } catch (e) {
+          console.warn('Supabase member update notice:', e);
+        }
+        const { is_subscription_accountable, ...safeUpdates } = updates as any;
+        if (Object.keys(safeUpdates).length > 0) {
+          const { data, error } = await supabase
+            .from('members')
+            .update(safeUpdates)
+            .eq('id', id)
+            .select()
+            .single();
+          if (!error && data) {
+            const list = getLocalData<Member>('mahal_members');
+            const idx = list.findIndex((m) => m.id === id);
+            if (idx !== -1) {
+              list[idx] = { ...list[idx], ...updates, updated_at: new Date().toISOString() };
+              saveLocalData('mahal_members', list);
+            }
+            return { ...data, ...updates } as Member;
+          }
+        }
       }
       const list = getLocalData<Member>('mahal_members');
       const idx = list.findIndex((m) => m.id === id);
@@ -1444,8 +1472,12 @@ export const db = {
   arrears: {
     get: async (): Promise<ArrearAdjustment[]> => {
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase.from('arrears').select('*').order('created_at', { ascending: false });
-        if (!error && data) return data as ArrearAdjustment[];
+        try {
+          const { data, error } = await supabase.from('arrears').select('*').order('created_at', { ascending: false });
+          if (!error && data) return data as ArrearAdjustment[];
+        } catch (e) {
+          console.warn('Supabase arrears fetch notice:', e);
+        }
       }
       return getLocalData<ArrearAdjustment>('mahal_arrears').sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -1453,8 +1485,12 @@ export const db = {
     },
     getByMember: async (memberId: string): Promise<ArrearAdjustment[]> => {
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase.from('arrears').select('*').eq('member_id', memberId).order('created_at', { ascending: false });
-        if (!error && data) return data as ArrearAdjustment[];
+        try {
+          const { data, error } = await supabase.from('arrears').select('*').eq('member_id', memberId).order('created_at', { ascending: false });
+          if (!error && data) return data as ArrearAdjustment[];
+        } catch (e) {
+          console.warn('Supabase arrears getByMember notice:', e);
+        }
       }
       return getLocalData<ArrearAdjustment>('mahal_arrears')
         .filter((a) => a.member_id === memberId)
@@ -1462,9 +1498,12 @@ export const db = {
     },
     create: async (data: Omit<ArrearAdjustment, 'id' | 'created_at'>): Promise<ArrearAdjustment> => {
       if (isSupabaseConfigured && supabase) {
-        const { data: created, error } = await supabase.from('arrears').insert([data]).select().single();
-        if (error) throw error;
-        return created as ArrearAdjustment;
+        try {
+          const { data: created, error } = await supabase.from('arrears').insert([data]).select().single();
+          if (!error && created) return created as ArrearAdjustment;
+        } catch (e) {
+          console.warn('Supabase arrears create notice:', e);
+        }
       }
       const list = getLocalData<ArrearAdjustment>('mahal_arrears');
       const newRecord: ArrearAdjustment = {

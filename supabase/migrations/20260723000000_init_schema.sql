@@ -68,8 +68,20 @@ create table if not exists public.members (
     phone text,
     email text,
     status text not null default 'active' check (status in ('active', 'inactive')),
+    is_subscription_accountable boolean not null default true,
     created_at timestamp with time zone default timezone('utc'::text, now()) not null,
     updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- ARREARS
+create table if not exists public.arrears (
+    id uuid primary key default gen_random_uuid(),
+    member_id uuid references public.members(id) on delete cascade not null,
+    subscription_year_id uuid references public.subscription_years(id) on delete cascade not null,
+    amount numeric not null check (amount >= 0),
+    reason text,
+    created_by uuid references public.profiles(id) on delete set null,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
 -- SUBSCRIPTION YEARS
@@ -155,6 +167,7 @@ alter table public.members enable row level security;
 alter table public.subscription_years enable row level security;
 alter table public.member_subscriptions enable row level security;
 alter table public.payments enable row level security;
+alter table public.arrears enable row level security;
 alter table public.notifications enable row level security;
 alter table public.notification_recipients enable row level security;
 alter table public.audit_logs enable row level security;
@@ -165,6 +178,7 @@ create policy "Allow all operations for members" on public.members for all using
 create policy "Allow all operations for subscription_years" on public.subscription_years for all using (true) with check (true);
 create policy "Allow all operations for member_subscriptions" on public.member_subscriptions for all using (true) with check (true);
 create policy "Allow all operations for payments" on public.payments for all using (true) with check (true);
+create policy "Allow all operations for arrears" on public.arrears for all using (true) with check (true);
 create policy "Allow all operations for notifications" on public.notifications for all using (true) with check (true);
 create policy "Allow all operations for notification_recipients" on public.notification_recipients for all using (true) with check (true);
 create policy "Allow all operations for audit_logs" on public.audit_logs for all using (true) with check (true);
