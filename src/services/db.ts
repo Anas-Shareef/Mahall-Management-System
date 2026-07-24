@@ -6,7 +6,7 @@ const DEFAULT_UUID = '00000000-0000-0000-0000-000000000001';
 export const sanitizeUuid = (val: string | null | undefined): string | null => {
   if (!val) return null;
   if (UUID_REGEX.test(val)) return val;
-  return DEFAULT_UUID;
+  return null;
 };
 
 export interface Profile {
@@ -1141,12 +1141,37 @@ export const db = {
     create: async (payment: Omit<Payment, 'id' | 'created_at' | 'updated_at'>): Promise<Payment> => {
       const cleanPayment = {
         ...payment,
-        recorded_by: sanitizeUuid(payment.recorded_by) || DEFAULT_UUID,
+        recorded_by: sanitizeUuid(payment.recorded_by),
       };
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase.from('payments').insert([cleanPayment]).select().single();
-        if (error) throw error;
-        return data as Payment;
+        try {
+          const { data, error } = await supabase.from('payments').insert([cleanPayment]).select().single();
+          if (error) {
+            // If foreign key constraint payments_recorded_by_fkey violated, retry with recorded_by: null
+            if (error.code === '23503' || error.message?.includes('foreign key')) {
+              const { data: retryData, error: retryErr } = await supabase
+                .from('payments')
+                .insert([{ ...cleanPayment, recorded_by: null }])
+                .select()
+                .single();
+              if (retryErr) throw retryErr;
+              return retryData as Payment;
+            }
+            throw error;
+          }
+          return data as Payment;
+        } catch (err: any) {
+          if (err.code === '23503' || err.message?.includes('foreign key')) {
+            const { data: retryData, error: retryErr } = await supabase
+              .from('payments')
+              .insert([{ ...cleanPayment, recorded_by: null }])
+              .select()
+              .single();
+            if (retryErr) throw retryErr;
+            return retryData as Payment;
+          }
+          throw err;
+        }
       }
       const list = getLocalData<Payment>('mahal_payments');
       const newPayment: Payment = {
@@ -1223,17 +1248,43 @@ export const db = {
     update: async (id: string, updates: Partial<Payment>): Promise<Payment> => {
       const cleanUpdates = { ...updates };
       if (cleanUpdates.recorded_by) {
-        cleanUpdates.recorded_by = sanitizeUuid(cleanUpdates.recorded_by) || DEFAULT_UUID;
+        cleanUpdates.recorded_by = sanitizeUuid(cleanUpdates.recorded_by);
       }
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase
-          .from('payments')
-          .update(cleanUpdates)
-          .eq('id', id)
-          .select()
-          .single();
-        if (error) throw error;
-        return data as Payment;
+        try {
+          const { data, error } = await supabase
+            .from('payments')
+            .update(cleanUpdates)
+            .eq('id', id)
+            .select()
+            .single();
+          if (error) {
+            if (error.code === '23503' || error.message?.includes('foreign key')) {
+              const { data: retryData, error: retryErr } = await supabase
+                .from('payments')
+                .update({ ...cleanUpdates, recorded_by: null })
+                .eq('id', id)
+                .select()
+                .single();
+              if (retryErr) throw retryErr;
+              return retryData as Payment;
+            }
+            throw error;
+          }
+          return data as Payment;
+        } catch (err: any) {
+          if (err.code === '23503' || err.message?.includes('foreign key')) {
+            const { data: retryData, error: retryErr } = await supabase
+              .from('payments')
+              .update({ ...cleanUpdates, recorded_by: null })
+              .eq('id', id)
+              .select()
+              .single();
+            if (retryErr) throw retryErr;
+            return retryData as Payment;
+          }
+          throw err;
+        }
       }
       const list = getLocalData<Payment>('mahal_payments');
       const idx = list.findIndex((p) => p.id === id);
