@@ -835,9 +835,11 @@ export const db = {
     },
     update: async (id: string, updates: Partial<MemberSubscription>): Promise<MemberSubscription> => {
       if (isSupabaseConfigured && supabase) {
+        // Strip out generated always columns (total_due, balance) before updating in Supabase
+        const { total_due, balance, ...cleanUpdates } = updates as any;
         const { data, error } = await supabase
           .from('member_subscriptions')
-          .update(updates)
+          .update(cleanUpdates)
           .eq('id', id)
           .select()
           .single();
@@ -908,9 +910,11 @@ export const db = {
       };
 
       if (isSupabaseConfigured && supabase) {
+        // Strip out generated always columns (total_due, balance) before inserting in Supabase
+        const { total_due, balance, ...insertPayload } = fullRecord as any;
         const { data, error } = await supabase
           .from('member_subscriptions')
-          .insert([fullRecord])
+          .insert([insertPayload])
           .select()
           .single();
         if (error) throw error;
