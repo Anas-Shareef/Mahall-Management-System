@@ -95,6 +95,7 @@
     "relationshipOther": "Other"
   },
   "subscription": {
+    "subscriptionTitle": "Subscription Ledgers",
     "subscriptionsTitle": "Subscription Ledgers",
     "annualSubscription": "Annual Subscription",
     "currentYear": "Current Year Fee",

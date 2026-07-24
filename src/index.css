@@ -91,7 +91,11 @@
   padding: 0;
 }
 
-html {
+html, body, #root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
   scroll-behavior: smooth;
 }
 
@@ -115,11 +119,17 @@ body[lang="ml"] {
 button, input, select, textarea {
   font-family: inherit;
   font-size: inherit;
+  max-width: 100%;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+}
+
+img, svg, video, canvas {
+  max-width: 100%;
+  height: auto;
 }
 
 /* Keyframe Animations */
@@ -144,11 +154,13 @@ a {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-floating);
   transition: var(--transition-all);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .glass-card:hover {
   box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.09);
-  transform: translateY(-2px);
 }
 
 /* Modern Pill Button Utility */
@@ -206,28 +218,53 @@ a {
   font-weight: 600;
 }
 
-.badge-pill.success {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.badge-pill.warning {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.badge-pill.error {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.badge-pill.info {
-  background: #dbeafe;
-  color: #1e40af;
-}
+.badge-pill.success { background: #d1fae5; color: #065f46; }
+.badge-pill.warning { background: #fef3c7; color: #92400e; }
+.badge-pill.error   { background: #fee2e2; color: #991b1b; }
+.badge-pill.info    { background: #dbeafe; color: #1e40af; }
 
 /* Custom Sleek Scrollbars */
 ::-webkit-scrollbar        { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track  { background: transparent; }
 ::-webkit-scrollbar-thumb  { background: #d1d5db; border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+/* ════════════════════════════════════════════════
+   GLOBAL MOBILE RESPONSIVE BREAKPOINTS (<= 767px)
+════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+  body {
+    overflow-x: hidden !important;
+  }
+
+  .form-group input, .form-group select, .form-group textarea, 
+  .modal-form input, .modal-form select, .modal-form textarea {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .modal-overlay {
+    padding: 12px !important;
+    align-items: flex-end !important;
+  }
+
+  .modal-dialog-card {
+    width: min(560px, calc(100vw - 24px)) !important;
+    max-height: calc(100vh - 24px) !important;
+    border-radius: 20px 20px 0 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .desktop-view-only {
+    display: none !important;
+  }
+
+  .mobile-cards-directory {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}

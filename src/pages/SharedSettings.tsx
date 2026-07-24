@@ -819,20 +819,25 @@ export const SharedSettings: React.FC = () => {
         .checkbox-custom { width: 18px; height: 18px; accent-color: #00966b; cursor: pointer; }
 
         /* RESPONSIVE */
-        @media (max-width: 991px) {
+        @media (max-width: 768px) {
           .settings-viewport-grid {
             grid-template-columns: 1fr;
           }
           .settings-section-menu {
-            flex-direction: row;
-            overflow-x: auto;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            gap: 6px;
           }
           .section-menu-btn {
-            white-space: nowrap;
+            width: 100%;
+            white-space: normal;
           }
-        }
-
-        @media (max-width: 640px) {
+          .form-group input, .form-group select {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+          }
           .form-row-grid { grid-template-columns: 1fr; }
           .lang-cards-grid { grid-template-columns: 1fr; }
         }

@@ -484,7 +484,7 @@ export const Dashboard: React.FC = () => {
             </button>
           </div>
 
-          <div className="table-responsive">
+          <div className="table-responsive desktop-view-only">
             <table className="lessa-table">
               <thead>
                 <tr>
@@ -521,6 +521,24 @@ export const Dashboard: React.FC = () => {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* MOBILE TRANSACTION CARDS */}
+          <div className="mobile-cards-directory">
+            {recentTransactions.map((tx) => (
+              <div key={tx.id} className="mobile-notif-card">
+                <div className="card-head">
+                  <div>
+                    <h4 className="notif-title">{tx.memberName}</h4>
+                    <span className="notif-date">House H-{tx.houseNumber} • {tx.date}</span>
+                  </div>
+                  <span className="bold-text text-success">{formatCurrency(tx.amount)}</span>
+                </div>
+                <div className="card-body">
+                  <span>Method: {tx.method.toUpperCase()}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -820,9 +838,9 @@ export const Dashboard: React.FC = () => {
 
         .quick-action-buttons-list { display: flex; flex-direction: column; gap: 8px; }
         .quick-action-btn {
-          display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: var(--radius-lg);
-          border: 1px solid var(--border-color); background: #f9fafb; color: #374151; font-size: 13px; font-weight: 700;
-          cursor: pointer; transition: var(--transition-all); text-align: left;
+          display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: var(--radius-lg);
+          border: 1px solid var(--border-color); background: #f9fafb; color: #374151; font-size: 13.5px; font-weight: 700;
+          cursor: pointer; transition: var(--transition-all); text-align: left; min-height: 52px;
         }
         .quick-action-btn:hover { background: #ecfdf5; color: #00966b; border-color: #a7f3d0; }
 

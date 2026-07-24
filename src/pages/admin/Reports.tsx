@@ -1181,7 +1181,7 @@ export const Reports: React.FC = () => {
         .collection-report-header p { font-size: 12.5px; color: #6b7280; }
 
         .progress-bar-container { display: flex; flex-direction: column; gap: 8px; }
-        .progress-labels { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: #374151; }
+        .progress-labels { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px; font-weight: 700; color: #374151; }
         .progress-track { width: 100%; height: 12px; background: #e5e7eb; border-radius: var(--radius-pill); overflow: hidden; }
         .progress-fill { height: 100%; background: linear-gradient(90deg, #00966b 0%, #10b981 100%); border-radius: var(--radius-pill); transition: width 0.5s ease; }
 
