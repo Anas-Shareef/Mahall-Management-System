@@ -41,15 +41,24 @@ export const Dashboard: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+  const [donations, setDonations] = useState<any[]>([]);
+  const [deaths, setDeaths] = useState<any[]>([]);
+  const [marriages, setMarriages] = useState<any[]>([]);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const [houseList, memberList, yearList, subList, payList] = await Promise.all([
+      const [houseList, memberList, yearList, subList, payList, donList, deathList, marrList, campList] = await Promise.all([
         db.households.get(),
         db.members.get(),
         db.years.get(),
         db.subscriptions.get(),
         db.payments.get(),
+        db.donations.get(),
+        db.deaths.get(),
+        db.marriages.get(),
+        db.donationCampaigns.get(),
       ]);
 
       setHouseholds(houseList);
@@ -57,6 +66,10 @@ export const Dashboard: React.FC = () => {
       setYears(yearList);
       setSubscriptions(subList);
       setPayments(payList);
+      setDonations(donList);
+      setDeaths(deathList);
+      setMarriages(marrList);
+      setCampaigns(campList);
 
       if (yearList.length > 0 && !selectedYearId) {
         const activeYr = yearList.find((y) => y.status === 'active') || yearList[0];
@@ -84,6 +97,11 @@ export const Dashboard: React.FC = () => {
     const activeMembers = members.filter((m) => m.status === 'active');
     const accountableMembers = members.filter((m) => m.status === 'active' && m.is_subscription_accountable !== false);
 
+    const totalDonationVal = donations.reduce((sum, d) => sum + d.amount, 0);
+    const deathsCount = deaths.length;
+    const marriagesCount = marriages.length;
+    const activeCampaignsCount = campaigns.filter((c) => c.status === 'active').length;
+
     const yearSubs = selectedYearId 
       ? subscriptions.filter((s) => s.subscription_year_id === selectedYearId)
       : subscriptions;
@@ -110,6 +128,10 @@ export const Dashboard: React.FC = () => {
       partiallyPaid: partiallyPaidCount,
       unpaidCount,
       collectionRate,
+      totalDonations: totalDonationVal,
+      deathsCount,
+      marriagesCount,
+      activeCampaignsCount,
     };
   }, [households, members, subscriptions, selectedYearId]);
 

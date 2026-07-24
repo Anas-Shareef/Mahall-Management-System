@@ -19,7 +19,11 @@ import AdminHouseholds from './pages/admin/Households';
 import AdminMembers from './pages/admin/Members';
 import AdminSubscriptions from './pages/admin/Subscriptions';
 import AdminPayments from './pages/admin/Payments';
+import AdminDonations from './pages/admin/Donations';
+import AdminDeaths from './pages/admin/Deaths';
+import AdminMarriages from './pages/admin/Marriages';
 import AdminNotifications from './pages/admin/Notifications';
+import AdminGallery from './pages/admin/Gallery';
 import AdminReports from './pages/admin/Reports';
 
 // Member Pages
@@ -59,7 +63,11 @@ const App: React.FC = () => {
                       <Route path="members" element={<AdminMembers />} />
                       <Route path="subscriptions" element={<AdminSubscriptions />} />
                       <Route path="payments" element={<AdminPayments />} />
+                      <Route path="donations" element={<AdminDonations />} />
+                      <Route path="deaths" element={<AdminDeaths />} />
+                      <Route path="marriages" element={<AdminMarriages />} />
                       <Route path="notifications" element={<AdminNotifications />} />
+                      <Route path="gallery" element={<AdminGallery />} />
                       <Route path="reports" element={<AdminReports />} />
                       <Route path="settings" element={<SharedSettings />} />
                       <Route path="*" element={<Navigate to="dashboard" replace />} />

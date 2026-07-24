@@ -20,7 +20,11 @@ import {
   Languages,
   Check,
   ChevronDown,
-  Globe
+  Globe,
+  HeartHandshake,
+  UserX,
+  Heart,
+  Image as ImageIcon
 } from 'lucide-react';
 
 export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -105,15 +109,48 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     setIsLangMenuOpen(false);
   }, [location.pathname]);
 
-  const adminLinks = [
-    { to: '/admin/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
-    { to: '/admin/households', label: t('nav.households'), icon: Home },
-    { to: '/admin/members', label: t('nav.members'), icon: Users },
-    { to: '/admin/subscriptions', label: t('nav.subscriptions'), icon: FileText },
-    { to: '/admin/payments', label: t('nav.payments'), icon: Receipt },
-    { to: '/admin/notifications', label: t('nav.notifications'), icon: Bell },
-    { to: '/admin/reports', label: t('nav.reports'), icon: BarChart3 },
-    { to: '/admin/settings', label: t('nav.settings'), icon: Settings },
+  const adminMenuGroups = [
+    {
+      label: null,
+      items: [{ to: '/admin/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard }],
+    },
+    {
+      label: t('nav.people'),
+      items: [
+        { to: '/admin/households', label: t('nav.households'), icon: Home },
+        { to: '/admin/members', label: t('nav.members'), icon: Users },
+      ],
+    },
+    {
+      label: t('nav.finance'),
+      items: [
+        { to: '/admin/subscriptions', label: t('nav.subscriptions'), icon: FileText },
+        { to: '/admin/payments', label: t('nav.payments'), icon: Receipt },
+        { to: '/admin/donations', label: t('nav.donations'), icon: HeartHandshake },
+      ],
+    },
+    {
+      label: t('nav.community'),
+      items: [
+        { to: '/admin/deaths', label: t('nav.deaths'), icon: UserX },
+        { to: '/admin/marriages', label: t('nav.marriages'), icon: Heart },
+      ],
+    },
+    {
+      label: t('nav.communication'),
+      items: [{ to: '/admin/notifications', label: t('nav.notifications'), icon: Bell }],
+    },
+    {
+      label: t('nav.media'),
+      items: [{ to: '/admin/gallery', label: t('nav.gallery'), icon: ImageIcon }],
+    },
+    {
+      label: null,
+      items: [
+        { to: '/admin/reports', label: t('nav.reports'), icon: BarChart3 },
+        { to: '/admin/settings', label: t('nav.settings'), icon: Settings },
+      ],
+    },
   ];
 
   const memberLinks = [
@@ -123,8 +160,6 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     { to: '/member/profile', label: t('nav.myProfile'), icon: User },
     { to: '/member/settings', label: t('nav.settings'), icon: Settings },
   ];
-
-  const menuLinks = user?.role === 'admin' ? adminLinks : memberLinks;
 
   // Get user initials
   const userInitials = user?.name
@@ -138,7 +173,11 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     if (location.pathname.includes('members')) return t('nav.members');
     if (location.pathname.includes('subscriptions')) return t('nav.subscriptions');
     if (location.pathname.includes('payments')) return t('nav.payments');
+    if (location.pathname.includes('donations')) return t('nav.donations');
+    if (location.pathname.includes('deaths')) return t('nav.deaths');
+    if (location.pathname.includes('marriages')) return t('nav.marriages');
     if (location.pathname.includes('notifications')) return t('nav.notifications');
+    if (location.pathname.includes('gallery')) return t('nav.gallery');
     if (location.pathname.includes('reports')) return t('nav.reports');
     if (location.pathname.includes('settings')) return t('nav.settings');
     if (location.pathname.includes('my-subscription')) return t('nav.mySubscription');
@@ -167,23 +206,46 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
 
         {/* Navigation Items */}
         <nav className="sidebar-nav-container">
-          <span className="nav-section-label">Menu</span>
-          {menuLinks.map((link) => {
-            const Icon = link.icon;
-            return (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                className={({ isActive }) => `sidebar-pill-link ${isActive ? 'active' : ''}`}
-              >
-                <div className="link-left">
-                  <Icon size={19} className="link-icon" />
-                  <span className="link-text">{link.label}</span>
-                </div>
-                <ChevronDown size={14} className="link-chevron" />
-              </NavLink>
-            );
-          })}
+          {user?.role === 'admin' ? (
+            adminMenuGroups.map((group, gIdx) => (
+              <div key={gIdx} className="nav-group-section">
+                {group.label && <span className="nav-section-label">{group.label}</span>}
+                {group.items.map((link) => {
+                  const Icon = link.icon;
+                  return (
+                    <NavLink
+                      key={link.to}
+                      to={link.to}
+                      className={({ isActive }) => `sidebar-pill-link ${isActive ? 'active' : ''}`}
+                    >
+                      <div className="link-left">
+                        <Icon size={18} className="link-icon" />
+                        <span className="link-text">{link.label}</span>
+                      </div>
+                      <ChevronDown size={14} className="link-chevron" />
+                    </NavLink>
+                  );
+                })}
+              </div>
+            ))
+          ) : (
+            memberLinks.map((link) => {
+              const Icon = link.icon;
+              return (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  className={({ isActive }) => `sidebar-pill-link ${isActive ? 'active' : ''}`}
+                >
+                  <div className="link-left">
+                    <Icon size={18} className="link-icon" />
+                    <span className="link-text">{link.label}</span>
+                  </div>
+                  <ChevronDown size={14} className="link-chevron" />
+                </NavLink>
+              );
+            })
+          )}
 
           {/* Notice Cards */}
           <div className="sidebar-promo-section">

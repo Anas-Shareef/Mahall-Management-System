@@ -24,13 +24,13 @@ export const Reports: React.FC = () => {
 
   // Selector & Sub-Tab States ('collection' | 'household' | 'member' | 'payments' | 'arrears')
   const [selectedYearId, setSelectedYearId] = useState('');
-  const [activeTab, setActiveTab] = useState<'collection' | 'household' | 'member' | 'payments' | 'arrears'>('collection');
+  const [activeTab, setActiveTab] = useState<'collection' | 'household' | 'member' | 'payments' | 'arrears' | 'donations' | 'deaths' | 'marriages'>('collection');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
 
   // Report Generator Modal State
   const [isGenModalOpen, setIsGenModalOpen] = useState(false);
-  const [genReportType, setGenReportType] = useState<'collection' | 'household' | 'member' | 'payments' | 'arrears'>('collection');
+  const [genReportType, setGenReportType] = useState<'collection' | 'household' | 'member' | 'payments' | 'arrears' | 'donations' | 'deaths' | 'marriages'>('collection');
   const [genYearId, setGenYearId] = useState('');
   const [genStartDate, setGenStartDate] = useState('');
   const [genEndDate, setGenEndDate] = useState('');
@@ -491,6 +491,14 @@ export const Reports: React.FC = () => {
         </button>
 
         <button
+          className={`tab-pill-btn ${activeTab === 'donations' ? 'active' : ''}`}
+          onClick={() => { setActiveTab('donations'); setSearchQuery(''); }}
+        >
+          <CreditCard size={15} />
+          <span>Donation Reports</span>
+        </button>
+
+        <button
           className={`tab-pill-btn ${activeTab === 'household' ? 'active' : ''}`}
           onClick={() => { setActiveTab('household'); setSearchQuery(''); }}
         >
@@ -507,19 +515,27 @@ export const Reports: React.FC = () => {
         </button>
 
         <button
+          className={`tab-pill-btn ${activeTab === 'deaths' ? 'active' : ''}`}
+          onClick={() => { setActiveTab('deaths'); setSearchQuery(''); }}
+        >
+          <AlertCircle size={15} />
+          <span>Death Records Report</span>
+        </button>
+
+        <button
+          className={`tab-pill-btn ${activeTab === 'marriages' ? 'active' : ''}`}
+          onClick={() => { setActiveTab('marriages'); setSearchQuery(''); }}
+        >
+          <AlertCircle size={15} />
+          <span>Marriage Records Report</span>
+        </button>
+
+        <button
           className={`tab-pill-btn ${activeTab === 'payments' ? 'active' : ''}`}
           onClick={() => { setActiveTab('payments'); setSearchQuery(''); }}
         >
           <CreditCard size={15} />
           <span>Payment Receipts</span>
-        </button>
-
-        <button
-          className={`tab-pill-btn ${activeTab === 'arrears' ? 'active' : ''}`}
-          onClick={() => { setActiveTab('arrears'); setSearchQuery(''); }}
-        >
-          <AlertCircle size={15} />
-          <span>Arrears Audit</span>
         </button>
       </div>
 

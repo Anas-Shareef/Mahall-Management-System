@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar } from 'lucide-react';
-import type { SubscriptionYear } from '../services/db';
+import { db, type SubscriptionYear } from '../services/db';
 
 interface YearFilterProps {
   selectedYearId: string;
   onChange: (yearId: string) => void;
-  years: SubscriptionYear[];
+  years?: SubscriptionYear[];
   className?: string;
   showAllOption?: boolean;
   allOptionLabel?: string;
@@ -19,6 +19,16 @@ export const YearFilter: React.FC<YearFilterProps> = ({
   showAllOption = true,
   allOptionLabel = 'All Years',
 }) => {
+  const [yearList, setYearList] = useState<SubscriptionYear[]>(years || []);
+
+  useEffect(() => {
+    if (years && years.length > 0) {
+      setYearList(years);
+    } else {
+      db.years.get().then(setYearList).catch(() => {});
+    }
+  }, [years]);
+
   return (
     <div className={`year-filter-pill ${className}`}>
       <Calendar size={15} className="calendar-icon" />
@@ -29,7 +39,7 @@ export const YearFilter: React.FC<YearFilterProps> = ({
         aria-label="Filter by subscription year"
       >
         {showAllOption && <option value="">{allOptionLabel}</option>}
-        {years.map((y) => (
+        {yearList.map((y) => (
           <option key={y.id} value={y.id}>
             Year {y.year} (₹{y.default_fee})
           </option>

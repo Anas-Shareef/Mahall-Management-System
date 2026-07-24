@@ -96,6 +96,134 @@ export interface ArrearAdjustment {
   created_at: string;
 }
 
+export interface DeathRecord {
+  id: string;
+  deceased_name: string;
+  member_id: string | null;
+  father_or_husband_name: string | null;
+  date_of_death: string;
+  burial_date: string | null;
+  burial_time: string | null;
+  place_of_death: string | null;
+  age: number | null;
+  gender: 'male' | 'female' | 'other' | null;
+  address: string | null;
+  ward_or_area: string | null;
+  cause_of_death: string | null;
+  medically_certified: boolean;
+  certifier_name: string | null;
+  notes: string | null;
+  certificate_url: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MarriageRecord {
+  id: string;
+  groom_name: string;
+  groom_member_id: string | null;
+  groom_father_name: string | null;
+  groom_phone: string | null;
+  groom_house_number: string | null;
+  groom_ward: string | null;
+  groom_address: string | null;
+  
+  bride_type: 'member' | 'external';
+  bride_name: string;
+  bride_member_id: string | null;
+  bride_father_name: string | null;
+  bride_phone: string | null;
+  bride_address: string | null;
+  bride_ward: string | null;
+
+  nikah_date: string;
+  nikah_time: string | null;
+  nikah_venue: string | null;
+  registration_number: string | null;
+  conducted_by: string | null;
+  nikah_type: string | null;
+
+  wali_name: string | null;
+  wali_relationship: string | null;
+  wali_phone: string | null;
+
+  witness1_name: string | null;
+  witness1_phone: string | null;
+  witness2_name: string | null;
+  witness2_phone: string | null;
+
+  mahr_type: string | null;
+  mahr_description: string | null;
+  mahr_payment_status: string | null;
+  mahr_notes: string | null;
+
+  status: 'completed' | 'cancelled';
+  certificate_url: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DonationCampaign {
+  id: string;
+  campaign_name: string;
+  campaign_type: string;
+  description: string | null;
+  target_amount: number;
+  start_date: string | null;
+  end_date: string | null;
+  cover_image: string | null;
+  status: 'draft' | 'active' | 'completed' | 'cancelled';
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Donation {
+  id: string;
+  donation_type: 'general' | 'campaign';
+  campaign_id: string | null;
+  donor_name: string | null;
+  donor_phone: string | null;
+  donor_member_id: string | null;
+  is_anonymous: boolean;
+  amount: number;
+  payment_method: 'cash' | 'upi' | 'bank_transfer' | 'cheque' | 'other';
+  donation_date: string;
+  receipt_number: string | null;
+  notes: string | null;
+  recorded_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GalleryAlbum {
+  id: string;
+  title: string;
+  programme_type: string;
+  event_date: string;
+  year: number;
+  venue: string | null;
+  description: string | null;
+  cover_image: string | null;
+  visibility: 'published' | 'draft';
+  related_campaign_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GalleryImage {
+  id: string;
+  album_id: string;
+  image_url: string;
+  caption: string | null;
+  sort_order: number;
+  created_at: string;
+}
+
 export interface Notification {
   id: string;
   title_en: string;
@@ -1586,6 +1714,398 @@ export const db = {
       list.push(newRecord);
       saveLocalData('mahal_arrears', list);
       return newRecord;
+    },
+  },
+
+  // DEATHS
+  deaths: {
+    get: async (): Promise<DeathRecord[]> => {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data, error } = await supabase.from('death_records').select('*').order('date_of_death', { ascending: false });
+          if (!error && data) return data as DeathRecord[];
+        } catch (e) {
+          console.warn('Supabase deaths fetch notice:', e);
+        }
+      }
+      return getLocalData<DeathRecord>('mahal_deaths').sort(
+        (a, b) => new Date(b.date_of_death).getTime() - new Date(a.date_of_death).getTime()
+      );
+    },
+    create: async (data: Omit<DeathRecord, 'id' | 'created_at' | 'updated_at'>): Promise<DeathRecord> => {
+      const cleanData = { ...data, created_by: sanitizeUuid(data.created_by) };
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data: created, error } = await supabase.from('death_records').insert([cleanData]).select().single();
+          if (!error && created) return created as DeathRecord;
+        } catch (e) {
+          console.warn('Supabase deaths create notice:', e);
+        }
+      }
+      const list = getLocalData<DeathRecord>('mahal_deaths');
+      const newRecord: DeathRecord = {
+        ...data,
+        id: 'death-' + Math.random().toString(36).substr(2, 9),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      list.push(newRecord);
+      saveLocalData('mahal_deaths', list);
+      return newRecord;
+    },
+    update: async (id: string, updates: Partial<DeathRecord>): Promise<DeathRecord> => {
+      const cleanUpdates = { ...updates, updated_at: new Date().toISOString() };
+      if (cleanUpdates.created_by) cleanUpdates.created_by = sanitizeUuid(cleanUpdates.created_by);
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data: updated, error } = await supabase.from('death_records').update(cleanUpdates).eq('id', id).select().single();
+          if (!error && updated) return updated as DeathRecord;
+        } catch (e) {
+          console.warn('Supabase deaths update notice:', e);
+        }
+      }
+      const list = getLocalData<DeathRecord>('mahal_deaths');
+      const idx = list.findIndex((d) => d.id === id);
+      if (idx === -1) throw new Error('Death record not found');
+      list[idx] = { ...list[idx], ...cleanUpdates };
+      saveLocalData('mahal_deaths', list);
+      return list[idx];
+    },
+    delete: async (id: string): Promise<boolean> => {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { error } = await supabase.from('death_records').delete().eq('id', id);
+          if (!error) return true;
+        } catch (e) {
+          console.warn('Supabase deaths delete notice:', e);
+        }
+      }
+      const list = getLocalData<DeathRecord>('mahal_deaths').filter((d) => d.id !== id);
+      saveLocalData('mahal_deaths', list);
+      return true;
+    },
+  },
+
+  // MARRIAGES
+  marriages: {
+    get: async (): Promise<MarriageRecord[]> => {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data, error } = await supabase.from('marriage_records').select('*').order('nikah_date', { ascending: false });
+          if (!error && data) return data as MarriageRecord[];
+        } catch (e) {
+          console.warn('Supabase marriages fetch notice:', e);
+        }
+      }
+      return getLocalData<MarriageRecord>('mahal_marriages').sort(
+        (a, b) => new Date(b.nikah_date).getTime() - new Date(a.nikah_date).getTime()
+      );
+    },
+    create: async (data: Omit<MarriageRecord, 'id' | 'created_at' | 'updated_at'>): Promise<MarriageRecord> => {
+      const cleanData = { ...data, created_by: sanitizeUuid(data.created_by) };
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data: created, error } = await supabase.from('marriage_records').insert([cleanData]).select().single();
+          if (!error && created) return created as MarriageRecord;
+        } catch (e) {
+          console.warn('Supabase marriages create notice:', e);
+        }
+      }
+      const list = getLocalData<MarriageRecord>('mahal_marriages');
+      const newRecord: MarriageRecord = {
+        ...data,
+        id: 'marriage-' + Math.random().toString(36).substr(2, 9),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      list.push(newRecord);
+      saveLocalData('mahal_marriages', list);
+      return newRecord;
+    },
+    update: async (id: string, updates: Partial<MarriageRecord>): Promise<MarriageRecord> => {
+      const cleanUpdates = { ...updates, updated_at: new Date().toISOString() };
+      if (cleanUpdates.created_by) cleanUpdates.created_by = sanitizeUuid(cleanUpdates.created_by);
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data: updated, error } = await supabase.from('marriage_records').update(cleanUpdates).eq('id', id).select().single();
+          if (!error && updated) return updated as MarriageRecord;
+        } catch (e) {
+          console.warn('Supabase marriages update notice:', e);
+        }
+      }
+      const list = getLocalData<MarriageRecord>('mahal_marriages');
+      const idx = list.findIndex((m) => m.id === id);
+      if (idx === -1) throw new Error('Marriage record not found');
+      list[idx] = { ...list[idx], ...cleanUpdates };
+      saveLocalData('mahal_marriages', list);
+      return list[idx];
+    },
+    delete: async (id: string): Promise<boolean> => {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { error } = await supabase.from('marriage_records').delete().eq('id', id);
+          if (!error) return true;
+        } catch (e) {
+          console.warn('Supabase marriages delete notice:', e);
+        }
+      }
+      const list = getLocalData<MarriageRecord>('mahal_marriages').filter((m) => m.id !== id);
+      saveLocalData('mahal_marriages', list);
+      return true;
+    },
+  },
+
+  // DONATION CAMPAIGNS
+  donationCampaigns: {
+    get: async (): Promise<DonationCampaign[]> => {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data, error } = await supabase.from('donation_campaigns').select('*').order('created_at', { ascending: false });
+          if (!error && data) return data as DonationCampaign[];
+        } catch (e) {
+          console.warn('Supabase donationCampaigns fetch notice:', e);
+        }
+      }
+      return getLocalData<DonationCampaign>('mahal_campaigns');
+    },
+    create: async (data: Omit<DonationCampaign, 'id' | 'created_at' | 'updated_at'>): Promise<DonationCampaign> => {
+      const cleanData = { ...data, created_by: sanitizeUuid(data.created_by) };
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data: created, error } = await supabase.from('donation_campaigns').insert([cleanData]).select().single();
+          if (!error && created) return created as DonationCampaign;
+        } catch (e) {
+          console.warn('Supabase donationCampaigns create notice:', e);
+        }
+      }
+      const list = getLocalData<DonationCampaign>('mahal_campaigns');
+      const newRecord: DonationCampaign = {
+        ...data,
+        id: 'camp-' + Math.random().toString(36).substr(2, 9),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      list.push(newRecord);
+      saveLocalData('mahal_campaigns', list);
+      return newRecord;
+    },
+    update: async (id: string, updates: Partial<DonationCampaign>): Promise<DonationCampaign> => {
+      const cleanUpdates = { ...updates, updated_at: new Date().toISOString() };
+      if (cleanUpdates.created_by) cleanUpdates.created_by = sanitizeUuid(cleanUpdates.created_by);
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data: updated, error } = await supabase.from('donation_campaigns').update(cleanUpdates).eq('id', id).select().single();
+          if (!error && updated) return updated as DonationCampaign;
+        } catch (e) {
+          console.warn('Supabase donationCampaigns update notice:', e);
+        }
+      }
+      const list = getLocalData<DonationCampaign>('mahal_campaigns');
+      const idx = list.findIndex((c) => c.id === id);
+      if (idx === -1) throw new Error('Campaign record not found');
+      list[idx] = { ...list[idx], ...cleanUpdates };
+      saveLocalData('mahal_campaigns', list);
+      return list[idx];
+    },
+    delete: async (id: string): Promise<boolean> => {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { error } = await supabase.from('donation_campaigns').delete().eq('id', id);
+          if (!error) return true;
+        } catch (e) {
+          console.warn('Supabase donationCampaigns delete notice:', e);
+        }
+      }
+      const list = getLocalData<DonationCampaign>('mahal_campaigns').filter((c) => c.id !== id);
+      saveLocalData('mahal_campaigns', list);
+      return true;
+    },
+  },
+
+  // DONATIONS
+  donations: {
+    get: async (): Promise<Donation[]> => {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data, error } = await supabase.from('donations').select('*').order('donation_date', { ascending: false });
+          if (!error && data) return data as Donation[];
+        } catch (e) {
+          console.warn('Supabase donations fetch notice:', e);
+        }
+      }
+      return getLocalData<Donation>('mahal_donations').sort(
+        (a, b) => new Date(b.donation_date).getTime() - new Date(a.donation_date).getTime()
+      );
+    },
+    create: async (data: Omit<Donation, 'id' | 'created_at' | 'updated_at'>): Promise<Donation> => {
+      const cleanData = { ...data, recorded_by: sanitizeUuid(data.recorded_by) };
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data: created, error } = await supabase.from('donations').insert([cleanData]).select().single();
+          if (!error && created) return created as Donation;
+        } catch (e) {
+          console.warn('Supabase donations create notice:', e);
+        }
+      }
+      const list = getLocalData<Donation>('mahal_donations');
+      const newRecord: Donation = {
+        ...data,
+        id: 'don-' + Math.random().toString(36).substr(2, 9),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      list.push(newRecord);
+      saveLocalData('mahal_donations', list);
+      return newRecord;
+    },
+    update: async (id: string, updates: Partial<Donation>): Promise<Donation> => {
+      const cleanUpdates = { ...updates, updated_at: new Date().toISOString() };
+      if (cleanUpdates.recorded_by) cleanUpdates.recorded_by = sanitizeUuid(cleanUpdates.recorded_by);
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data: updated, error } = await supabase.from('donations').update(cleanUpdates).eq('id', id).select().single();
+          if (!error && updated) return updated as Donation;
+        } catch (e) {
+          console.warn('Supabase donations update notice:', e);
+        }
+      }
+      const list = getLocalData<Donation>('mahal_donations');
+      const idx = list.findIndex((d) => d.id === id);
+      if (idx === -1) throw new Error('Donation record not found');
+      list[idx] = { ...list[idx], ...cleanUpdates };
+      saveLocalData('mahal_donations', list);
+      return list[idx];
+    },
+    delete: async (id: string): Promise<boolean> => {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { error } = await supabase.from('donations').delete().eq('id', id);
+          if (!error) return true;
+        } catch (e) {
+          console.warn('Supabase donations delete notice:', e);
+        }
+      }
+      const list = getLocalData<Donation>('mahal_donations').filter((d) => d.id !== id);
+      saveLocalData('mahal_donations', list);
+      return true;
+    },
+  },
+
+  // GALLERY ALBUMS
+  galleryAlbums: {
+    get: async (): Promise<GalleryAlbum[]> => {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data, error } = await supabase.from('gallery_albums').select('*').order('event_date', { ascending: false });
+          if (!error && data) return data as GalleryAlbum[];
+        } catch (e) {
+          console.warn('Supabase galleryAlbums fetch notice:', e);
+        }
+      }
+      return getLocalData<GalleryAlbum>('mahal_albums').sort(
+        (a, b) => new Date(b.event_date).getTime() - new Date(a.event_date).getTime()
+      );
+    },
+    create: async (data: Omit<GalleryAlbum, 'id' | 'created_at' | 'updated_at'>): Promise<GalleryAlbum> => {
+      const cleanData = { ...data, created_by: sanitizeUuid(data.created_by) };
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data: created, error } = await supabase.from('gallery_albums').insert([cleanData]).select().single();
+          if (!error && created) return created as GalleryAlbum;
+        } catch (e) {
+          console.warn('Supabase galleryAlbums create notice:', e);
+        }
+      }
+      const list = getLocalData<GalleryAlbum>('mahal_albums');
+      const newRecord: GalleryAlbum = {
+        ...data,
+        id: 'album-' + Math.random().toString(36).substr(2, 9),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      list.push(newRecord);
+      saveLocalData('mahal_albums', list);
+      return newRecord;
+    },
+    update: async (id: string, updates: Partial<GalleryAlbum>): Promise<GalleryAlbum> => {
+      const cleanUpdates = { ...updates, updated_at: new Date().toISOString() };
+      if (cleanUpdates.created_by) cleanUpdates.created_by = sanitizeUuid(cleanUpdates.created_by);
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data: updated, error } = await supabase.from('gallery_albums').update(cleanUpdates).eq('id', id).select().single();
+          if (!error && updated) return updated as GalleryAlbum;
+        } catch (e) {
+          console.warn('Supabase galleryAlbums update notice:', e);
+        }
+      }
+      const list = getLocalData<GalleryAlbum>('mahal_albums');
+      const idx = list.findIndex((a) => a.id === id);
+      if (idx === -1) throw new Error('Album record not found');
+      list[idx] = { ...list[idx], ...cleanUpdates };
+      saveLocalData('mahal_albums', list);
+      return list[idx];
+    },
+    delete: async (id: string): Promise<boolean> => {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { error } = await supabase.from('gallery_albums').delete().eq('id', id);
+          if (!error) return true;
+        } catch (e) {
+          console.warn('Supabase galleryAlbums delete notice:', e);
+        }
+      }
+      const list = getLocalData<GalleryAlbum>('mahal_albums').filter((a) => a.id !== id);
+      saveLocalData('mahal_albums', list);
+      return true;
+    },
+  },
+
+  // GALLERY IMAGES
+  galleryImages: {
+    getByAlbum: async (albumId: string): Promise<GalleryImage[]> => {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data, error } = await supabase.from('gallery_images').select('*').eq('album_id', albumId).order('sort_order', { ascending: true });
+          if (!error && data) return data as GalleryImage[];
+        } catch (e) {
+          console.warn('Supabase galleryImages fetch notice:', e);
+        }
+      }
+      return getLocalData<GalleryImage>('mahal_images')
+        .filter((img) => img.album_id === albumId)
+        .sort((a, b) => a.sort_order - b.sort_order);
+    },
+    create: async (data: Omit<GalleryImage, 'id' | 'created_at'>): Promise<GalleryImage> => {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data: created, error } = await supabase.from('gallery_images').insert([data]).select().single();
+          if (!error && created) return created as GalleryImage;
+        } catch (e) {
+          console.warn('Supabase galleryImages create notice:', e);
+        }
+      }
+      const list = getLocalData<GalleryImage>('mahal_images');
+      const newRecord: GalleryImage = {
+        ...data,
+        id: 'img-' + Math.random().toString(36).substr(2, 9),
+        created_at: new Date().toISOString(),
+      };
+      list.push(newRecord);
+      saveLocalData('mahal_images', list);
+      return newRecord;
+    },
+    delete: async (id: string): Promise<boolean> => {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { error } = await supabase.from('gallery_images').delete().eq('id', id);
+          if (!error) return true;
+        } catch (e) {
+          console.warn('Supabase galleryImages delete notice:', e);
+        }
+      }
+      const list = getLocalData<GalleryImage>('mahal_images').filter((img) => img.id !== id);
+      saveLocalData('mahal_images', list);
+      return true;
     },
   },
 };
