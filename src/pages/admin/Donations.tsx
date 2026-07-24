@@ -8,7 +8,8 @@ import {
   X, Loader2, Printer, Layers,
   Download, Edit2, Trash2, Eye,
   FileText, RefreshCw, ChevronDown,
-  Filter, Users, User, HelpCircle, Check
+  Filter, Users, User, HelpCircle, Check,
+  Wallet, Calendar, CheckCircle2, RotateCcw
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 
@@ -25,6 +26,7 @@ export const Donations: React.FC = () => {
   const [households, setHouseholds] = useState<Household[]>([]);
   const [years, setYears] = useState<SubscriptionYear[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState('');
@@ -73,6 +75,9 @@ export const Donations: React.FC = () => {
   const [status, setStatus] = useState<'received' | 'pending' | 'cancelled' | 'refunded'>('received');
   const [notes, setNotes] = useState('');
 
+  // Form Validation Touch & Errors State
+  const [formSubmitted, setFormSubmitted] = useState(false);
+
   // Campaign Modal State
   const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
   const [campaignModalMode, setCampaignModalMode] = useState<'add' | 'edit'>('add');
@@ -120,6 +125,7 @@ export const Donations: React.FC = () => {
   // Load All Initial Data
   const loadData = async () => {
     setLoading(true);
+    setFetchError(false);
     try {
       const [donList, campList, memberList, houseList, yearList] = await Promise.all([
         db.donations.get(),
@@ -135,7 +141,8 @@ export const Donations: React.FC = () => {
       setYears(yearList);
     } catch (err) {
       console.error('Failed to load donation data:', err);
-      showToast('error', 'Unable to load donations. Please refresh.');
+      setFetchError(true);
+      showToast('error', 'Unable to load donations. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -295,6 +302,7 @@ export const Donations: React.FC = () => {
     setStatus('received');
     setNotes('');
     setMemberSearchQuery('');
+    setFormSubmitted(false);
     setIsDonationDrawerOpen(true);
   };
 
@@ -327,6 +335,7 @@ export const Donations: React.FC = () => {
     setStatus(don.status || 'received');
     setNotes(don.notes || '');
     setMemberSearchQuery('');
+    setFormSubmitted(false);
     setIsDonationDrawerOpen(true);
   };
 
@@ -342,6 +351,8 @@ export const Donations: React.FC = () => {
   // Save Donation
   const handleSaveDonation = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormSubmitted(true);
+
     if (!amount || Number(amount) <= 0) {
       showToast('error', 'Donation amount must be greater than zero');
       return;
@@ -721,31 +732,68 @@ export const Donations: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. SUMMARY CARDS (4 CARDS MAXIMUM) */}
+      {/* 2. SUMMARY CARDS (4 CARDS MAXIMUM WITH ICONS & SUBTEXT) */}
       <div className="summary-cards-grid margin-bottom">
-        <div className="summary-card glass-card">
-          <span className="summary-card-label">Total Collected</span>
-          <h3 className="summary-card-value text-success">{formatCurrency(metrics.totalDonations)}</h3>
-          <span className="summary-card-sub">All received contributions</span>
-        </div>
+        {loading ? (
+          <>
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="summary-card glass-card">
+                <div className="summary-card-header">
+                  <div className="skeleton-pulse" style={{ width: '80px', height: '12px' }}></div>
+                  <div className="skeleton-pulse" style={{ width: '32px', height: '32px', borderRadius: '8px' }}></div>
+                </div>
+                <div className="skeleton-pulse margin-top-xs" style={{ width: '120px', height: '24px' }}></div>
+                <div className="skeleton-pulse margin-top-xs" style={{ width: '100px', height: '12px' }}></div>
+              </div>
+            ))}
+          </>
+        ) : (
+          <>
+            <div className="summary-card glass-card">
+              <div className="summary-card-header">
+                <span className="summary-card-label">Total Collected</span>
+                <div className="summary-card-icon">
+                  <Wallet size={16} />
+                </div>
+              </div>
+              <h3 className="summary-card-value text-success">{formatCurrency(metrics.totalDonations)}</h3>
+              <span className="summary-card-sub">Across all donations</span>
+            </div>
 
-        <div className="summary-card glass-card">
-          <span className="summary-card-label">This Year</span>
-          <h3 className="summary-card-value">{formatCurrency(metrics.thisYearDonations)}</h3>
-          <span className="summary-card-sub">Active selected year</span>
-        </div>
+            <div className="summary-card glass-card">
+              <div className="summary-card-header">
+                <span className="summary-card-label">This Year</span>
+                <div className="summary-card-icon">
+                  <Calendar size={16} />
+                </div>
+              </div>
+              <h3 className="summary-card-value">{formatCurrency(metrics.thisYearDonations)}</h3>
+              <span className="summary-card-sub">Active selected year</span>
+            </div>
 
-        <div className="summary-card glass-card">
-          <span className="summary-card-label">Campaign Funds</span>
-          <h3 className="summary-card-value text-primary">{formatCurrency(metrics.campaignFunds)}</h3>
-          <span className="summary-card-sub">Special funds</span>
-        </div>
+            <div className="summary-card glass-card">
+              <div className="summary-card-header">
+                <span className="summary-card-label">Campaign Donations</span>
+                <div className="summary-card-icon">
+                  <Layers size={16} />
+                </div>
+              </div>
+              <h3 className="summary-card-value text-primary">{formatCurrency(metrics.campaignFunds)}</h3>
+              <span className="summary-card-sub">Special funds</span>
+            </div>
 
-        <div className="summary-card glass-card">
-          <span className="summary-card-label">Active Campaigns</span>
-          <h3 className="summary-card-value">{metrics.activeCampaignsCount}</h3>
-          <span className="summary-card-sub">Currently active</span>
-        </div>
+            <div className="summary-card glass-card">
+              <div className="summary-card-header">
+                <span className="summary-card-label">Active Campaigns</span>
+                <div className="summary-card-icon">
+                  <CheckCircle2 size={16} />
+                </div>
+              </div>
+              <h3 className="summary-card-value">{metrics.activeCampaignsCount}</h3>
+              <span className="summary-card-sub">Currently active</span>
+            </div>
+          </>
+        )}
       </div>
 
       {/* 3. NAVIGATION SUB-TABS */}
@@ -760,13 +808,13 @@ export const Donations: React.FC = () => {
           className={`tab-btn ${activeTab === 'general' ? 'active' : ''}`}
           onClick={() => setActiveTab('general')}
         >
-          General
+          General Donations
         </button>
         <button
           className={`tab-btn ${activeTab === 'campaigns' ? 'active' : ''}`}
           onClick={() => setActiveTab('campaigns')}
         >
-          Campaigns ({campaigns.length})
+          Campaign Donations ({campaigns.length})
         </button>
       </div>
 
@@ -832,7 +880,7 @@ export const Donations: React.FC = () => {
                 onClick={() => setShowExtraFilters(!showExtraFilters)}
               >
                 <Filter size={14} />
-                <span>More Filters</span>
+                <span>Filters</span>
               </button>
             </div>
 
@@ -898,24 +946,47 @@ export const Donations: React.FC = () => {
           {/* Bulk Selection Bar */}
           {selectedIds.length > 0 && (
             <div className="bulk-selection-bar flex-between margin-bottom p-xs bg-primary-light border-rounded">
-              <span className="font-weight-600 font-sm">{selectedIds.length} items selected</span>
+              <span className="font-weight-600 font-sm">{selectedIds.length} selected</span>
               <button className="pill-btn-danger font-xs" onClick={() => setIsBulkDeleteModalOpen(true)}>
                 <Trash2 size={13} /> Delete Selected
               </button>
             </div>
           )}
 
-          {/* 5. DONATION DATA TABLE / CARDS */}
-          {loading ? (
-            <div className="loading-state-box padding-lg text-center">
-              <Loader2 size={24} className="spinner" />
-              <p className="margin-top-xs font-sm text-muted">Loading donation records...</p>
+          {/* ERROR STATE WITH RETRY BUTTON */}
+          {fetchError ? (
+            <div className="error-state-box padding-lg text-center">
+              <AlertCircle size={40} className="text-danger margin-bottom-xs" style={{ margin: '0 auto' }} />
+              <h4 className="font-weight-600 text-danger">Unable to load donations</h4>
+              <p className="font-xs text-muted margin-top-xs">Please check your network connection and try again.</p>
+              <button className="pill-btn-primary margin-top-sm" onClick={loadData}>
+                <RotateCcw size={14} /> Retry
+              </button>
+            </div>
+          ) : loading ? (
+            /* SKELETON LOADER FOR DONATIONS LIST */
+            <div className="loading-state-skeletons">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex-between py-sm border-bottom-light">
+                  <div className="flex-row-gap-sm">
+                    <div className="skeleton-pulse" style={{ width: '36px', height: '36px', borderRadius: '50%' }}></div>
+                    <div>
+                      <div className="skeleton-pulse" style={{ width: '140px', height: '14px' }}></div>
+                      <div className="skeleton-pulse margin-top-xs" style={{ width: '80px', height: '10px' }}></div>
+                    </div>
+                  </div>
+                  <div className="skeleton-pulse" style={{ width: '120px', height: '14px' }}></div>
+                  <div className="skeleton-pulse" style={{ width: '80px', height: '16px' }}></div>
+                  <div className="skeleton-pulse" style={{ width: '60px', height: '14px' }}></div>
+                </div>
+              ))}
             </div>
           ) : filteredDonations.length === 0 ? (
+            /* EMPTY STATE */
             <div className="empty-state-box text-center padding-lg">
-              <HeartHandshake size={40} className="text-muted margin-bottom-xs" />
-              <h4 className="font-weight-600">No donation records found</h4>
-              <p className="font-xs text-muted margin-top-xs">Try adjusting your filters or record a new donation.</p>
+              <HeartHandshake size={40} className="text-muted margin-bottom-xs" style={{ margin: '0 auto' }} />
+              <h4 className="font-weight-600">No donations yet</h4>
+              <p className="font-xs text-muted margin-top-xs">Start recording donations to keep track of Mahall contributions.</p>
               <button className="pill-btn-primary margin-top-sm" onClick={openAddDonationDrawer}>
                 + Add Donation
               </button>
@@ -935,7 +1006,7 @@ export const Donations: React.FC = () => {
                         />
                       </th>
                       <th>Donor</th>
-                      <th>Campaign / Purpose</th>
+                      <th>Donation Type / Campaign</th>
                       <th style={{ textAlign: 'right' }}>Amount</th>
                       <th>Date & Method</th>
                       <th>Status</th>
@@ -971,12 +1042,14 @@ export const Donations: React.FC = () => {
                           </td>
                           <td>
                             {d.donation_type === 'campaign' ? (
-                              <div className="font-weight-600 text-dark">
-                                {campObj ? campObj.campaign_name : 'Campaign Fund'}
+                              <div>
+                                <div className="font-weight-600 text-dark">Campaign Donation</div>
+                                <div className="font-xs text-muted">{campObj ? campObj.campaign_name : 'Campaign Fund'}</div>
                               </div>
                             ) : (
-                              <div className="font-xs text-muted">
-                                {d.purpose || 'General Donation'}
+                              <div>
+                                <div className="font-weight-600 text-dark">General Donation</div>
+                                <div className="font-xs text-muted">{d.purpose || 'General Mahall Activities'}</div>
                               </div>
                             )}
                           </td>
@@ -1025,13 +1098,13 @@ export const Donations: React.FC = () => {
                 </table>
               </div>
 
-              {/* MOBILE CARDS VIEW (<768px - 390px, 412px, Samsung G8) */}
+              {/* MOBILE CARDS VIEW (<768px - 320px, 360px, 375px, 390px, 412px, Samsung G8) */}
               <div className="mobile-cards-list">
                 {filteredDonations.map((d) => {
                   const campObj = campaigns.find((c) => c.id === d.campaign_id);
                   const isSelected = selectedIds.includes(d.id);
                   const donorNameLabel = d.is_anonymous ? 'Anonymous Donor' : (d.donor_name || 'Wellwisher');
-                  const donorTypeLabel = d.is_anonymous ? 'Anonymous' : (d.donor_member_id ? 'Member' : 'External');
+                  const donorTypeLabel = d.is_anonymous ? 'Anonymous' : (d.donor_member_id ? 'Member' : 'External Donor');
 
                   return (
                     <div key={d.id} className={`mobile-donation-card glass-card ${isSelected ? 'selected' : ''}`}>
@@ -1055,8 +1128,8 @@ export const Donations: React.FC = () => {
 
                       <div className="mobile-card-middle flex-between margin-top-sm pt-xs border-top-light">
                         <div>
-                          <div className="font-xs text-muted">
-                            {d.donation_type === 'campaign' ? (campObj ? campObj.campaign_name : 'Campaign') : (d.purpose || 'General')}
+                          <div className="font-xs font-weight-600 text-dark">
+                            {d.donation_type === 'campaign' ? (campObj ? campObj.campaign_name : 'Campaign') : (d.purpose || 'General Donation')}
                           </div>
                           <div className="font-xs color-subtle">{d.donation_date} • {d.payment_method.toUpperCase()}</div>
                         </div>
@@ -1108,8 +1181,8 @@ export const Donations: React.FC = () => {
 
           {campaigns.length === 0 ? (
             <div className="glass-card padding-lg text-center">
-              <Layers size={40} className="text-muted margin-bottom-xs" />
-              <h4>No donation campaigns yet</h4>
+              <Layers size={40} className="text-muted margin-bottom-xs" style={{ margin: '0 auto' }} />
+              <h4 className="font-weight-600">No donation campaigns yet</h4>
               <p className="font-xs text-muted margin-top-xs">Create a campaign to start collecting special programme donations.</p>
               <button className="pill-btn-primary margin-top-sm" onClick={openAddCampaignModal}>
                 + Create Campaign
@@ -1239,6 +1312,9 @@ export const Donations: React.FC = () => {
                       <option key={c.id} value={c.id}>{c.campaign_name}</option>
                     ))}
                   </select>
+                  {formSubmitted && donationType === 'campaign' && !campaignId && (
+                    <span className="form-field-error">Please select a campaign.</span>
+                  )}
                 </div>
               )}
 
@@ -1250,23 +1326,23 @@ export const Donations: React.FC = () => {
                     className={`selection-card ${donorType === 'member' ? 'selected' : ''}`}
                     onClick={() => setDonorType('member')}
                   >
-                    <User size={18} className="margin-bottom-xs" />
-                    <div className="font-weight-600 font-xs">Member</div>
-                    <span className="font-xs text-muted">Mahall member</span>
+                    <User size={18} className="margin-bottom-xs" style={{ margin: '0 auto' }} />
+                    <div className="font-weight-600 font-xs">Mahall Member</div>
+                    <span className="font-xs text-muted">Registered member</span>
                   </div>
                   <div
                     className={`selection-card ${donorType === 'external' ? 'selected' : ''}`}
                     onClick={() => setDonorType('external')}
                   >
-                    <Users size={18} className="margin-bottom-xs" />
-                    <div className="font-weight-600 font-xs">External</div>
+                    <Users size={18} className="margin-bottom-xs" style={{ margin: '0 auto' }} />
+                    <div className="font-weight-600 font-xs">External Donor</div>
                     <span className="font-xs text-muted">Other donor</span>
                   </div>
                   <div
                     className={`selection-card ${donorType === 'anonymous' ? 'selected' : ''}`}
                     onClick={() => setDonorType('anonymous')}
                   >
-                    <HelpCircle size={18} className="margin-bottom-xs" />
+                    <HelpCircle size={18} className="margin-bottom-xs" style={{ margin: '0 auto' }} />
                     <div className="font-weight-600 font-xs">Anonymous</div>
                     <span className="font-xs text-muted">Hidden donor</span>
                   </div>
@@ -1305,6 +1381,9 @@ export const Donations: React.FC = () => {
                       );
                     })}
                   </div>
+                  {formSubmitted && donorType === 'member' && !donorMemberId && (
+                    <span className="form-field-error">Please select a registered member.</span>
+                  )}
                 </div>
               )}
 
@@ -1321,6 +1400,9 @@ export const Donations: React.FC = () => {
                       onChange={(e) => setDonorName(e.target.value)}
                       required
                     />
+                    {formSubmitted && donorType === 'external' && !donorName.trim() && (
+                      <span className="form-field-error">Donor name is required.</span>
+                    )}
                   </div>
                   <div className="form-row-2col">
                     <div className="form-group">
@@ -1360,6 +1442,9 @@ export const Donations: React.FC = () => {
                     onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
                     required
                   />
+                  {formSubmitted && (!amount || Number(amount) <= 0) && (
+                    <span className="form-field-error">Amount must be greater than ₹0.</span>
+                  )}
                 </div>
                 <div className="form-group">
                   <label className="form-label font-weight-600">Donation Date *</label>
