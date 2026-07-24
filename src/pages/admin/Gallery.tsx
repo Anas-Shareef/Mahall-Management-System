@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../services/db';
-import type { GalleryAlbum, GalleryImage } from '../../services/db';
+import type { GalleryAlbum, GalleryImage, SubscriptionYear } from '../../services/db';
 import { 
   Image as ImageIcon, Plus, Search, Calendar, 
   Trash2, CheckCircle, AlertCircle, 
@@ -11,6 +11,7 @@ import { YearFilter } from '../../components/YearFilter';
 export const Gallery: React.FC = () => {
   // Data States
   const [albums, setAlbums] = useState<GalleryAlbum[]>([]);
+  const [years, setYears] = useState<SubscriptionYear[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -53,8 +54,12 @@ export const Gallery: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const albumList = await db.galleryAlbums.get();
+      const [albumList, yearList] = await Promise.all([
+        db.galleryAlbums.get(),
+        db.years.get(),
+      ]);
       setAlbums(albumList);
+      setYears(yearList);
     } catch (err) {
       console.error('Failed to load gallery albums:', err);
       showToast('error', 'Failed to load gallery albums');
@@ -68,17 +73,22 @@ export const Gallery: React.FC = () => {
   }, []);
 
   const filteredAlbums = useMemo(() => {
+    // Resolve the selected year's numeric value from subscription_years
+    const selectedYear = years.find((y) => y.id === selectedYearId)?.year ?? null;
+
     return albums.filter((a) => {
       const matchSearch =
         a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (a.description && a.description.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      const matchYear = !selectedYearId || a.event_date.startsWith(selectedYearId);
+      // Compare year extracted from event_date against numeric year from subscription_years
+      const matchYear = !selectedYearId || !selectedYear ||
+        new Date(a.event_date).getFullYear() === selectedYear;
       const matchType = !selectedType || a.programme_type === selectedType;
 
       return matchSearch && matchYear && matchType;
     });
-  }, [albums, searchQuery, selectedYearId, selectedType]);
+  }, [albums, searchQuery, selectedYearId, selectedType, years]);
 
   const openAlbumDetail = async (album: GalleryAlbum) => {
     setSelectedAlbum(album);

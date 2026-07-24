@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../services/db';
-import type { MarriageRecord, Member, Household } from '../../services/db';
+import type { MarriageRecord, Member, Household, SubscriptionYear } from '../../services/db';
 import { 
   Heart, Plus, Search, 
   Trash2, Edit2, Eye, CheckCircle, AlertCircle, 
@@ -14,6 +14,7 @@ export const Marriages: React.FC = () => {
   const [marriages, setMarriages] = useState<MarriageRecord[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [households, setHouseholds] = useState<Household[]>([]);
+  const [years, setYears] = useState<SubscriptionYear[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -93,14 +94,16 @@ export const Marriages: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [marriageList, memberList, houseList] = await Promise.all([
+      const [marriageList, memberList, houseList, yearList] = await Promise.all([
         db.marriages.get(),
         db.members.get(),
         db.households.get(),
+        db.years.get(),
       ]);
       setMarriages(marriageList);
       setMembers(memberList);
       setHouseholds(houseList);
+      setYears(yearList);
     } catch (err) {
       console.error('Failed to load marriage records:', err);
       showToast('error', 'Failed to load marriage records');
@@ -114,19 +117,24 @@ export const Marriages: React.FC = () => {
   }, []);
 
   const filteredMarriages = useMemo(() => {
+    // Resolve the selected year's numeric value from subscription_years
+    const selectedYear = years.find((y) => y.id === selectedYearId)?.year ?? null;
+
     return marriages.filter((m) => {
       const matchSearch =
         m.groom_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         m.bride_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (m.registration_number && m.registration_number.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      const matchYear = !selectedYearId || m.nikah_date.startsWith(selectedYearId);
+      // Compare year extracted from nikah_date against numeric year from subscription_years
+      const matchYear = !selectedYearId || !selectedYear ||
+        new Date(m.nikah_date).getFullYear() === selectedYear;
       const matchWard = !selectedWard || m.groom_ward === selectedWard || m.bride_ward === selectedWard;
       const matchStatus = !selectedStatus || m.status === selectedStatus;
 
       return matchSearch && matchYear && matchWard && matchStatus;
     });
-  }, [marriages, searchQuery, selectedYearId, selectedWard, selectedStatus]);
+  }, [marriages, searchQuery, selectedYearId, selectedWard, selectedStatus, years]);
 
   const uniqueWards = useMemo(() => {
     const set = new Set<string>();

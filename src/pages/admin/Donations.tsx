@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../services/db';
-import type { Donation, DonationCampaign } from '../../services/db';
+import type { Donation, DonationCampaign, SubscriptionYear } from '../../services/db';
 import { 
   HeartHandshake, Plus, Search, 
   CheckCircle, AlertCircle, 
   X, Loader2, Printer, Layers 
 } from 'lucide-react';
+import { YearFilter } from '../../components/YearFilter';
 
 export const Donations: React.FC = () => {
   // Active Tab
@@ -14,10 +15,12 @@ export const Donations: React.FC = () => {
   // Data States
   const [donations, setDonations] = useState<Donation[]>([]);
   const [campaigns, setCampaigns] = useState<DonationCampaign[]>([]);
+  const [years, setYears] = useState<SubscriptionYear[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedYearId, setSelectedYearId] = useState('');
   const [selectedCampaignId, setSelectedCampaignId] = useState('');
   const [selectedMethod, setSelectedMethod] = useState('');
 
@@ -62,12 +65,14 @@ export const Donations: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [donList, campList] = await Promise.all([
+      const [donList, campList, yearList] = await Promise.all([
         db.donations.get(),
         db.donationCampaigns.get(),
+        db.years.get(),
       ]);
       setDonations(donList);
       setCampaigns(campList);
+      setYears(yearList);
     } catch (err) {
       console.error('Failed to load donation data:', err);
       showToast('error', 'Failed to load donations');
@@ -81,17 +86,23 @@ export const Donations: React.FC = () => {
   }, []);
 
   const filteredDonations = useMemo(() => {
+    // Resolve the selected year's numeric value from subscription_years
+    const selectedYear = years.find((y) => y.id === selectedYearId)?.year ?? null;
+
     return donations.filter((d) => {
       const matchSearch =
         (d.donor_name && d.donor_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (d.receipt_number && d.receipt_number.toLowerCase().includes(searchQuery.toLowerCase()));
 
+      // Compare year extracted from donation_date against numeric year from subscription_years
+      const matchYear = !selectedYearId || !selectedYear ||
+        new Date(d.donation_date).getFullYear() === selectedYear;
       const matchCampaign = !selectedCampaignId || d.campaign_id === selectedCampaignId;
       const matchMethod = !selectedMethod || d.payment_method === selectedMethod;
 
-      return matchSearch && matchCampaign && matchMethod;
+      return matchSearch && matchYear && matchCampaign && matchMethod;
     });
-  }, [donations, searchQuery, selectedCampaignId, selectedMethod]);
+  }, [donations, searchQuery, selectedYearId, selectedCampaignId, selectedMethod, years]);
 
   // Total metrics
   const totalDonationCollected = useMemo(() => {
@@ -284,6 +295,13 @@ export const Donations: React.FC = () => {
             </div>
 
             <div className="filter-selectors-grid">
+              <YearFilter
+                selectedYearId={selectedYearId}
+                onChange={setSelectedYearId}
+                years={years}
+                showAllOption={true}
+              />
+
               <select value={selectedCampaignId} onChange={(e) => setSelectedCampaignId(e.target.value)}>
                 <option value="">All Campaigns / General</option>
                 {campaigns.map((c) => (

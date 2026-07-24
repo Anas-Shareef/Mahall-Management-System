@@ -9,6 +9,9 @@ interface YearFilterProps {
   className?: string;
   showAllOption?: boolean;
   allOptionLabel?: string;
+  /** Show the subscription fee next to the year label. Default false.
+   *  Only set true on the Subscriptions page where fee context is useful. */
+  showFee?: boolean;
 }
 
 export const YearFilter: React.FC<YearFilterProps> = ({
@@ -18,6 +21,7 @@ export const YearFilter: React.FC<YearFilterProps> = ({
   className = '',
   showAllOption = true,
   allOptionLabel = 'All Years',
+  showFee = false,
 }) => {
   const [yearList, setYearList] = useState<SubscriptionYear[]>(years || []);
 
@@ -36,12 +40,12 @@ export const YearFilter: React.FC<YearFilterProps> = ({
         value={selectedYearId}
         onChange={(e) => onChange(e.target.value)}
         className="year-filter-select"
-        aria-label="Filter by subscription year"
+        aria-label="Filter by year"
       >
         {showAllOption && <option value="">{allOptionLabel}</option>}
         {yearList.map((y) => (
           <option key={y.id} value={y.id}>
-            Year {y.year} (₹{y.default_fee})
+            {showFee ? `Year ${y.year} (₹${y.default_fee})` : `Year ${y.year}`}
           </option>
         ))}
       </select>

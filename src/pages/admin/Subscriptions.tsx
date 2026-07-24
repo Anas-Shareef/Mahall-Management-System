@@ -331,6 +331,7 @@ export const Subscriptions: React.FC = () => {
             onChange={setSelectedYearId}
             years={years}
             showAllOption={true}
+            showFee={true}
           />
 
           <button className="add-btn secondary-btn" onClick={openConfigureYearModal}>

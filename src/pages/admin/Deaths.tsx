@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../services/db';
-import type { DeathRecord, Member, Household } from '../../services/db';
+import type { DeathRecord, Member, Household, SubscriptionYear } from '../../services/db';
 import { 
   UserX, Plus, Search, 
   Trash2, Edit2, Eye, CheckCircle, AlertCircle, 
@@ -14,6 +14,7 @@ export const Deaths: React.FC = () => {
   const [deaths, setDeaths] = useState<DeathRecord[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [households, setHouseholds] = useState<Household[]>([]);
+  const [years, setYears] = useState<SubscriptionYear[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Search & Filters
@@ -62,14 +63,16 @@ export const Deaths: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [deathList, memberList, houseList] = await Promise.all([
+      const [deathList, memberList, houseList, yearList] = await Promise.all([
         db.deaths.get(),
         db.members.get(),
         db.households.get(),
+        db.years.get(),
       ]);
       setDeaths(deathList);
       setMembers(memberList);
       setHouseholds(houseList);
+      setYears(yearList);
     } catch (err) {
       console.error('Failed to load death records:', err);
       showToast('error', 'Failed to load death records');
@@ -84,19 +87,24 @@ export const Deaths: React.FC = () => {
 
   // Filtered death list
   const filteredDeaths = useMemo(() => {
+    // Resolve the selected year's numeric value from subscription_years
+    const selectedYear = years.find((y) => y.id === selectedYearId)?.year ?? null;
+
     return deaths.filter((d) => {
       const matchSearch =
         d.deceased_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (d.father_or_husband_name && d.father_or_husband_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (d.ward_or_area && d.ward_or_area.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      const matchYear = !selectedYearId || d.date_of_death.startsWith(selectedYearId);
+      // Compare year extracted from date_of_death against numeric year from subscription_years
+      const matchYear = !selectedYearId || !selectedYear ||
+        new Date(d.date_of_death).getFullYear() === selectedYear;
       const matchWard = !selectedWard || d.ward_or_area === selectedWard;
       const matchGender = !selectedGender || d.gender === selectedGender;
 
       return matchSearch && matchYear && matchWard && matchGender;
     });
-  }, [deaths, searchQuery, selectedYearId, selectedWard, selectedGender]);
+  }, [deaths, searchQuery, selectedYearId, selectedWard, selectedGender, years]);
 
   const uniqueWards = useMemo(() => {
     const set = new Set<string>();

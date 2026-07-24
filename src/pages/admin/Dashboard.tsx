@@ -97,9 +97,23 @@ export const Dashboard: React.FC = () => {
     const activeMembers = members.filter((m) => m.status === 'active');
     const accountableMembers = members.filter((m) => m.status === 'active' && m.is_subscription_accountable !== false);
 
-    const totalDonationVal = donations.reduce((sum, d) => sum + d.amount, 0);
-    const deathsCount = deaths.length;
-    const marriagesCount = marriages.length;
+    // Resolve numeric year from selectedYearId for filtering date-based records
+    const selectedYear = years.find((y) => y.id === selectedYearId)?.year ?? null;
+
+    // Filter community records by selected year (derived from date fields)
+    const filteredDonations = selectedYear
+      ? donations.filter((d) => new Date(d.donation_date).getFullYear() === selectedYear)
+      : donations;
+    const filteredDeaths = selectedYear
+      ? deaths.filter((d) => new Date(d.date_of_death).getFullYear() === selectedYear)
+      : deaths;
+    const filteredMarriages = selectedYear
+      ? marriages.filter((m) => new Date(m.nikah_date).getFullYear() === selectedYear)
+      : marriages;
+
+    const totalDonationVal = filteredDonations.reduce((sum, d) => sum + d.amount, 0);
+    const deathsCount = filteredDeaths.length;
+    const marriagesCount = filteredMarriages.length;
     const activeCampaignsCount = campaigns.filter((c) => c.status === 'active').length;
 
     const yearSubs = selectedYearId 
@@ -133,18 +147,24 @@ export const Dashboard: React.FC = () => {
       marriagesCount,
       activeCampaignsCount,
     };
-  }, [households, members, subscriptions, selectedYearId]);
+  }, [households, members, subscriptions, selectedYearId, years, donations, deaths, marriages, campaigns]);
 
-  // MONTHLY PAYMENT COLLECTION BAR CHART DATA
+  // MONTHLY PAYMENT COLLECTION BAR CHART DATA — filtered by selected year
   const monthlyCollections = useMemo(() => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const monthTotals = new Array(12).fill(0);
 
+    // Resolve numeric year for chart filtering
+    const selectedYear = years.find((y) => y.id === selectedYearId)?.year ?? null;
+
     payments.forEach((pay) => {
       const d = new Date(pay.payment_date);
       if (!isNaN(d.getTime())) {
-        const mIdx = d.getMonth();
-        monthTotals[mIdx] += pay.amount;
+        // Only include payments from selected year; if no year selected, show all
+        if (!selectedYear || d.getFullYear() === selectedYear) {
+          const mIdx = d.getMonth();
+          monthTotals[mIdx] += pay.amount;
+        }
       }
     });
 
@@ -155,7 +175,7 @@ export const Dashboard: React.FC = () => {
       amount: monthTotals[idx],
       heightPercent: Math.min(100, Math.max(10, Math.round((monthTotals[idx] / maxVal) * 100))),
     }));
-  }, [payments]);
+  }, [payments, selectedYearId, years]);
 
   // RECENT SYSTEM ACTIVITY FEED GENERATED FROM REAL DATA
   const recentActivities = useMemo(() => {
