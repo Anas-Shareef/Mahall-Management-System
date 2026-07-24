@@ -1,5 +1,14 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const DEFAULT_UUID = '00000000-0000-0000-0000-000000000001';
+
+export const sanitizeUuid = (val: string | null | undefined): string | null => {
+  if (!val) return null;
+  if (UUID_REGEX.test(val)) return val;
+  return DEFAULT_UUID;
+};
+
 export interface Profile {
   id: string;
   name: string;
@@ -1130,8 +1139,12 @@ export const db = {
         .sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime());
     },
     create: async (payment: Omit<Payment, 'id' | 'created_at' | 'updated_at'>): Promise<Payment> => {
+      const cleanPayment = {
+        ...payment,
+        recorded_by: sanitizeUuid(payment.recorded_by) || DEFAULT_UUID,
+      };
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase.from('payments').insert([payment]).select().single();
+        const { data, error } = await supabase.from('payments').insert([cleanPayment]).select().single();
         if (error) throw error;
         return data as Payment;
       }
@@ -1208,10 +1221,14 @@ export const db = {
       return getLocalData<Payment>('mahal_payments').find((p) => p.id === id) || null;
     },
     update: async (id: string, updates: Partial<Payment>): Promise<Payment> => {
+      const cleanUpdates = { ...updates };
+      if (cleanUpdates.recorded_by) {
+        cleanUpdates.recorded_by = sanitizeUuid(cleanUpdates.recorded_by) || DEFAULT_UUID;
+      }
       if (isSupabaseConfigured && supabase) {
         const { data, error } = await supabase
           .from('payments')
-          .update(updates)
+          .update(cleanUpdates)
           .eq('id', id)
           .select()
           .single();
@@ -1312,10 +1329,14 @@ export const db = {
       target: 'all' | 'pending' | 'arrears' | string, // can be a specific user_id, or recipient list
       specificIds?: string[] // specific profile IDs
     ): Promise<Notification> => {
+      const cleanNotifData = {
+        ...notifData,
+        created_by: sanitizeUuid(notifData.created_by) || DEFAULT_UUID,
+      };
       if (isSupabaseConfigured && supabase) {
         const { data: newNotif, error: notifErr } = await supabase
           .from('notifications')
-          .insert([notifData])
+          .insert([cleanNotifData])
           .select()
           .single();
         

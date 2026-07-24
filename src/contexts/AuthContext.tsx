@@ -53,7 +53,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Check saved session in local storage first
         const savedSession = localStorage.getItem('mahal_session');
         if (savedSession) {
-          setUser(JSON.parse(savedSession));
+          try {
+            const parsed = JSON.parse(savedSession);
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            if (parsed && parsed.id && !uuidRegex.test(parsed.id)) {
+              parsed.id = '00000000-0000-0000-0000-000000000001';
+              localStorage.setItem('mahal_session', JSON.stringify(parsed));
+            }
+            setUser(parsed);
+          } catch (e) {}
         }
 
         if (isSupabaseConfigured && supabase) {
