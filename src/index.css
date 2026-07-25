@@ -1673,6 +1673,61 @@ img, svg, video, canvas {
   margin-top: 2px;
 }
 
+/* RESPONSIVE DESKTOP & MOBILE VIEW TOGGLES */
+@media (min-width: 768px) {
+  .desktop-view-only {
+    display: block !important;
+  }
+  .mobile-view-only, .mobile-ledger-cards-list, .mobile-cards-directory {
+    display: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .desktop-view-only {
+    display: none !important;
+  }
+  .mobile-view-only, .mobile-ledger-cards-list, .mobile-cards-directory {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+}
+
+/* ACTION ROW & ICON BUTTONS STYLING */
+.action-row-buttons {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  justify-content: flex-end !important;
+}
+
+.icon-btn-ghost {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  border: none !important;
+  color: #6b7280 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  outline: none !important;
+  padding: 0 !important;
+}
+
+.icon-btn-ghost:hover {
+  background: #f3f4f6 !important;
+  color: #111827 !important;
+}
+
+.icon-btn-ghost.danger:hover {
+  background: #fee2e2 !important;
+  color: #ef4444 !important;
+}
+
+
 
 
 

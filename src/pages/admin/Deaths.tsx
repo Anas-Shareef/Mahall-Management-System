@@ -1311,6 +1311,34 @@ export const Deaths: React.FC = () => {
           </div>
         </div>
       )}
+      {/* EMBEDDED STYLES FOR ABSOLUTE DESIGN CONSISTENCY */}
+      <style>{`
+        .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 16px; }
+        .page-title { font-size: 24px; font-weight: 800; color: #111827; letter-spacing: -0.02em; }
+        .page-subtitle { font-size: 13.5px; color: #6b7280; margin-top: 4px; }
+        .header-cta-group { display: flex; align-items: center; gap: 10px; }
+
+        @media (min-width: 768px) {
+          .desktop-view-only { display: block !important; }
+          .mobile-view-only, .mobile-ledger-cards-list, .mobile-cards-directory { display: none !important; }
+        }
+        @media (max-width: 767px) {
+          .desktop-view-only { display: none !important; }
+          .mobile-view-only, .mobile-ledger-cards-list, .mobile-cards-directory { display: flex !important; flex-direction: column !important; }
+          .page-header { flex-direction: column; align-items: stretch; }
+          .header-cta-group { flex-direction: column; align-items: stretch; width: 100%; }
+        }
+
+        .action-row-buttons { display: flex !important; align-items: center !important; gap: 6px !important; justify-content: flex-end !important; }
+        .icon-btn-ghost {
+          width: 32px !important; height: 32px !important; border-radius: 8px !important;
+          background: transparent !important; border: none !important; color: #6b7280 !important;
+          display: inline-flex !important; align-items: center !important; justify-content: center !important;
+          cursor: pointer !important; transition: all 0.2s ease !important; outline: none !important; padding: 0 !important;
+        }
+        .icon-btn-ghost:hover { background: #f3f4f6 !important; color: #111827 !important; }
+        .icon-btn-ghost.danger:hover { background: #fee2e2 !important; color: #ef4444 !important; }
+      `}</style>
     </div>
   );
 };
