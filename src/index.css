@@ -2397,6 +2397,61 @@ img, svg, video, canvas {
   font-family: monospace;
 }
 
+/* ════════════════════════════════════════════════════════════════
+   LUCA WORLD & ACADEMICS SAAS PRECISION TABLES & FILTER BARS
+   ════════════════════════════════════════════════════════════════ */
+.filter-bar {
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  border: 1px solid #f1f5f9 !important;
+  padding: 14px 18px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+  margin-bottom: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
+}
+
+.table-container-card, .data-table-container, .table-wrapper {
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  border: 1px solid #f1f5f9 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+  overflow: hidden !important;
+  margin-bottom: 24px !important;
+}
+
+.data-table, table.data-table, .mini-ledger-table {
+  width: 100% !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+.data-table th, table.data-table th, .mini-ledger-table th {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: #94a3b8 !important;
+  padding: 14px 20px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  background: #f8fafc !important;
+  text-align: left !important;
+}
+
+.data-table td, table.data-table td, .mini-ledger-table td {
+  padding: 16px 20px !important;
+  border-bottom: 1px solid #f8fafc !important;
+  font-size: 13.5px !important;
+  color: #1e293b !important;
+  vertical-align: middle !important;
+}
+
+.data-table tbody tr:hover, table.data-table tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+
 
 
 
