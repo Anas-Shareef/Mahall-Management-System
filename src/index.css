@@ -1491,5 +1491,188 @@ img, svg, video, canvas {
   margin-top: 4px;
 }
 
+/* 5-COLUMN DASHBOARD METRICS GRID (DEATH MANAGEMENT) */
+.stats-dashboard-grid-5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1200px) {
+  .stats-dashboard-grid-5 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .stats-dashboard-grid-5 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-dashboard-grid-5 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* WARNING STAT METRIC CARD STYLE */
+.stat-metric-card.warning-card {
+  border: 1px solid #fde68a;
+  background: #fffdf5;
+}
+
+.stat-metric-card.warning-card:hover {
+  border-color: #f59e0b;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.15);
+}
+
+/* WIZARD STEPPER BAR */
+.wizard-stepper-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.wizard-step-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #9ca3af;
+  flex: 1;
+}
+
+.wizard-step-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.wizard-step-item.active {
+  color: #00966b;
+}
+
+.wizard-step-item.active .wizard-step-badge {
+  background: #00966b;
+  color: #ffffff;
+}
+
+.wizard-step-item.completed {
+  color: #10b981;
+}
+
+.wizard-step-item.completed .wizard-step-badge {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.wizard-step-line {
+  flex: 1;
+  height: 2px;
+  background: #e5e7eb;
+}
+
+.wizard-step-line.active {
+  background: #00966b;
+}
+
+/* SEARCHABLE MEMBER CARDS IN STEP 1 */
+.member-search-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.member-select-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.member-select-card:hover {
+  border-color: #00966b;
+  background: #f0fdf4;
+}
+
+.member-select-card.selected {
+  border-color: #00966b;
+  background: #e6f4ea;
+  box-shadow: 0 0 0 2px rgba(0, 150, 107, 0.15);
+}
+
+/* DETAILS DRAWER SECTION CARDS */
+.details-section-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.details-section-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.details-grid-2col {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 16px;
+}
+
+@media (max-width: 500px) {
+  .details-grid-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.detail-item-label {
+  font-size: 11.5px;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.detail-item-value {
+  font-size: 13.5px;
+  color: #111827;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+
 
 
