@@ -20,6 +20,7 @@ import {
   Languages,
   Check,
   ChevronDown,
+  ChevronRight,
   Globe,
   HeartHandshake,
   UserX,
@@ -228,9 +229,38 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
   const userInitials = user?.name
     ? user.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
     : 'VH';
+  // Dynamic Breadcrumb Generator for Top Navbar
+  const getBreadcrumbs = () => {
+    const segments = location.pathname.split('/').filter(Boolean);
+    const crumbs: { label: string; path: string }[] = [];
+    let currentPath = '';
 
+    segments.forEach((seg) => {
+      currentPath += `/${seg}`;
+      if (seg === 'admin' || seg === 'member') return; // Skip role prefix
 
+      let label = seg.charAt(0).toUpperCase() + seg.slice(1);
+      if (seg === 'households') label = t('nav.households');
+      else if (seg === 'members') label = t('nav.members');
+      else if (seg === 'donations') label = t('nav.donations');
+      else if (seg === 'deaths') label = t('nav.deaths');
+      else if (seg === 'marriages') label = t('nav.marriages');
+      else if (seg === 'subscriptions') label = t('nav.subscriptions');
+      else if (seg === 'payments') label = t('nav.payments');
+      else if (seg === 'notifications') label = t('nav.notifications');
+      else if (seg === 'gallery') label = t('nav.gallery');
+      else if (seg === 'reports') label = t('nav.reports');
+      else if (seg === 'settings') label = t('nav.settings');
+      else if (seg === 'dashboard') label = t('nav.dashboard');
+      else if (seg === 'new') label = 'Add New';
+      else if (seg === 'edit') label = 'Edit';
+      else if (seg.length > 12) label = `#${seg.slice(0, 5)}...`;
 
+      crumbs.push({ label, path: currentPath });
+    });
+
+    return crumbs;
+  };
   return (
     <div className="layout-shell">
       {/* SIDEBAR */}
@@ -322,16 +352,25 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
       <div className="main-viewport">
         {/* HEADER NAVBAR */}
         <header className="header-bar">
-          <div className="header-left-greeting">
+          <div className="header-left-breadcrumbs">
             <button className="mobile-toggle-btn" onClick={() => setIsMobileMenuOpen(true)} aria-label="Open navigation menu">
               <Menu size={20} />
             </button>
-            <div className="greeting-text-box">
-              <h2 className="user-greeting">
-                Good morning {user?.name || 'Member'} <span className="hand-wave">👋</span>
-              </h2>
-              <p className="greeting-sub">Time to rise up for today's Mahallu management</p>
-            </div>
+            <nav className="navbar-breadcrumbs" aria-label="Breadcrumb">
+              <Link to={user?.role === 'admin' ? '/admin/dashboard' : '/member/dashboard'} className="crumb-home-link" title="Home">
+                <Home size={16} />
+              </Link>
+              {getBreadcrumbs().map((crumb, idx) => (
+                <React.Fragment key={crumb.path}>
+                  <ChevronRight size={14} className="crumb-separator" />
+                  {idx === getBreadcrumbs().length - 1 ? (
+                    <span className="crumb-current">{crumb.label}</span>
+                  ) : (
+                    <Link to={crumb.path} className="crumb-link">{crumb.label}</Link>
+                  )}
+                </React.Fragment>
+              ))}
+            </nav>
           </div>
 
           <div className="header-right-tools">
@@ -841,7 +880,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
           box-sizing: border-box;
         }
 
-        .header-left-greeting {
+        .header-left-breadcrumbs {
           display: flex;
           align-items: center;
           gap: 12px;
@@ -858,18 +897,49 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
           flex-shrink: 0;
         }
 
-        .greeting-text-box {
-          min-width: 0;
+        .navbar-breadcrumbs {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 14px;
+          font-weight: 500;
+          flex-wrap: wrap;
         }
 
-        .user-greeting {
-          font-size: 20px;
-          font-weight: 800;
-          color: #111827;
-          letter-spacing: -0.02em;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+        .crumb-home-link {
+          color: #64748b;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 4px;
+          border-radius: 6px;
+          transition: all 0.15s ease;
+        }
+
+        .crumb-home-link:hover {
+          color: var(--primary);
+          background: rgba(0, 150, 107, 0.08);
+        }
+
+        .crumb-separator {
+          color: #94a3b8;
+          flex-shrink: 0;
+        }
+
+        .crumb-link {
+          color: #64748b;
+          text-decoration: none;
+          font-weight: 500;
+          transition: color 0.15s ease;
+        }
+
+        .crumb-link:hover {
+          color: var(--primary);
+        }
+
+        .crumb-current {
+          color: #0f172a;
+          font-weight: 700;
         }
 
         .hand-wave { display: inline-block; font-size: 18px; }
