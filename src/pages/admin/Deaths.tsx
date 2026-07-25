@@ -3,8 +3,9 @@ import { db } from '../../services/db';
 import type { DeathRecord, Member, Household, SubscriptionYear } from '../../services/db';
 import { 
   UserX, Plus, Search, Trash2, Edit2, Eye, CheckCircle, AlertCircle, 
-  X, Loader2, Calendar, CalendarDays, FileWarning, Clock, Download, 
-  Filter, ChevronRight, User, Printer, RefreshCw, FileText, Check
+  X, Loader2, Calendar, CalendarDays, FileWarning, Download, 
+  Filter, ChevronRight, User, Printer, RefreshCw, FileText, Check,
+  Home, Building2, ChevronLeft, Award, QrCode
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 
@@ -18,14 +19,20 @@ export const Deaths: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
 
-  // Search & Filters
+  // Search & Filter States
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedYearId, setSelectedYearId] = useState<string>('');
   const [selectedWard, setSelectedWard] = useState<string>('');
   const [selectedGender, setSelectedGender] = useState<string>('');
   const [selectedCertStatus, setSelectedCertStatus] = useState<string>('');
   const [selectedPlace, setSelectedPlace] = useState<string>('');
+  const [selectedCause, setSelectedCause] = useState<string>('');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name'>('newest');
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  // Pagination States
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Selection & Bulk Actions
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -40,6 +47,10 @@ export const Deaths: React.FC = () => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedDeathRecord, setSelectedDeathRecord] = useState<DeathRecord | null>(null);
 
+  // Certificate Modal State
+  const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
+  const [certificateRecord, setCertificateRecord] = useState<DeathRecord | null>(null);
+
   // Form Fields
   const [memberSearch, setMemberSearch] = useState('');
   const [isLinkedMember, setIsLinkedMember] = useState(true);
@@ -51,12 +62,13 @@ export const Deaths: React.FC = () => {
   const [burialDate, setBurialDate] = useState('');
   const [burialTime, setBurialTime] = useState('');
   const [burialLocation, setBurialLocation] = useState('');
-  const [placeOfDeath, setPlaceOfDeath] = useState<'Home' | 'Hospital' | 'Other' | string>('Hospital');
+  const [placeOfDeath, setPlaceOfDeath] = useState<'Hospital' | 'Home' | 'Other' | string>('Hospital');
+  const [facilityName, setFacilityName] = useState('');
   const [age, setAge] = useState<number | ''>('');
   const [gender, setGender] = useState<'male' | 'female' | 'other'>('male');
   const [address, setAddress] = useState('');
   const [wardOrArea, setWardOrArea] = useState('');
-  const [causeOfDeath, setCauseOfDeath] = useState('');
+  const [causeOfDeath, setCauseOfDeath] = useState('Natural');
   const [certificateNumber, setCertificateNumber] = useState('');
   const [medicallyCertified, setMedicallyCertified] = useState(true);
   const [certifierName, setCertifierName] = useState('');
@@ -87,7 +99,7 @@ export const Deaths: React.FC = () => {
     } catch (err) {
       console.error('Failed to load death records:', err);
       setFetchError(true);
-      showToast('error', 'Failed to load death records');
+      showToast('error', 'Failed to load death records from database');
     } finally {
       setLoading(false);
     }
@@ -97,7 +109,7 @@ export const Deaths: React.FC = () => {
     loadData();
   }, []);
 
-  // Compute 5 Dashboard Summary Cards
+  // Compute 6 Dashboard Summary Cards
   const metrics = useMemo(() => {
     const total = deaths.length;
     const now = new Date();
@@ -116,23 +128,18 @@ export const Deaths: React.FC = () => {
       return dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth();
     }).length;
 
+    const hospitalDeaths = deaths.filter((d) => (d.place_of_death || 'Hospital').toLowerCase() === 'hospital').length;
+    const homeDeaths = deaths.filter((d) => (d.place_of_death || '').toLowerCase() === 'home').length;
     const pendingCertificates = deaths.filter((d) => !d.certificate_url && !d.medically_certified && !d.notes?.includes('DC-')).length;
 
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const recentDeaths = deaths.filter((d) => {
-      if (!d.date_of_death) return false;
-      return new Date(d.date_of_death) >= thirtyDaysAgo;
-    }).length;
-
-    return { total, thisYear, thisMonth, pendingCertificates, recentDeaths, currentYearNum };
+    return { total, thisYear, thisMonth, hospitalDeaths, homeDeaths, pendingCertificates, currentYearNum };
   }, [deaths, years, selectedYearId]);
 
-  // Filtered death list
+  // Filtered & Sorted death list
   const filteredDeaths = useMemo(() => {
     const selectedYear = years.find((y) => y.id === selectedYearId)?.year ?? null;
 
-    return deaths.filter((d) => {
+    let result = deaths.filter((d) => {
       const query = searchQuery.toLowerCase().trim();
       const matchSearch = !query || (
         d.deceased_name.toLowerCase().includes(query) ||
@@ -149,10 +156,28 @@ export const Deaths: React.FC = () => {
       const isAvailable = !!d.certificate_url || d.medically_certified || (d.notes && d.notes.includes('DC-'));
       const matchCert = !selectedCertStatus || (selectedCertStatus === 'available' ? isAvailable : !isAvailable);
       const matchPlace = !selectedPlace || (d.place_of_death && d.place_of_death.toLowerCase() === selectedPlace.toLowerCase());
+      const matchCause = !selectedCause || (d.cause_of_death && d.cause_of_death.toLowerCase() === selectedCause.toLowerCase());
 
-      return matchSearch && matchYear && matchWard && matchGender && matchCert && matchPlace;
+      return matchSearch && matchYear && matchWard && matchGender && matchCert && matchPlace && matchCause;
     });
-  }, [deaths, searchQuery, selectedYearId, selectedWard, selectedGender, selectedCertStatus, selectedPlace, years]);
+
+    if (sortBy === 'newest') {
+      result.sort((a, b) => new Date(b.date_of_death).getTime() - new Date(a.date_of_death).getTime());
+    } else if (sortBy === 'oldest') {
+      result.sort((a, b) => new Date(a.date_of_death).getTime() - new Date(b.date_of_death).getTime());
+    } else if (sortBy === 'name') {
+      result.sort((a, b) => a.deceased_name.localeCompare(b.deceased_name));
+    }
+
+    return result;
+  }, [deaths, searchQuery, selectedYearId, selectedWard, selectedGender, selectedCertStatus, selectedPlace, selectedCause, sortBy, years]);
+
+  // Paginated death list
+  const totalPages = Math.ceil(filteredDeaths.length / rowsPerPage) || 1;
+  const paginatedDeaths = useMemo(() => {
+    const start = (currentPage - 1) * rowsPerPage;
+    return filteredDeaths.slice(start, start + rowsPerPage);
+  }, [filteredDeaths, currentPage, rowsPerPage]);
 
   const uniqueWards = useMemo(() => {
     const set = new Set<string>();
@@ -201,6 +226,7 @@ export const Deaths: React.FC = () => {
     setBurialTime('');
     setBurialLocation('');
     setPlaceOfDeath('Hospital');
+    setFacilityName('');
     setAge('');
     setGender('male');
     setAddress('');
@@ -228,11 +254,12 @@ export const Deaths: React.FC = () => {
     setBurialTime(d.burial_time || '');
     setBurialLocation('');
     setPlaceOfDeath(d.place_of_death || 'Hospital');
+    setFacilityName('');
     setAge(d.age !== null ? d.age : '');
     setGender(d.gender || 'male');
     setAddress(d.address || '');
     setWardOrArea(d.ward_or_area || '');
-    setCauseOfDeath(d.cause_of_death || '');
+    setCauseOfDeath(d.cause_of_death || 'Natural');
     setCertificateNumber('');
     setMedicallyCertified(d.medically_certified);
     setCertifierName(d.certifier_name || '');
@@ -273,17 +300,19 @@ export const Deaths: React.FC = () => {
       };
 
       if (modalMode === 'add') {
-        await db.deaths.create(payload);
+        const createdRecord = await db.deaths.create(payload);
         if (isLinkedMember && selectedMemberId) {
           await db.members.update(selectedMemberId, { status: 'inactive' });
         }
-        showToast('success', 'Death record created successfully');
+        setSelectedDeathRecord(createdRecord);
+        showToast('success', 'Death record created successfully in Supabase');
       } else if (currentId) {
-        await db.deaths.update(currentId, payload);
-        showToast('success', 'Death record updated successfully');
+        const updatedRecord = await db.deaths.update(currentId, payload);
+        setSelectedDeathRecord(updatedRecord);
+        showToast('success', 'Death record updated successfully in Supabase');
       }
 
-      setIsAddDrawerOpen(false);
+      setWizardStep(4); // Advance to Step 4 Success View
       loadData();
     } catch (err) {
       console.error('Error saving death record:', err);
@@ -298,7 +327,7 @@ export const Deaths: React.FC = () => {
     if (!window.confirm('Are you sure you want to delete this death record? This action cannot be undone.')) return;
     try {
       await db.deaths.delete(id);
-      showToast('success', 'Death record deleted');
+      showToast('success', 'Death record deleted from Supabase');
       loadData();
     } catch (err) {
       showToast('error', 'Failed to delete record');
@@ -306,10 +335,10 @@ export const Deaths: React.FC = () => {
   };
 
   const handleSelectAll = () => {
-    if (selectedIds.length === filteredDeaths.length) {
+    if (selectedIds.length === paginatedDeaths.length) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(filteredDeaths.map((d) => d.id));
+      setSelectedIds(paginatedDeaths.map((d) => d.id));
     }
   };
 
@@ -338,6 +367,9 @@ export const Deaths: React.FC = () => {
     setSelectedGender('');
     setSelectedCertStatus('');
     setSelectedPlace('');
+    setSelectedCause('');
+    setSortBy('newest');
+    setCurrentPage(1);
   };
 
   const exportCSV = () => {
@@ -368,6 +400,12 @@ export const Deaths: React.FC = () => {
     showToast('success', 'Death records exported to CSV');
   };
 
+  const openCertificateModal = (d: DeathRecord, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setCertificateRecord(d);
+    setIsCertificateModalOpen(true);
+  };
+
   return (
     <div className="deaths-page animate-fade-in">
       {/* Toast Notification */}
@@ -382,7 +420,7 @@ export const Deaths: React.FC = () => {
       <div className="page-header flex-between margin-bottom">
         <div>
           <h1 className="page-title">Death Records</h1>
-          <p className="page-subtitle">Manage and maintain deceased member records, family information, death certificates, and related details.</p>
+          <p className="page-subtitle">Manage deceased member records, family links, death certificates, and Supabase audit logs.</p>
         </div>
 
         <div className="header-cta-group flex-row-gap-sm">
@@ -397,16 +435,16 @@ export const Deaths: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. DASHBOARD SUMMARY CARDS (5 RESPONSIVE METRIC CARDS) */}
-      <div className="stats-dashboard-grid-5 margin-bottom">
+      {/* 2. DASHBOARD SUMMARY CARDS (6 RESPONSIVE METRIC CARDS) */}
+      <div className="stats-dashboard-grid-6 margin-bottom">
         {loading ? (
           <>
-            {[1, 2, 3, 4, 5].map((i) => (
+            {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="stat-metric-card shadow-sm">
                 <div className="skeleton-pulse" style={{ width: '40px', height: '40px', borderRadius: '10px' }}></div>
                 <div className="metric-info margin-left-xs">
-                  <div className="skeleton-pulse" style={{ width: '80px', height: '12px' }}></div>
-                  <div className="skeleton-pulse margin-top-xs" style={{ width: '100px', height: '22px' }}></div>
+                  <div className="skeleton-pulse" style={{ width: '70px', height: '12px' }}></div>
+                  <div className="skeleton-pulse margin-top-xs" style={{ width: '90px', height: '22px' }}></div>
                 </div>
               </div>
             ))}
@@ -446,6 +484,28 @@ export const Deaths: React.FC = () => {
               </div>
             </div>
 
+            <div className="stat-metric-card shadow-sm">
+              <div className="metric-icon-box primary">
+                <Building2 size={22} />
+              </div>
+              <div className="metric-info">
+                <span className="metric-label">Hospital Deaths</span>
+                <h3 className="metric-value text-primary">{metrics.hospitalDeaths}</h3>
+                <span className="metric-sub">At hospital facility</span>
+              </div>
+            </div>
+
+            <div className="stat-metric-card shadow-sm">
+              <div className="metric-icon-box purple">
+                <Home size={22} />
+              </div>
+              <div className="metric-info">
+                <span className="metric-label">Home Deaths</span>
+                <h3 className="metric-value">{metrics.homeDeaths}</h3>
+                <span className="metric-sub">Occurred at home</span>
+              </div>
+            </div>
+
             <div className="stat-metric-card warning-card shadow-sm">
               <div className="metric-icon-box warning">
                 <FileWarning size={22} />
@@ -454,17 +514,6 @@ export const Deaths: React.FC = () => {
                 <span className="metric-label text-warning">Pending Certs</span>
                 <h3 className="metric-value text-warning">{metrics.pendingCertificates}</h3>
                 <span className="metric-sub">Without certificate</span>
-              </div>
-            </div>
-
-            <div className="stat-metric-card shadow-sm">
-              <div className="metric-icon-box primary">
-                <Clock size={22} />
-              </div>
-              <div className="metric-info">
-                <span className="metric-label">Recent Deaths</span>
-                <h3 className="metric-value text-primary">{metrics.recentDeaths}</h3>
-                <span className="metric-sub">Last 30 days</span>
               </div>
             </div>
           </>
@@ -479,7 +528,7 @@ export const Deaths: React.FC = () => {
             <Search size={18} className="search-icon" />
             <input
               type="text"
-              placeholder="Search by name, member ID, family ID, certificate number..."
+              placeholder="Search member name, ID, house #, certificate #..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -490,7 +539,7 @@ export const Deaths: React.FC = () => {
             )}
           </div>
 
-          {/* Desktop Filters */}
+          {/* Desktop Filter Chips */}
           <div className="filter-selectors-grid desktop-filters-only">
             <YearFilter selectedYearId={selectedYearId} onChange={setSelectedYearId} showAllOption={true} />
 
@@ -519,7 +568,23 @@ export const Deaths: React.FC = () => {
               </select>
             </div>
 
-            {(searchQuery || selectedYearId || selectedWard || selectedGender || selectedCertStatus || selectedPlace) && (
+            <div className="filter-select-wrapper">
+              <select value={selectedPlace} onChange={(e) => setSelectedPlace(e.target.value)}>
+                <option value="">Place: All</option>
+                <option value="Hospital">Hospital</option>
+                <option value="Home">Home</option>
+              </select>
+            </div>
+
+            <div className="filter-select-wrapper">
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}>
+                <option value="newest">Sort: Newest First</option>
+                <option value="oldest">Sort: Oldest First</option>
+                <option value="name">Sort: Name A-Z</option>
+              </select>
+            </div>
+
+            {(searchQuery || selectedYearId || selectedWard || selectedGender || selectedCertStatus || selectedPlace || selectedCause) && (
               <button className="clear-filters-link" onClick={clearFilters}>
                 Clear Filters
               </button>
@@ -565,18 +630,18 @@ export const Deaths: React.FC = () => {
               <div className="skeleton-row"></div>
               <div className="skeleton-row"></div>
             </div>
-          ) : filteredDeaths.length === 0 ? (
+          ) : paginatedDeaths.length === 0 ? (
             <div className="empty-state-card">
               <div className="empty-state-icon emerald">
                 <UserX size={28} />
               </div>
               <h4>No death records found</h4>
               <p>
-                {searchQuery || selectedYearId || selectedWard || selectedGender || selectedCertStatus
-                  ? 'No records match your current filters. Try clearing filters.'
-                  : 'Record a deceased member to keep your Mahall records complete and up to date.'}
+                {searchQuery || selectedYearId || selectedWard || selectedGender || selectedCertStatus || selectedPlace || selectedCause
+                  ? 'No records match your current search and filters. Try clearing filters.'
+                  : 'Record a deceased member to maintain complete and accurate Mahall database records.'}
               </p>
-              {searchQuery || selectedYearId || selectedWard || selectedGender || selectedCertStatus ? (
+              {searchQuery || selectedYearId || selectedWard || selectedGender || selectedCertStatus || selectedPlace || selectedCause ? (
                 <button className="clear-filters-link margin-top-xs" onClick={clearFilters}>
                   Clear Filters
                 </button>
@@ -597,7 +662,7 @@ export const Deaths: React.FC = () => {
                       <th style={{ width: '40px' }}>
                         <input
                           type="checkbox"
-                          checked={selectedIds.length === filteredDeaths.length && filteredDeaths.length > 0}
+                          checked={selectedIds.length === paginatedDeaths.length && paginatedDeaths.length > 0}
                           onChange={handleSelectAll}
                         />
                       </th>
@@ -611,7 +676,7 @@ export const Deaths: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredDeaths.map((d) => {
+                    {paginatedDeaths.map((d) => {
                       const isSelected = selectedIds.includes(d.id);
                       const linkedMem = members.find((m) => m.id === d.member_id);
                       const linkedHouse = linkedMem ? households.find((h) => h.id === linkedMem.household_id) : null;
@@ -669,6 +734,13 @@ export const Deaths: React.FC = () => {
                           <td style={{ textAlign: 'right' }}>
                             <div className="action-row-buttons flex-end gap-xs">
                               <button
+                                className="icon-btn-ghost text-primary"
+                                title="Generate Certificate"
+                                onClick={(e) => openCertificateModal(d, e)}
+                              >
+                                <Award size={15} />
+                              </button>
+                              <button
                                 className="icon-btn-ghost"
                                 title="View Details"
                                 onClick={() => {
@@ -703,7 +775,7 @@ export const Deaths: React.FC = () => {
 
               {/* MOBILE STACKED CARDS VIEW (<768px) */}
               <div className="mobile-ledger-cards-list mobile-view-only padding-md">
-                {filteredDeaths.map((d) => {
+                {paginatedDeaths.map((d) => {
                   const isSelected = selectedIds.includes(d.id);
                   const linkedMem = members.find((m) => m.id === d.member_id);
                   const linkedHouse = linkedMem ? households.find((h) => h.id === linkedMem.household_id) : null;
@@ -739,7 +811,10 @@ export const Deaths: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="mobile-card-actions flex-end gap-xs margin-top-xs pt-xs border-top-light">
+                      <div className="mobile-card-actions flex-between gap-xs margin-top-xs pt-xs border-top-light">
+                        <button className="pill-btn-ghost font-xs" onClick={(e) => openCertificateModal(d, e)}>
+                          <Award size={13} /> Cert
+                        </button>
                         <button
                           className="pill-btn-ghost font-xs"
                           onClick={() => {
@@ -760,6 +835,46 @@ export const Deaths: React.FC = () => {
                   );
                 })}
               </div>
+
+              {/* PAGINATION CONTROL BAR */}
+              <div className="pagination-bar flex-between">
+                <div className="font-xs color-subtle">
+                  Showing <strong>{((currentPage - 1) * rowsPerPage) + 1}</strong> to <strong>{Math.min(currentPage * rowsPerPage, filteredDeaths.length)}</strong> of <strong>{filteredDeaths.length}</strong> records
+                </div>
+
+                <div className="pagination-controls flex-row-gap-sm">
+                  <select
+                    className="font-xs border-rounded padding-xs"
+                    value={rowsPerPage}
+                    onChange={(e) => {
+                      setRowsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value={10}>10 rows per page</option>
+                    <option value={25}>25 rows per page</option>
+                    <option value={50}>50 rows per page</option>
+                  </select>
+
+                  <div className="flex-row-gap-xs">
+                    <button
+                      className="page-nav-btn"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    >
+                      <ChevronLeft size={14} />
+                    </button>
+                    <span className="font-xs font-weight-600 padding-xs">Page {currentPage} of {totalPages}</span>
+                    <button
+                      className="page-nav-btn"
+                      disabled={currentPage >= totalPages}
+                      onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    >
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
             </>
           )}
         </div>
@@ -768,7 +883,7 @@ export const Deaths: React.FC = () => {
       {/* 4. MULTI-STEP RECORD DEATH WIZARD DRAWER / MODAL */}
       {isAddDrawerOpen && (
         <div className="modal-overlay">
-          <div className="modal-dialog-card animate-scale-up" style={{ maxWidth: '620px' }}>
+          <div className="modal-dialog-card animate-scale-up" style={{ maxWidth: '640px' }}>
             <div className="modal-header">
               <div>
                 <h4>{modalMode === 'add' ? 'Record Deceased Member' : 'Edit Death Record'}</h4>
@@ -795,13 +910,13 @@ export const Deaths: React.FC = () => {
 
               <div className={`wizard-step-item ${wizardStep === 3 ? 'active' : wizardStep > 3 ? 'completed' : ''}`}>
                 <div className="wizard-step-badge">{wizardStep > 3 ? <Check size={13} /> : '3'}</div>
-                <span>Burial Details</span>
+                <span>Review</span>
               </div>
               <div className={`wizard-step-line ${wizardStep > 3 ? 'active' : ''}`}></div>
 
               <div className={`wizard-step-item ${wizardStep === 4 ? 'active' : ''}`}>
                 <div className="wizard-step-badge">4</div>
-                <span>Review</span>
+                <span>Complete</span>
               </div>
             </div>
 
@@ -852,8 +967,8 @@ export const Deaths: React.FC = () => {
                     })}
                   </div>
 
-                  <div className="toggle-switch-row margin-top-sm border-top pt-sm">
-                    <label className="checkbox-label flex-row-gap-xs font-xs font-weight-600 color-subtle">
+                  <div className="margin-top-sm border-top pt-sm">
+                    <label className="checkbox-label">
                       <input
                         type="checkbox"
                         checked={!isLinkedMember}
@@ -893,7 +1008,7 @@ export const Deaths: React.FC = () => {
                 </div>
               )}
 
-              {/* STEP 2: DEATH DETAILS */}
+              {/* STEP 2: DEATH & MEDICAL DETAILS */}
               {wizardStep === 2 && (
                 <div className="animate-fade-in flex-col gap-sm">
                   <div className="form-row-2col">
@@ -970,51 +1085,14 @@ export const Deaths: React.FC = () => {
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Death Certificate Number</label>
+                    <label className="form-label">Hospital / Facility / Location Name</label>
                     <input
                       type="text"
                       className="form-control"
-                      value={certificateNumber}
-                      onChange={(e) => setCertificateNumber(e.target.value)}
-                      placeholder="e.g. DC-2026-00124"
+                      value={facilityName}
+                      onChange={(e) => setFacilityName(e.target.value)}
+                      placeholder="e.g. City Hospital, Ward 4, etc."
                     />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="checkbox-label flex-row-gap-xs font-xs font-weight-600">
-                      <input
-                        type="checkbox"
-                        checked={medicallyCertified}
-                        onChange={(e) => setMedicallyCertified(e.target.checked)}
-                      />
-                      <span>Medically Certified Record</span>
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 3: BURIAL DETAILS */}
-              {wizardStep === 3 && (
-                <div className="animate-fade-in flex-col gap-sm">
-                  <div className="form-row-2col">
-                    <div className="form-group">
-                      <label className="form-label">Burial Date</label>
-                      <input
-                        type="date"
-                        className="form-control"
-                        value={burialDate}
-                        onChange={(e) => setBurialDate(e.target.value)}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Burial Time</label>
-                      <input
-                        type="time"
-                        className="form-control"
-                        value={burialTime}
-                        onChange={(e) => setBurialTime(e.target.value)}
-                      />
-                    </div>
                   </div>
 
                   <div className="form-group">
@@ -1029,20 +1107,42 @@ export const Deaths: React.FC = () => {
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Notes & Remarks</label>
-                    <textarea
+                    <label className="form-label">Death Certificate Number</label>
+                    <input
+                      type="text"
                       className="form-control"
-                      rows={3}
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Additional family or medical notes..."
+                      value={certificateNumber}
+                      onChange={(e) => setCertificateNumber(e.target.value)}
+                      placeholder="e.g. DC-2026-00124"
                     />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Attending Doctor / Certifier Name</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={certifierName}
+                      onChange={(e) => setCertifierName(e.target.value)}
+                      placeholder="Dr. Name or Medical Officer"
+                    />
+                  </div>
+
+                  <div className="margin-top-xs margin-bottom-xs">
+                    <label className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={medicallyCertified}
+                        onChange={(e) => setMedicallyCertified(e.target.checked)}
+                      />
+                      <span>Medically Certified Record</span>
+                    </label>
                   </div>
                 </div>
               )}
 
-              {/* STEP 4: REVIEW & CONFIRM */}
-              {wizardStep === 4 && (
+              {/* STEP 3: REVIEW & CONFIRM */}
+              {wizardStep === 3 && (
                 <div className="animate-fade-in flex-col gap-sm">
                   <div className="details-section-card bg-primary-light">
                     <div className="details-section-title text-primary">Deceased Summary</div>
@@ -1067,11 +1167,11 @@ export const Deaths: React.FC = () => {
                   </div>
 
                   <div className="details-section-card">
-                    <div className="details-section-title">Burial & Certificate Review</div>
+                    <div className="details-section-title">Medical & Certificate Review</div>
                     <div className="details-grid-2col">
                       <div>
-                        <div className="detail-item-label">Burial Date</div>
-                        <div className="detail-item-value">{burialDate || 'Not specified'}</div>
+                        <div className="detail-item-label">Doctor / Certifier</div>
+                        <div className="detail-item-value">{certifierName || 'N/A'}</div>
                       </div>
                       <div>
                         <div className="detail-item-label">Certificate Status</div>
@@ -1083,59 +1183,196 @@ export const Deaths: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              {/* STEP 4: SUCCESS VIEW */}
+              {wizardStep === 4 && (
+                <div className="animate-fade-in success-wizard-container">
+                  <div className="success-animated-badge">
+                    <CheckCircle size={40} />
+                  </div>
+                  <h3 className="font-weight-800 text-dark">Death Record Saved Successfully!</h3>
+                  <p className="font-sm color-subtle margin-top-xs">
+                    The record for <strong>{deceasedName}</strong> has been saved to your Supabase database and member status updated.
+                  </p>
+
+                  <div className="flex-row-center gap-sm margin-top-md">
+                    {selectedDeathRecord && (
+                      <button className="pill-btn-primary" onClick={() => openCertificateModal(selectedDeathRecord)}>
+                        <Award size={16} /> View Certificate
+                      </button>
+                    )}
+                    <button className="pill-btn-ghost" onClick={() => setIsAddDrawerOpen(false)}>
+                      Back to Directory List
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* WIZARD FOOTER ACTION BUTTONS */}
-            <div className="modal-footer flex-between">
-              {wizardStep > 1 ? (
-                <button
-                  type="button"
-                  className="pill-btn-ghost"
-                  onClick={() => setWizardStep((prev) => (prev - 1) as any)}
-                >
-                  Back
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="pill-btn-ghost"
-                  onClick={() => setIsAddDrawerOpen(false)}
-                >
-                  Cancel
-                </button>
-              )}
+            {wizardStep < 4 && (
+              <div className="modal-footer flex-between">
+                {wizardStep > 1 ? (
+                  <button
+                    type="button"
+                    className="pill-btn-ghost"
+                    onClick={() => setWizardStep((prev) => (prev - 1) as any)}
+                  >
+                    Back
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="pill-btn-ghost"
+                    onClick={() => setIsAddDrawerOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                )}
 
-              {wizardStep < 4 ? (
-                <button
-                  type="button"
-                  className="pill-btn-primary"
-                  onClick={() => {
-                    if (wizardStep === 1 && !deceasedName.trim() && !selectedMemberId) {
-                      showToast('error', 'Please select or enter deceased member name');
-                      return;
-                    }
-                    setWizardStep((prev) => (prev + 1) as any);
-                  }}
-                >
-                  <span>Continue</span>
-                  <ChevronRight size={15} />
+                {wizardStep < 3 ? (
+                  <button
+                    type="button"
+                    className="pill-btn-primary"
+                    onClick={() => {
+                      if (wizardStep === 1 && !deceasedName.trim() && !selectedMemberId) {
+                        showToast('error', 'Please select or enter deceased member name');
+                        return;
+                      }
+                      setWizardStep((prev) => (prev + 1) as any);
+                    }}
+                  >
+                    <span>Continue</span>
+                    <ChevronRight size={15} />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="pill-btn-primary"
+                    disabled={isSaving}
+                    onClick={handleSave}
+                  >
+                    {isSaving ? <Loader2 size={16} className="spinner" /> : 'Save Death Record'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 5. OFFICIAL PRINTABLE DEATH CERTIFICATE MODAL */}
+      {isCertificateModalOpen && certificateRecord && (
+        <div className="modal-overlay">
+          <div className="modal-dialog-card animate-scale-up" style={{ maxWidth: '680px' }}>
+            <div className="modal-header no-print">
+              <div>
+                <h4>Official Death Certificate</h4>
+                <p className="modal-subtitle">Certified document generated from Mahall Management System.</p>
+              </div>
+              <button className="modal-close-btn" onClick={() => setIsCertificateModalOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="modal-body-scrollable padding-md">
+              <div className="certificate-modal-container printable-certificate">
+                <div className="certificate-header-seal">
+                  <div className="flex-row-gap-xs">
+                    <Award size={32} className="text-primary" />
+                    <div>
+                      <div className="font-weight-800 font-sm text-dark">MAHALL MANAGEMENT SYSTEM</div>
+                      <div className="font-xs color-subtle">OFFICIAL COMMUNITY RECORDS REGISTRY</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-xs font-weight-700 text-primary">CERTIFICATE NO.</div>
+                    <div className="font-weight-800 font-sm text-dark">
+                      {certificateRecord.notes?.includes('DC-') 
+                        ? certificateRecord.notes 
+                        : `DC-${new Date().getFullYear()}-${certificateRecord.id.substring(0, 5).toUpperCase()}`}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="certificate-title-box">
+                  <h2>Certificate of Death</h2>
+                  <p>Issued under official Mahall Committee Governance Records</p>
+                </div>
+
+                <table className="certificate-details-table">
+                  <tbody>
+                    <tr>
+                      <td className="label">Deceased Person Name</td>
+                      <td className="value">{certificateRecord.deceased_name}</td>
+                    </tr>
+                    <tr>
+                      <td className="label">Member / Registration Code</td>
+                      <td className="value">{certificateRecord.member_id ? certificateRecord.member_id.substring(0, 8) : 'External / Non-Member'}</td>
+                    </tr>
+                    <tr>
+                      <td className="label">Father / Husband Name</td>
+                      <td className="value">{certificateRecord.father_or_husband_name || 'N/A'}</td>
+                    </tr>
+                    <tr>
+                      <td className="label">Date of Death</td>
+                      <td className="value">{certificateRecord.date_of_death}</td>
+                    </tr>
+                    <tr>
+                      <td className="label">Age & Gender</td>
+                      <td className="value">{certificateRecord.age ? `${certificateRecord.age} Years` : 'N/A'} • {certificateRecord.gender ? certificateRecord.gender.toUpperCase() : 'MALE'}</td>
+                    </tr>
+                    <tr>
+                      <td className="label">Place of Death</td>
+                      <td className="value">{certificateRecord.place_of_death || 'Hospital'}</td>
+                    </tr>
+                    <tr>
+                      <td className="label">Cause of Death</td>
+                      <td className="value">{certificateRecord.cause_of_death || 'Natural'}</td>
+                    </tr>
+                    <tr>
+                      <td className="label">Medical Certification</td>
+                      <td className="value">
+                        {certificateRecord.medically_certified ? `Certified (${certificateRecord.certifier_name || 'Medical Officer'})` : 'Uncertified Record'}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div className="certificate-footer-signatures">
+                  <div className="flex-row-gap-xs">
+                    <QrCode size={40} className="color-subtle" />
+                    <div className="font-xs color-subtle">
+                      Verified Registry Record<br />
+                      System Hash: {certificateRecord.id.substring(0, 12)}
+                    </div>
+                  </div>
+
+                  <div className="signature-line">
+                    <div className="signature-line-border">MAHALL GENERAL SECRETARY</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer flex-between no-print">
+              <button className="pill-btn-ghost" onClick={() => setIsCertificateModalOpen(false)}>
+                Close
+              </button>
+              <div className="flex-row-gap-xs">
+                <button className="pill-btn-ghost" onClick={() => window.print()}>
+                  <Printer size={15} /> Print Certificate
                 </button>
-              ) : (
-                <button
-                  type="button"
-                  className="pill-btn-primary"
-                  disabled={isSaving}
-                  onClick={handleSave}
-                >
-                  {isSaving ? <Loader2 size={16} className="spinner" /> : 'Save Death Record'}
+                <button className="pill-btn-primary" onClick={exportCSV}>
+                  <Download size={15} /> Download PDF
                 </button>
-              )}
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* 5. RECORD DETAILS DRAWER */}
+      {/* 6. RECORD DETAILS DRAWER */}
       {isDetailsOpen && selectedDeathRecord && (
         <div className="modal-overlay">
           <div className="modal-dialog-card animate-scale-up" style={{ maxWidth: '600px' }}>
@@ -1215,11 +1452,8 @@ export const Deaths: React.FC = () => {
                     <div className="font-weight-700 text-success">🟢 Certificate Available</div>
                   </div>
                   <div className="flex-row-gap-xs">
-                    <button className="pill-btn-ghost font-xs" onClick={() => window.print()}>
-                      <Printer size={13} /> Print
-                    </button>
-                    <button className="pill-btn-primary font-xs" onClick={exportCSV}>
-                      <Download size={13} /> Download
+                    <button className="pill-btn-primary font-xs" onClick={() => openCertificateModal(selectedDeathRecord)}>
+                      <Award size={13} /> View Certificate
                     </button>
                   </div>
                 </div>
@@ -1306,6 +1540,7 @@ export const Deaths: React.FC = () => {
           </div>
         </div>
       )}
+
       {/* EMBEDDED STYLES FOR ABSOLUTE DESIGN CONSISTENCY */}
       <style>{`
         .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 16px; }
