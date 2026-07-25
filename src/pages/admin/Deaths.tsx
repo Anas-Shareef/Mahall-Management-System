@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { db } from '../../services/db';
 import type { DeathRecord, Member, Household, SubscriptionYear } from '../../services/db';
 import { 
@@ -11,6 +12,7 @@ import { YearFilter } from '../../components/YearFilter';
 import { Modal } from '../../components/Modal';
 
 export const Deaths: React.FC = () => {
+  const navigate = useNavigate();
 
   // Data States
   const [deaths, setDeaths] = useState<DeathRecord[]>([]);
@@ -213,59 +215,12 @@ export const Deaths: React.FC = () => {
   };
 
   const openAddDrawer = () => {
-    setModalMode('add');
-    setCurrentId(null);
-    setWizardStep(1);
-    setMemberSearch('');
-    setIsLinkedMember(true);
-    setSelectedMemberId('');
-    setDeceasedName('');
-    setFatherOrHusbandName('');
-    setDateOfDeath(new Date().toISOString().split('T')[0]);
-    setTimeOfDeath('');
-    setBurialDate('');
-    setBurialTime('');
-    setBurialLocation('');
-    setPlaceOfDeath('Hospital');
-    setFacilityName('');
-    setAge('');
-    setGender('male');
-    setAddress('');
-    setWardOrArea('');
-    setCauseOfDeath('Natural');
-    setCertificateNumber('');
-    setMedicallyCertified(true);
-    setCertifierName('');
-    setNotes('');
-    setIsAddDrawerOpen(true);
+    navigate('/admin/deaths/new');
   };
 
   const openEditDrawer = (d: DeathRecord, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    setModalMode('edit');
-    setCurrentId(d.id);
-    setWizardStep(2);
-    setIsLinkedMember(!!d.member_id);
-    setSelectedMemberId(d.member_id || '');
-    setDeceasedName(d.deceased_name);
-    setFatherOrHusbandName(d.father_or_husband_name || '');
-    setDateOfDeath(d.date_of_death || new Date().toISOString().split('T')[0]);
-    setTimeOfDeath('');
-    setBurialDate(d.burial_date || '');
-    setBurialTime(d.burial_time || '');
-    setBurialLocation('');
-    setPlaceOfDeath(d.place_of_death || 'Hospital');
-    setFacilityName('');
-    setAge(d.age !== null ? d.age : '');
-    setGender(d.gender || 'male');
-    setAddress(d.address || '');
-    setWardOrArea(d.ward_or_area || '');
-    setCauseOfDeath(d.cause_of_death || 'Natural');
-    setCertificateNumber('');
-    setMedicallyCertified(d.medically_certified);
-    setCertifierName(d.certifier_name || '');
-    setNotes(d.notes || '');
-    setIsAddDrawerOpen(true);
+    navigate(`/admin/deaths/${d.id}/edit`);
   };
 
   const handleSave = async () => {

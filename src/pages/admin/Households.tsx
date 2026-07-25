@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { db } from '../../services/db';
 import type { Household, Member, MemberSubscription, SubscriptionYear } from '../../services/db';
@@ -9,6 +10,7 @@ import {
 
 export const Households: React.FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   
   // Data States
   const [households, setHouseholds] = useState<Household[]>([]);
@@ -118,35 +120,15 @@ export const Households: React.FC = () => {
     };
   };
 
-  // Open Add Modal
+  // Open Add Page
   const openAddModal = () => {
-    setModalMode('add');
-    setCurrentId(null);
-    setHouseNumber('');
-    setOwnerName('');
-    setOwnerPhone('');
-    setAddress('');
-    setArea('');
-    setStatus('active');
-    setFieldErrors({});
-    setFormError('');
-    setIsModalOpen(true);
+    navigate('/admin/households/new');
   };
 
-  // Open Edit Modal
+  // Open Edit Page
   const openEditModal = (h: Household, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    setModalMode('edit');
-    setCurrentId(h.id);
-    setHouseNumber(h.house_number);
-    setOwnerName(h.house_owner_name);
-    setOwnerPhone(h.house_owner_phone || '');
-    setAddress(h.address || '');
-    setArea(h.area || '');
-    setStatus(h.status);
-    setFieldErrors({});
-    setFormError('');
-    setIsModalOpen(true);
+    navigate(`/admin/households/${h.id}/edit`);
   };
 
   // Open Delete Modal

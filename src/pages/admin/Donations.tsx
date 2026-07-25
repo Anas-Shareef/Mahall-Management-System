@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../services/db';
 import type { 
@@ -17,6 +18,7 @@ import { Modal } from '../../components/Modal';
 
 export const Donations: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Primary Sub-Tab State ('all' | 'general' | 'campaigns')
   const [activeTab, setActiveTab] = useState<'all' | 'general' | 'campaigns'>('all');
@@ -248,51 +250,12 @@ export const Donations: React.FC = () => {
   };
 
   const openAddDrawer = () => {
-    setDonationModalMode('add');
-    setEditingDonationId(null);
-    setWizardStep(1);
-    setDonationType('general');
-    setCampaignId('');
-    setDonorType('member');
-    setMemberSearchQuery('');
-    setDonorMemberId('');
-    setDonorName('');
-    setDonorPhone('');
-    setDonorEmail('');
-    setDonorAddress('');
-    setAmount('');
-    setPaymentMethod('upi');
-    setDonationDate(new Date().toISOString().split('T')[0]);
-    setReceiptNumber(`REC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
-    setReferenceNumber('');
-    setPurpose('');
-    setStatus('received');
-    setNotes('');
-    setIsDonationDrawerOpen(true);
+    navigate('/admin/donations/new');
   };
 
   const openEditDrawer = (d: Donation, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    setDonationModalMode('edit');
-    setEditingDonationId(d.id);
-    setWizardStep(4);
-    setDonationType(d.donation_type || 'general');
-    setCampaignId(d.campaign_id || '');
-    setDonorType(d.donor_type || (d.donor_member_id ? 'member' : d.is_anonymous ? 'anonymous' : 'external'));
-    setDonorMemberId(d.donor_member_id || '');
-    setDonorName(d.donor_name || '');
-    setDonorPhone(d.donor_phone || '');
-    setDonorEmail(d.donor_email || '');
-    setDonorAddress(d.donor_address || '');
-    setAmount(d.amount || '');
-    setPaymentMethod(d.payment_method || 'upi');
-    setDonationDate(d.donation_date || new Date().toISOString().split('T')[0]);
-    setReceiptNumber(d.receipt_number || '');
-    setReferenceNumber(d.reference_number || '');
-    setPurpose(d.purpose || '');
-    setStatus(d.status === 'cancelled' ? 'cancelled' : d.status === 'pending' ? 'pending' : 'received');
-    setNotes(d.notes || '');
-    setIsDonationDrawerOpen(true);
+    navigate(`/admin/donations/${d.id}/edit`);
   };
 
   const handleSaveDonation = async () => {

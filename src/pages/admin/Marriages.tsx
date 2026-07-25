@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { db } from '../../services/db';
 import type { MarriageRecord, Member, Household, SubscriptionYear } from '../../services/db';
 import { 
@@ -9,6 +10,7 @@ import {
 import { YearFilter } from '../../components/YearFilter';
 
 export const Marriages: React.FC = () => {
+  const navigate = useNavigate();
 
   // Data States
   const [marriages, setMarriages] = useState<MarriageRecord[]>([]);
@@ -176,97 +178,12 @@ export const Marriages: React.FC = () => {
   };
 
   const openAddModal = () => {
-    setModalMode('add');
-    setCurrentId(null);
-    setIsGroomMember(true);
-    setGroomMemberId('');
-    setGroomName('');
-    setGroomFatherName('');
-    setGroomPhone('');
-    setGroomHouseNumber('');
-    setGroomWard('');
-    setGroomAddress('');
-
-    setBrideType('external');
-    setBrideMemberId('');
-    setBrideName('');
-    setBrideFatherName('');
-    setBridePhone('');
-    setBrideAddress('');
-    setBrideWard('');
-
-    setNikahDate(new Date().toISOString().split('T')[0]);
-    setNikahTime('');
-    setNikahVenue('Vellikkeel Mahall Juma Masjid');
-    setRegistrationNumber('');
-    setConductedBy('');
-    setNikahType('Mahall Nikah');
-
-    setWaliName('');
-    setWaliRelationship('Father');
-    setWaliPhone('');
-
-    setWitness1Name('');
-    setWitness1Phone('');
-    setWitness2Name('');
-    setWitness2Phone('');
-
-    setMahrType('Gold');
-    setMahrDescription('');
-    setMahrPaymentStatus('Paid Immediately');
-    setMahrNotes('');
-
-    setStatus('completed');
-    setNotes('');
-    setIsModalOpen(true);
+    navigate('/admin/marriages/new');
   };
 
   const openEditModal = (m: MarriageRecord, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    setModalMode('edit');
-    setCurrentId(m.id);
-
-    setIsGroomMember(!!m.groom_member_id);
-    setGroomMemberId(m.groom_member_id || '');
-    setGroomName(m.groom_name);
-    setGroomFatherName(m.groom_father_name || '');
-    setGroomPhone(m.groom_phone || '');
-    setGroomHouseNumber(m.groom_house_number || '');
-    setGroomWard(m.groom_ward || '');
-    setGroomAddress(m.groom_address || '');
-
-    setBrideType(m.bride_type);
-    setBrideMemberId(m.bride_member_id || '');
-    setBrideName(m.bride_name);
-    setBrideFatherName(m.bride_father_name || '');
-    setBridePhone(m.bride_phone || '');
-    setBrideAddress(m.bride_address || '');
-    setBrideWard(m.bride_ward || '');
-
-    setNikahDate(m.nikah_date);
-    setNikahTime(m.nikah_time || '');
-    setNikahVenue(m.nikah_venue || '');
-    setRegistrationNumber(m.registration_number || '');
-    setConductedBy(m.conducted_by || '');
-    setNikahType(m.nikah_type || '');
-
-    setWaliName(m.wali_name || '');
-    setWaliRelationship(m.wali_relationship || 'Father');
-    setWaliPhone(m.wali_phone || '');
-
-    setWitness1Name(m.witness1_name || '');
-    setWitness1Phone(m.witness1_phone || '');
-    setWitness2Name(m.witness2_name || '');
-    setWitness2Phone(m.witness2_phone || '');
-
-    setMahrType(m.mahr_type || 'Gold');
-    setMahrDescription(m.mahr_description || '');
-    setMahrPaymentStatus(m.mahr_payment_status || 'Paid Immediately');
-    setMahrNotes(m.mahr_notes || '');
-
-    setStatus(m.status);
-    setNotes(m.notes || '');
-    setIsModalOpen(true);
+    navigate(`/admin/marriages/${m.id}/edit`);
   };
 
   const handleSave = async (e: React.FormEvent) => {

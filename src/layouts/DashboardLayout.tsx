@@ -24,8 +24,11 @@ import {
   HeartHandshake,
   UserX,
   Heart,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Search,
+  Command
 } from 'lucide-react';
+import { Modal } from '../components/Modal';
 
 export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, logout } = useAuth();
@@ -37,6 +40,66 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+
+  // Global Command Spotlight Search State
+  const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
+  const [spotlightQuery, setSpotlightQuery] = useState('');
+  const [spotlightResults, setSpotlightResults] = useState<{
+    members: any[];
+    households: any[];
+    donations: any[];
+    deaths: any[];
+    marriages: any[];
+  }>({ members: [], households: [], donations: [], deaths: [], marriages: [] });
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Global Shortcut Ctrl+K / Cmd+K Listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSpotlightOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Query global database on search input
+  useEffect(() => {
+    if (!spotlightQuery.trim() || spotlightQuery.trim().length < 2) {
+      setSpotlightResults({ members: [], households: [], donations: [], deaths: [], marriages: [] });
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const q = spotlightQuery.toLowerCase().trim();
+        const [allMembers, allHouseholds, allDonations, allDeaths, allMarriages] = await Promise.all([
+          db.members.get(),
+          db.households.get(),
+          db.donations.get(),
+          db.deaths.get(),
+          db.marriages.get()
+        ]);
+
+        const members = allMembers.filter((m) => m.name.toLowerCase().includes(q) || (m.phone && m.phone.includes(q))).slice(0, 4);
+        const households = allHouseholds.filter((h) => h.house_number.toLowerCase().includes(q) || h.house_owner_name.toLowerCase().includes(q)).slice(0, 4);
+        const donations = allDonations.filter((d) => (d.donor_name && d.donor_name.toLowerCase().includes(q)) || (d.receipt_number && d.receipt_number.toLowerCase().includes(q))).slice(0, 4);
+        const deaths = allDeaths.filter((d) => d.deceased_name.toLowerCase().includes(q)).slice(0, 4);
+        const marriages = allMarriages.filter((m) => m.groom_name.toLowerCase().includes(q) || m.bride_name.toLowerCase().includes(q)).slice(0, 4);
+
+        setSpotlightResults({ members, households, donations, deaths, marriages });
+      } catch (err) {
+        console.error('Error conducting spotlight search:', err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [spotlightQuery]);
   
   // Notification states
   const [notifications, setNotifications] = useState<(Notification & { read_at: string | null; recipient_id: string })[]>([]);
@@ -290,6 +353,17 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
           </div>
 
           <div className="header-right-tools">
+            {/* Global Spotlight Search Trigger */}
+            <button 
+              className="spotlight-header-trigger"
+              onClick={() => setIsSpotlightOpen(true)}
+              title="Search database (Ctrl+K)"
+            >
+              <Search size={15} />
+              <span className="spotlight-placeholder">Search database...</span>
+              <kbd className="shortcut-kbd">Ctrl+K</kbd>
+            </button>
+
             {/* Language Switcher Popover */}
             <div className="lang-switcher-wrap">
               <button
@@ -464,6 +538,142 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
           </main>
         </div>
       </div>
+
+      {/* GLOBAL SPOTLIGHT SEARCH MODAL */}
+      <Modal
+        isOpen={isSpotlightOpen}
+        onClose={() => setIsSpotlightOpen(false)}
+        title="Global Spotlight Search"
+        subtitle="Instant jump to members, households, donations, or records"
+        icon={<Command size={20} className="text-primary" />}
+        size="lg"
+      >
+        <div className="search-box margin-bottom-md">
+          <Search size={18} className="search-icon" />
+          <input
+            type="text"
+            className="font-size-md"
+            placeholder="Type name, phone, house #, or receipt #..."
+            value={spotlightQuery}
+            onChange={(e) => setSpotlightQuery(e.target.value)}
+            autoFocus
+          />
+        </div>
+
+        {isSearching ? (
+          <div className="flex-center py-lg">
+            <div className="spinner text-primary margin-right-xs" />
+            <span className="font-sm color-subtle">Searching database...</span>
+          </div>
+        ) : !spotlightQuery.trim() ? (
+          <div className="py-md text-center color-subtle font-xs">
+            Start typing to search across Members, Households, Financial Contributions, Deaths, and Marriages.
+          </div>
+        ) : (
+          <div className="flex-col gap-md max-height-400 overflow-y-auto">
+            {/* MEMBERS RESULTS */}
+            {spotlightResults.members.length > 0 && (
+              <div>
+                <div className="font-xs font-weight-700 color-subtle text-uppercase margin-bottom-xs">Members ({spotlightResults.members.length})</div>
+                {spotlightResults.members.map((m) => (
+                  <div 
+                    key={m.id} 
+                    className="member-select-card margin-bottom-xs"
+                    onClick={() => { navigate(`/admin/members/${m.id}/edit`); setIsSpotlightOpen(false); }}
+                  >
+                    <div className="flex-row-gap-sm">
+                      <div className="donor-avatar-circle sm avatar-member">{m.name.charAt(0)}</div>
+                      <div>
+                        <div className="font-weight-700 font-sm text-dark">{m.name}</div>
+                        <span className="font-xs color-subtle">Relation: {m.relationship} • Phone: {m.phone || 'N/A'}</span>
+                      </div>
+                    </div>
+                    <span className="pill-btn-ghost font-xs">View Profile →</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* HOUSEHOLDS RESULTS */}
+            {spotlightResults.households.length > 0 && (
+              <div>
+                <div className="font-xs font-weight-700 color-subtle text-uppercase margin-bottom-xs">Households ({spotlightResults.households.length})</div>
+                {spotlightResults.households.map((h) => (
+                  <div 
+                    key={h.id} 
+                    className="member-select-card margin-bottom-xs"
+                    onClick={() => { navigate(`/admin/households/${h.id}/edit`); setIsSpotlightOpen(false); }}
+                  >
+                    <div className="flex-row-gap-sm">
+                      <div className="donor-avatar-circle sm emerald"><Home size={16} /></div>
+                      <div>
+                        <div className="font-weight-700 font-sm text-dark">House #{h.house_number}</div>
+                        <span className="font-xs color-subtle">Head: {h.house_owner_name} • Ward: {h.area || 'N/A'}</span>
+                      </div>
+                    </div>
+                    <span className="pill-btn-ghost font-xs">Manage Household →</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* DONATIONS RESULTS */}
+            {spotlightResults.donations.length > 0 && (
+              <div>
+                <div className="font-xs font-weight-700 color-subtle text-uppercase margin-bottom-xs">Donations ({spotlightResults.donations.length})</div>
+                {spotlightResults.donations.map((d) => (
+                  <div 
+                    key={d.id} 
+                    className="member-select-card margin-bottom-xs"
+                    onClick={() => { navigate(`/admin/donations/${d.id}/edit`); setIsSpotlightOpen(false); }}
+                  >
+                    <div className="flex-row-gap-sm">
+                      <div className="donor-avatar-circle sm yellow"><HeartHandshake size={16} /></div>
+                      <div>
+                        <div className="font-weight-700 font-sm text-dark">{d.donor_name} (₹{d.amount})</div>
+                        <span className="font-xs color-subtle">Receipt: {d.receipt_number || 'N/A'} • Date: {d.donation_date}</span>
+                      </div>
+                    </div>
+                    <span className="pill-btn-ghost font-xs">View Donation →</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* DEATHS & MARRIAGES */}
+            {spotlightResults.deaths.length > 0 && (
+              <div>
+                <div className="font-xs font-weight-700 color-subtle text-uppercase margin-bottom-xs">Death Records ({spotlightResults.deaths.length})</div>
+                {spotlightResults.deaths.map((d) => (
+                  <div 
+                    key={d.id} 
+                    className="member-select-card margin-bottom-xs"
+                    onClick={() => { navigate(`/admin/deaths/${d.id}/edit`); setIsSpotlightOpen(false); }}
+                  >
+                    <div className="flex-row-gap-sm">
+                      <div className="donor-avatar-circle sm purple"><UserX size={16} /></div>
+                      <div>
+                        <div className="font-weight-700 font-sm text-dark">{d.deceased_name}</div>
+                        <span className="font-xs color-subtle">Date: {d.date_of_death}</span>
+                      </div>
+                    </div>
+                    <span className="pill-btn-ghost font-xs">View Record →</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {spotlightResults.members.length === 0 && 
+             spotlightResults.households.length === 0 && 
+             spotlightResults.donations.length === 0 && 
+             spotlightResults.deaths.length === 0 && (
+              <div className="py-md text-center color-subtle font-xs">
+                No matching records found for "{spotlightQuery}".
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
 
       <style>{`
         /* ════════════════════════════════════════════════

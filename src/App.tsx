@@ -26,6 +26,13 @@ import AdminNotifications from './pages/admin/Notifications';
 import AdminGallery from './pages/admin/Gallery';
 import AdminReports from './pages/admin/Reports';
 
+// Dedicated Entity Form Pages
+import HouseholdForm from './pages/admin/HouseholdForm';
+import MemberForm from './pages/admin/MemberForm';
+import DonationForm from './pages/admin/DonationForm';
+import DeathForm from './pages/admin/DeathForm';
+import MarriageForm from './pages/admin/MarriageForm';
+
 // Member Pages
 import MemberDashboard from './pages/member/Dashboard';
 import MemberSubscriptionPage from './pages/member/MySubscription';
@@ -59,13 +66,35 @@ const App: React.FC = () => {
                   <DashboardLayout>
                     <Routes>
                       <Route path="dashboard" element={<AdminDashboard />} />
+                      
+                      {/* Households */}
                       <Route path="households" element={<AdminHouseholds />} />
+                      <Route path="households/new" element={<HouseholdForm />} />
+                      <Route path="households/:id/edit" element={<HouseholdForm />} />
+
+                      {/* Members */}
                       <Route path="members" element={<AdminMembers />} />
+                      <Route path="members/new" element={<MemberForm />} />
+                      <Route path="members/:id/edit" element={<MemberForm />} />
+
                       <Route path="subscriptions" element={<AdminSubscriptions />} />
                       <Route path="payments" element={<AdminPayments />} />
+
+                      {/* Donations */}
                       <Route path="donations" element={<AdminDonations />} />
+                      <Route path="donations/new" element={<DonationForm />} />
+                      <Route path="donations/:id/edit" element={<DonationForm />} />
+
+                      {/* Deaths */}
                       <Route path="deaths" element={<AdminDeaths />} />
+                      <Route path="deaths/new" element={<DeathForm />} />
+                      <Route path="deaths/:id/edit" element={<DeathForm />} />
+
+                      {/* Marriages */}
                       <Route path="marriages" element={<AdminMarriages />} />
+                      <Route path="marriages/new" element={<MarriageForm />} />
+                      <Route path="marriages/:id/edit" element={<MarriageForm />} />
+
                       <Route path="notifications" element={<AdminNotifications />} />
                       <Route path="gallery" element={<AdminGallery />} />
                       <Route path="reports" element={<AdminReports />} />

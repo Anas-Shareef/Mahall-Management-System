@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { db } from '../../services/db';
 import type { Household, Member, Profile } from '../../services/db';
@@ -9,6 +10,7 @@ import {
 
 export const Members: React.FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   
   // Data States
   const [members, setMembers] = useState<Member[]>([]);
@@ -86,39 +88,15 @@ export const Members: React.FC = () => {
     loadData();
   }, []);
 
-  // Open Add Modal
+  // Open Add Page
   const openAddModal = () => {
-    setModalMode('add');
-    setCurrentId(null);
-    setHouseholdId(households[0]?.id || '');
-    setName('');
-    setRelationship('Son');
-    setPhone('');
-    setEmail('');
-    setStatus('active');
-    setEnableLogin(false);
-    setIsSubscriptionAccountable(true);
-    setFieldErrors({});
-    setFormError('');
-    setIsModalOpen(true);
+    navigate('/admin/members/new');
   };
 
-  // Open Edit Modal
+  // Open Edit Page
   const openEditModal = (m: Member, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    setModalMode('edit');
-    setCurrentId(m.id);
-    setHouseholdId(m.household_id);
-    setName(m.name);
-    setRelationship(m.relationship);
-    setPhone(m.phone || '');
-    setEmail(m.email || '');
-    setStatus(m.status);
-    setEnableLogin(Boolean(m.user_id));
-    setIsSubscriptionAccountable(m.is_subscription_accountable !== false);
-    setFieldErrors({});
-    setFormError('');
-    setIsModalOpen(true);
+    navigate(`/admin/members/${m.id}/edit`);
   };
 
   // Open Delete Modal

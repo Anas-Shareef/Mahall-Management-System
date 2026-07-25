@@ -2217,6 +2217,39 @@ img, svg, video, canvas {
   margin-bottom: 12px !important;
 }
 
+/* SPOTLIGHT HEADER SEARCH TRIGGER */
+.spotlight-header-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
+  padding: 8px 16px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.spotlight-header-trigger:hover {
+  background: #ffffff;
+  border-color: #059669;
+  color: #0f172a;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.08);
+}
+.shortcut-kbd {
+  background: #e2e8f0;
+  color: #475569;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-family: monospace;
+}
+
+
 
 
 
