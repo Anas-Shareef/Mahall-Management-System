@@ -811,7 +811,7 @@ export const Deaths: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="mobile-card-actions flex-between gap-xs margin-top-xs pt-xs border-top-light">
+                      <div className="mobile-card-actions-grid">
                         <button className="pill-btn-ghost font-xs" onClick={(e) => openCertificateModal(d, e)}>
                           <Award size={13} /> Cert
                         </button>
@@ -837,40 +837,44 @@ export const Deaths: React.FC = () => {
               </div>
 
               {/* PAGINATION CONTROL BAR */}
-              <div className="pagination-bar flex-between">
+              <div className="pagination-bar">
                 <div className="font-xs color-subtle">
                   Showing <strong>{((currentPage - 1) * rowsPerPage) + 1}</strong> to <strong>{Math.min(currentPage * rowsPerPage, filteredDeaths.length)}</strong> of <strong>{filteredDeaths.length}</strong> records
                 </div>
 
-                <div className="pagination-controls flex-row-gap-sm">
+                <div className="pagination-controls">
                   <select
-                    className="font-xs border-rounded padding-xs"
+                    className="rows-select-pill"
                     value={rowsPerPage}
                     onChange={(e) => {
                       setRowsPerPage(Number(e.target.value));
                       setCurrentPage(1);
                     }}
                   >
-                    <option value={10}>10 rows per page</option>
-                    <option value={25}>25 rows per page</option>
-                    <option value={50}>50 rows per page</option>
+                    <option value={10}>10 rows / page</option>
+                    <option value={25}>25 rows / page</option>
+                    <option value={50}>50 rows / page</option>
                   </select>
 
                   <div className="flex-row-gap-xs">
                     <button
-                      className="page-nav-btn"
+                      className="page-pill-btn"
                       disabled={currentPage === 1}
                       onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                     >
-                      <ChevronLeft size={14} />
+                      <ChevronLeft size={14} /> Prev
                     </button>
-                    <span className="font-xs font-weight-600 padding-xs">Page {currentPage} of {totalPages}</span>
+
+                    <span className="page-indicator-badge">
+                      {currentPage} / {totalPages}
+                    </span>
+
                     <button
-                      className="page-nav-btn"
+                      className="page-pill-btn"
                       disabled={currentPage >= totalPages}
                       onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                     >
-                      <ChevronRight size={14} />
+                      Next <ChevronRight size={14} />
                     </button>
                   </div>
                 </div>
@@ -1548,6 +1552,8 @@ export const Deaths: React.FC = () => {
         .page-subtitle { font-size: 13.5px; color: #6b7280; margin-top: 4px; }
         .header-cta-group { display: flex; align-items: center; gap: 10px; }
 
+        .stats-dashboard-grid-6 { margin-bottom: 24px !important; }
+
         .search-box { position: relative; display: flex; align-items: center; width: 100%; }
         .search-box .search-icon { position: absolute; left: 14px !important; color: #9ca3af; pointer-events: none; z-index: 2; }
         .search-box input { padding-left: 42px !important; box-sizing: border-box !important; }
@@ -1568,6 +1574,21 @@ export const Deaths: React.FC = () => {
           .desktop-filters-only { display: none !important; }
           .page-header { flex-direction: column; align-items: stretch; }
           .header-cta-group { flex-direction: column; align-items: stretch; width: 100%; }
+          .stats-dashboard-grid-6 { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+        }
+
+        @media (max-width: 640px) {
+          .modal-overlay { align-items: flex-end !important; padding: 0 !important; background: rgba(17, 24, 39, 0.65) !important; }
+          .modal-dialog-card {
+            border-bottom-left-radius: 0 !important; border-bottom-right-radius: 0 !important;
+            border-top-left-radius: 24px !important; border-top-right-radius: 24px !important;
+            max-height: 88vh !important; width: 100% !important; margin: 0 !important;
+            animation: slideUpMobile 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+          }
+        }
+        @keyframes slideUpMobile {
+          from { transform: translateY(100%); opacity: 0.8; }
+          to { transform: translateY(0); opacity: 1; }
         }
 
         .action-row-buttons { display: flex !important; align-items: center !important; gap: 6px !important; justify-content: flex-end !important; }
