@@ -1161,27 +1161,36 @@ img, svg, video, canvas {
 }
 
 .modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(17, 24, 39, 0.55);
-  backdrop-filter: blur(4px);
-  z-index: 300;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  box-sizing: border-box;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(15, 23, 42, 0.6) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  z-index: 999999 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 16px !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
 }
 
 .modal-dialog-card {
-  width: 100%;
-  max-width: 560px;
-  background: #ffffff;
-  border-radius: var(--radius-xl, 16px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
-  border: 1px solid var(--border-color, #e5e7eb);
-  box-sizing: border-box;
+  width: 100% !important;
+  max-width: 560px !important;
+  background: #ffffff !important;
+  border-radius: 20px !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.28) !important;
+  border: 1px solid rgba(229, 231, 235, 0.8) !important;
+  overflow: hidden !important;
+  margin: auto !important;
+  box-sizing: border-box !important;
+  animation: popModalScale 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
 
 .modal-header {
@@ -1828,34 +1837,32 @@ img, svg, video, canvas {
   }
 }
 
-/* RESPONSIVE MOBILE BOTTOM SHEET MODAL ANIMATION */
+/* DARUL HASANATH STYLE FLOATING CENTERED MODAL ANIMATION */
 @media (max-width: 640px) {
   .modal-overlay {
-    align-items: flex-end !important;
-    padding: 0 !important;
-    background: rgba(17, 24, 39, 0.65) !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 12px !important;
+    background: rgba(15, 23, 42, 0.65) !important;
   }
 
   .modal-dialog-card {
-    border-bottom-left-radius: 0 !important;
-    border-bottom-right-radius: 0 !important;
-    border-top-left-radius: 24px !important;
-    border-top-right-radius: 24px !important;
+    border-radius: 20px !important;
     max-height: 88vh !important;
-    width: 100% !important;
-    margin: 0 !important;
-    animation: slideUpMobile 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    width: calc(100% - 16px) !important;
+    margin: auto !important;
+    animation: popModalScale 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
   }
 }
 
-@keyframes slideUpMobile {
+@keyframes popModalScale {
   from {
-    transform: translateY(100%);
-    opacity: 0.8;
+    opacity: 0;
+    transform: scale(0.93) translateY(10px);
   }
   to {
-    transform: translateY(0);
     opacity: 1;
+    transform: scale(1) translateY(0);
   }
 }
 

@@ -1616,17 +1616,16 @@ export const Donations: React.FC = () => {
         }
 
         @media (max-width: 640px) {
-          .modal-overlay { align-items: flex-end !important; padding: 0 !important; background: rgba(17, 24, 39, 0.65) !important; }
+          .modal-overlay { align-items: center !important; justify-content: center !important; padding: 12px !important; background: rgba(15, 23, 42, 0.65) !important; }
           .modal-dialog-card {
-            border-bottom-left-radius: 0 !important; border-bottom-right-radius: 0 !important;
-            border-top-left-radius: 24px !important; border-top-right-radius: 24px !important;
-            max-height: 88vh !important; width: 100% !important; margin: 0 !important;
-            animation: slideUpMobile 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+            border-radius: 20px !important;
+            max-height: 88vh !important; width: calc(100% - 16px) !important; margin: auto !important;
+            animation: popModalScale 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
           }
         }
-        @keyframes slideUpMobile {
-          from { transform: translateY(100%); opacity: 0.8; }
-          to { transform: translateY(0); opacity: 1; }
+        @keyframes popModalScale {
+          from { opacity: 0; transform: scale(0.93) translateY(10px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
         }
 
         .action-row-buttons { display: flex !important; align-items: center !important; gap: 6px !important; justify-content: flex-end !important; }
