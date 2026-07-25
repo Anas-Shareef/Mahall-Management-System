@@ -134,7 +134,7 @@ export const MemberForm: React.FC = () => {
       )}
 
       {/* HEADER BAR & BREADCRUMBS */}
-      <div className="flex-between margin-bottom-lg flex-wrap gap-md">
+      <div className="flex-between margin-bottom-lg flex-wrap gap-md align-items-center">
         <div>
           <div className="flex-row-gap-xs font-xs color-subtle margin-bottom-xs">
             <Link to="/admin/dashboard" className="color-subtle hover-primary">Dashboard</Link>
@@ -143,11 +143,10 @@ export const MemberForm: React.FC = () => {
             <span>/</span>
             <span className="text-dark font-weight-600">{isEditMode ? 'Edit Member' : 'Register New Member'}</span>
           </div>
-          <h2 className="font-weight-800 text-dark flex-row-gap-xs">
-            <User className="text-primary" size={26} />
-            <span>{isEditMode ? `Edit Member: ${name}` : 'Register New Member'}</span>
+          <h2 className="font-weight-800 text-dark">
+            {isEditMode ? `Edit Member: ${name}` : 'Register New Member'}
           </h2>
-          <p className="font-sm color-subtle">
+          <p className="font-sm color-subtle margin-top-xs">
             {isEditMode 
               ? 'Update member personal details, household relationship, and subscription fee status.'
               : 'Link new individual member to a household, configure contact info and membership status.'}

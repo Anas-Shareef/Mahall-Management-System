@@ -24,8 +24,8 @@
   --accent-orange-bg:  linear-gradient(135deg, #f97316 0%, #ea580c 100%);
 
   /* App Canvas & Layout Surfaces */
-  --bg-app:        #f2f4f7;    /* Outer SaaS gray background */
-  --bg-canvas:     #eaedf1;    /* Inner curved canvas wrapper */
+  --bg-app:        #f8fafc;    /* Clean modern canvas background */
+  --bg-canvas:     transparent; /* Seamless transparent workspace canvas */
   --bg-sidebar:    #ffffff;    /* Clean white sidebar */
   --bg-card:       #ffffff;    /* Pure white cards */
   --border-color:  #e5e8ed;    /* Ultra light borders */

@@ -183,7 +183,7 @@ export const DonationForm: React.FC = () => {
       )}
 
       {/* HEADER BAR & BREADCRUMBS */}
-      <div className="flex-between margin-bottom-lg flex-wrap gap-md">
+      <div className="flex-between margin-bottom-lg flex-wrap gap-md align-items-center">
         <div>
           <div className="flex-row-gap-xs font-xs color-subtle margin-bottom-xs">
             <Link to="/admin/dashboard" className="color-subtle hover-primary">Dashboard</Link>
@@ -192,11 +192,10 @@ export const DonationForm: React.FC = () => {
             <span>/</span>
             <span className="text-dark font-weight-600">{isEditMode ? 'Edit Donation' : 'Record New Donation'}</span>
           </div>
-          <h2 className="font-weight-800 text-dark flex-row-gap-xs">
-            <HeartHandshake className="text-success" size={26} />
-            <span>{isEditMode ? `Edit Donation Record` : 'Record Community Contribution'}</span>
+          <h2 className="font-weight-800 text-dark">
+            {isEditMode ? `Edit Donation Record` : 'Record Community Contribution'}
           </h2>
-          <p className="font-sm color-subtle">
+          <p className="font-sm color-subtle margin-top-xs">
             Record general or campaign donations with complete donor attribution, receipt generation, and transaction tracking.
           </p>
         </div>

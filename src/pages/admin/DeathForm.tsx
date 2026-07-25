@@ -3,7 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { db } from '../../services/db';
 import type { Member, Household } from '../../services/db';
 import { 
-  UserX, User, Calendar, CheckCircle, AlertCircle, 
+  User, Calendar, CheckCircle, AlertCircle, 
   ArrowLeft, Save, Loader2, Search, Award
 } from 'lucide-react';
 
@@ -190,7 +190,7 @@ export const DeathForm: React.FC = () => {
       )}
 
       {/* HEADER BAR & BREADCRUMBS */}
-      <div className="flex-between margin-bottom-lg flex-wrap gap-md">
+      <div className="flex-between margin-bottom-lg flex-wrap gap-md align-items-center">
         <div>
           <div className="flex-row-gap-xs font-xs color-subtle margin-bottom-xs">
             <Link to="/admin/dashboard" className="color-subtle hover-primary">Dashboard</Link>
@@ -199,11 +199,10 @@ export const DeathForm: React.FC = () => {
             <span>/</span>
             <span className="text-dark font-weight-600">{isEditMode ? 'Edit Record' : 'Record Deceased Member'}</span>
           </div>
-          <h2 className="font-weight-800 text-dark flex-row-gap-xs">
-            <UserX className="text-primary" size={26} />
-            <span>{isEditMode ? `Edit Death Record: ${deceasedName}` : 'Record Deceased Member'}</span>
+          <h2 className="font-weight-800 text-dark">
+            {isEditMode ? `Edit Death Record: ${deceasedName}` : 'Record Deceased Member'}
           </h2>
-          <p className="font-sm color-subtle">
+          <p className="font-sm color-subtle margin-top-xs">
             Capture death record details, medical certification, burial Qabristan location, and official death certificate numbers.
           </p>
         </div>

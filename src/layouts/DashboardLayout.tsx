@@ -229,25 +229,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     ? user.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
     : 'VH';
 
-  // Current page title mapping
-  const getPageTitle = () => {
-    if (location.pathname.includes('dashboard')) return t('nav.dashboard');
-    if (location.pathname.includes('households')) return t('nav.households');
-    if (location.pathname.includes('members')) return t('nav.members');
-    if (location.pathname.includes('subscriptions')) return t('nav.subscriptions');
-    if (location.pathname.includes('payments')) return t('nav.payments');
-    if (location.pathname.includes('donations')) return t('nav.donations');
-    if (location.pathname.includes('deaths')) return t('nav.deaths');
-    if (location.pathname.includes('marriages')) return t('nav.marriages');
-    if (location.pathname.includes('notifications')) return t('nav.notifications');
-    if (location.pathname.includes('gallery')) return t('nav.gallery');
-    if (location.pathname.includes('reports')) return t('nav.reports');
-    if (location.pathname.includes('settings')) return t('nav.settings');
-    if (location.pathname.includes('my-subscription')) return t('nav.mySubscription');
-    if (location.pathname.includes('payment-history')) return t('nav.paymentHistory');
-    if (location.pathname.includes('profile')) return t('nav.myProfile');
-    return 'Dashboard';
-  };
+
 
   return (
     <div className="layout-shell">
@@ -521,22 +503,10 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
           </div>
         </header>
 
-        {/* CURVED SAAS CANVAS CONTAINER */}
-        <div className="canvas-wrapper">
-          <div className="canvas-header-bar">
-            <div className="canvas-title-group">
-              <div className="canvas-title-icon-box">
-                <LayoutDashboard size={19} color="#ffffff" />
-              </div>
-              <h2 className="canvas-page-title">{getPageTitle()}</h2>
-            </div>
-          </div>
-
-          {/* PAGE CONTENT WORKSPACE */}
-          <main className="canvas-content-body animate-fade-in">
-            {children}
-          </main>
-        </div>
+        {/* MAIN WORKSPACE CANVAS */}
+        <main className="canvas-content-body animate-fade-in">
+          {children}
+        </main>
       </div>
 
       {/* GLOBAL SPOTLIGHT SEARCH MODAL */}
@@ -1110,16 +1080,16 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
         .notif-item-time { font-size: 10px; color: #9ca3af; margin-top: 4px; display: block; }
         .unread-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); flex-shrink: 0; }
 
-        /* ── INNER CURVED SAAS CANVAS WRAPPER ── */
+        /* ── WORKSPACE CANVAS WRAPPER ── */
         .canvas-wrapper {
           flex: 1;
-          background: var(--bg-canvas);
-          border-radius: var(--radius-xl);
-          padding: 20px;
+          background: transparent;
+          border-radius: 0;
+          padding: 0;
           display: flex;
           flex-direction: column;
           gap: 16px;
-          box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.02);
+          box-shadow: none;
           box-sizing: border-box;
           width: 100%;
           max-width: 100%;

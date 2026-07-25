@@ -3,7 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { db } from '../../services/db';
 import type { Member, Household } from '../../services/db';
 import { 
-  Heart, User, Calendar, CheckCircle, AlertCircle, 
+  User, Calendar, CheckCircle, AlertCircle, 
   ArrowLeft, Save, Loader2, Search
 } from 'lucide-react';
 
@@ -225,7 +225,7 @@ export const MarriageForm: React.FC = () => {
       )}
 
       {/* HEADER BAR & BREADCRUMBS */}
-      <div className="flex-between margin-bottom-lg flex-wrap gap-md">
+      <div className="flex-between margin-bottom-lg flex-wrap gap-md align-items-center">
         <div>
           <div className="flex-row-gap-xs font-xs color-subtle margin-bottom-xs">
             <Link to="/admin/dashboard" className="color-subtle hover-primary">Dashboard</Link>
@@ -234,12 +234,11 @@ export const MarriageForm: React.FC = () => {
             <span>/</span>
             <span className="text-dark font-weight-600">{isEditMode ? 'Edit Record' : 'Register New Marriage'}</span>
           </div>
-          <h2 className="font-weight-800 text-dark flex-row-gap-xs">
-            <Heart className="text-danger" size={26} />
-            <span>{isEditMode ? `Edit Marriage Record` : 'Register Nikah & Marriage'}</span>
+          <h2 className="font-weight-800 text-dark">
+            {isEditMode ? `Edit Marriage Record` : 'Register Nikah & Marriage'}
           </h2>
-          <p className="font-sm color-subtle">
-            Complete Nikah marriage registration with Groom & Bride member links, witnesses, Nikah khateeb details, and certificate numbers.
+          <p className="font-sm color-subtle margin-top-xs">
+            Register official Nikah records with complete Groom, Bride, Wali, Witness, and Mahr details.
           </p>
         </div>
 

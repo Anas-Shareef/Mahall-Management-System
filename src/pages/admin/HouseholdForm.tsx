@@ -131,7 +131,7 @@ export const HouseholdForm: React.FC = () => {
       )}
 
       {/* HEADER BAR & BREADCRUMBS */}
-      <div className="flex-between margin-bottom-lg flex-wrap gap-md">
+      <div className="flex-between margin-bottom-lg flex-wrap gap-md align-items-center">
         <div>
           <div className="flex-row-gap-xs font-xs color-subtle margin-bottom-xs">
             <Link to="/admin/dashboard" className="color-subtle hover-primary">Dashboard</Link>
@@ -140,11 +140,10 @@ export const HouseholdForm: React.FC = () => {
             <span>/</span>
             <span className="text-dark font-weight-600">{isEditMode ? 'Edit Household' : 'Add New Household'}</span>
           </div>
-          <h2 className="font-weight-800 text-dark flex-row-gap-xs">
-            <Home className="text-primary" size={26} />
-            <span>{isEditMode ? `Edit Household #${houseNumber}` : 'Register New Household'}</span>
+          <h2 className="font-weight-800 text-dark">
+            {isEditMode ? `Edit Household #${houseNumber}` : 'Register New Household'}
           </h2>
-          <p className="font-sm color-subtle">
+          <p className="font-sm color-subtle margin-top-xs">
             {isEditMode 
               ? 'Update family head details, address, ward area, and review linked family members.'
               : 'Enter household identification, family head name, phone, address, and ward assignment.'}
