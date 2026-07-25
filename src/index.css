@@ -1212,3 +1212,164 @@ img, svg, video, canvas {
   cursor: pointer;
 }
 
+/* FORM CONTROLS & MODAL STYLING FIXES */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form-label, .form-group label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #374151;
+  display: block;
+}
+
+.form-control, .form-group input, .form-group select, .form-group textarea,
+.modal-body input, .modal-body select, .modal-body textarea,
+.drawer-body input, .drawer-body select, .drawer-body textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 13.5px;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.form-control:focus, .form-group input:focus, .form-group select:focus, .form-group textarea:focus,
+.modal-body input:focus, .modal-body select:focus, .modal-body textarea:focus,
+.drawer-body input:focus, .drawer-body select:focus, .drawer-body textarea:focus {
+  outline: none;
+  border-color: #00966b;
+  box-shadow: 0 0 0 3px rgba(0, 150, 107, 0.12);
+  background: #ffffff;
+}
+
+.form-row-2col {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .form-row-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.modal-body, .modal-body-scrollable, .drawer-body, .modal-form {
+  padding: 20px;
+  max-height: 75vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+.modal-footer, .drawer-footer {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+
+.pill-btn-ghost, .btn-cancel {
+  padding: 9px 18px;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.pill-btn-ghost:hover, .btn-cancel:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.pill-btn-primary, .submit-pill-btn {
+  padding: 10px 22px;
+  border-radius: 9999px;
+  background: #00966b;
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 150, 107, 0.35);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.pill-btn-primary:hover, .submit-pill-btn:hover {
+  background: #007d59;
+}
+
+/* SELECTION CARDS (DONOR TYPE & DONATION TYPE) */
+.selection-cards-grid {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+
+.selection-cards-grid.col-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.selection-cards-grid.col-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 500px) {
+  .selection-cards-grid.col-2, .selection-cards-grid.col-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.selection-card {
+  padding: 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.selection-card:hover {
+  border-color: #00966b;
+  background: #f0fdf4;
+}
+
+.selection-card.selected {
+  border-color: #00966b;
+  background: #e6f4ea;
+  box-shadow: 0 0 0 2px rgba(0, 150, 107, 0.2);
+}
+
+
