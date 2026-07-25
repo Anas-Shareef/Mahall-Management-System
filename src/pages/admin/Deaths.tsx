@@ -491,7 +491,7 @@ export const Deaths: React.FC = () => {
           </div>
 
           {/* Desktop Filters */}
-          <div className="filter-selectors-grid">
+          <div className="filter-selectors-grid desktop-filters-only">
             <YearFilter selectedYearId={selectedYearId} onChange={setSelectedYearId} showAllOption={true} />
 
             <div className="filter-select-wrapper">
@@ -712,17 +712,12 @@ export const Deaths: React.FC = () => {
                   return (
                     <div key={d.id} className={`mobile-ledger-card ${isSelected ? 'selected' : ''}`}>
                       <div className="mobile-card-top flex-between">
-                        <div className="flex-row-gap-xs">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => handleSelectIndividual(d.id)}
-                          />
+                        <div className="flex-row-gap-sm">
                           <div className="donor-avatar-circle sm avatar-anon">
                             {d.deceased_name ? d.deceased_name.charAt(0).toUpperCase() : 'D'}
                           </div>
                           <div>
-                            <div className="font-weight-600 font-sm">{d.deceased_name}</div>
+                            <div className="font-weight-700 font-sm text-dark">{d.deceased_name}</div>
                             <span className="font-xs color-subtle">{d.member_id ? d.member_id.substring(0, 8) : (linkedMem ? linkedMem.id.substring(0, 8) : 'Non-Member')}</span>
                           </div>
                         </div>
@@ -1318,6 +1313,16 @@ export const Deaths: React.FC = () => {
         .page-subtitle { font-size: 13.5px; color: #6b7280; margin-top: 4px; }
         .header-cta-group { display: flex; align-items: center; gap: 10px; }
 
+        .search-box { position: relative; display: flex; align-items: center; width: 100%; }
+        .search-box .search-icon { position: absolute; left: 14px !important; color: #9ca3af; pointer-events: none; z-index: 2; }
+        .search-box input { padding-left: 42px !important; box-sizing: border-box !important; }
+
+        .checkbox-label { display: flex !important; align-items: center !important; gap: 10px !important; font-size: 13px !important; color: #374151 !important; cursor: pointer !important; user-select: none !important; margin: 0 !important; }
+        .checkbox-label input[type="checkbox"] { width: 17px !important; height: 17px !important; accent-color: #00966b !important; cursor: pointer !important; margin: 0 !important; flex-shrink: 0 !important; }
+
+        .pill-btn-danger { padding: 8px 16px !important; border-radius: 9999px !important; background: #fee2e2 !important; border: 1px solid #fca5a5 !important; color: #991b1b !important; font-weight: 700 !important; font-size: 12.5px !important; cursor: pointer !important; display: inline-flex !important; align-items: center !important; gap: 6px !important; transition: all 0.2s ease !important; }
+        .pill-btn-danger:hover { background: #fecaca !important; color: #7f1d1d !important; }
+
         @media (min-width: 768px) {
           .desktop-view-only { display: block !important; }
           .mobile-view-only, .mobile-ledger-cards-list, .mobile-cards-directory { display: none !important; }
@@ -1325,6 +1330,7 @@ export const Deaths: React.FC = () => {
         @media (max-width: 767px) {
           .desktop-view-only { display: none !important; }
           .mobile-view-only, .mobile-ledger-cards-list, .mobile-cards-directory { display: flex !important; flex-direction: column !important; }
+          .desktop-filters-only { display: none !important; }
           .page-header { flex-direction: column; align-items: stretch; }
           .header-cta-group { flex-direction: column; align-items: stretch; width: 100%; }
         }
