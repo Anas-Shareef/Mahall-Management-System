@@ -782,17 +782,19 @@ export const Deaths: React.FC = () => {
                   const isCertAvailable = !!d.certificate_url || d.medically_certified || (d.notes && d.notes.includes('DC-'));
 
                   return (
-                    <div key={d.id} className={`mobile-ledger-card ${isSelected ? 'selected' : ''}`}>
+                    <div key={d.id} className={`mobile-ledger-card ${isCertAvailable ? '' : 'pending-cert'} ${isSelected ? 'selected' : ''}`}>
+                      {/* Top Row: Name & Status Badge */}
                       <div className="mobile-card-top flex-between">
                         <div className="flex-row-gap-sm">
                           <div className="donor-avatar-circle sm avatar-anon">
                             {d.deceased_name ? d.deceased_name.charAt(0).toUpperCase() : 'D'}
                           </div>
                           <div>
-                            <div className="font-weight-700 font-sm text-dark">{d.deceased_name}</div>
-                            <span className="font-xs color-subtle">{d.member_id ? d.member_id.substring(0, 8) : (linkedMem ? linkedMem.id.substring(0, 8) : 'Non-Member')}</span>
+                            <div className="font-weight-800 font-sm text-dark">{d.deceased_name}</div>
+                            <span className="font-xs color-subtle">{d.father_or_husband_name ? `Relative: ${d.father_or_husband_name}` : 'Mahall Record'}</span>
                           </div>
                         </div>
+
                         {isCertAvailable ? (
                           <span className="status-badge-dot success"><span className="dot"></span> Available</span>
                         ) : (
@@ -800,17 +802,30 @@ export const Deaths: React.FC = () => {
                         )}
                       </div>
 
-                      <div className="mobile-card-middle flex-between margin-top-sm pt-xs border-top-light font-xs">
-                        <div>
-                          <div>📅 <strong>Death:</strong> {d.date_of_death}</div>
-                          <div className="color-subtle">👤 {d.age ? `${d.age} yrs` : 'N/A'} • {d.gender ? d.gender.toUpperCase() : 'MALE'}</div>
+                      {/* Sub-Header Chips Line */}
+                      <div className="card-metadata-chips-row">
+                        <span className="meta-chip">📅 {d.date_of_death}</span>
+                        <span className="meta-chip">🏥 {d.place_of_death || 'Hospital'}</span>
+                        <span className="meta-chip">⚕️ {d.cause_of_death || 'Natural'}</span>
+                      </div>
+
+                      {/* Carded Info Details Container Box */}
+                      <div className="card-inner-info-box font-xs">
+                        <div className="flex-between">
+                          <span className="color-subtle">ID / Registration:</span>
+                          <strong className="text-dark">{d.member_id ? d.member_id.substring(0, 8) : (linkedMem ? linkedMem.id.substring(0, 8) : 'Non-Member')}</strong>
                         </div>
-                        <div className="text-right">
-                          <div>🏥 {d.place_of_death || 'Hospital'}</div>
-                          <div className="color-subtle">{linkedHouse ? `H-${linkedHouse.house_number}` : (d.ward_or_area || 'Mahall')}</div>
+                        <div className="flex-between margin-top-xs">
+                          <span className="color-subtle">Household / Ward:</span>
+                          <strong className="text-dark">{linkedHouse ? `House #${linkedHouse.house_number}` : (d.ward_or_area || 'Mahall Area')}</strong>
+                        </div>
+                        <div className="flex-between margin-top-xs">
+                          <span className="color-subtle">Age & Gender:</span>
+                          <strong className="text-dark">{d.age ? `${d.age} Yrs` : 'N/A'} • {d.gender ? d.gender.toUpperCase() : 'MALE'}</strong>
                         </div>
                       </div>
 
+                      {/* 2x2 Action Button Grid */}
                       <div className="mobile-card-actions-grid">
                         <button className="pill-btn-ghost font-xs" onClick={(e) => openCertificateModal(d, e)}>
                           <Award size={13} /> Cert
