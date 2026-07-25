@@ -750,7 +750,7 @@ export const Donations: React.FC = () => {
 
           <button className="add-btn primary-btn" onClick={openAddDonationDrawer}>
             <Plus size={16} />
-            <span>+ Add Donation</span>
+            <span>Add Donation</span>
           </button>
         </div>
       </div>
@@ -818,142 +818,140 @@ export const Donations: React.FC = () => {
         )}
       </div>
 
-      {/* 3. PRIMARY NAVIGATION TABS (MATCHING SUBSCRIPTIONS) */}
-      <div className="subscription-nav-tabs">
-        <button
-          className={`tab-pill-btn ${activeTab === 'all' ? 'active' : ''}`}
-          onClick={() => setActiveTab('all')}
-        >
-          <DollarSign size={16} />
-          <span>All Donations</span>
-        </button>
+      {/* 3. UNIFIED WORKSPACE MAIN CONTAINER CARD */}
+      <div className="workspace-unified-card animate-fade-in">
+        {/* WORKSPACE CARD HEADER TABS */}
+        <div className="workspace-card-header-tabs">
+          <button
+            className={`workspace-tab-btn ${activeTab === 'all' ? 'active' : ''}`}
+            onClick={() => setActiveTab('all')}
+          >
+            <DollarSign size={16} />
+            <span>All Donations</span>
+          </button>
 
-        <button
-          className={`tab-pill-btn ${activeTab === 'general' ? 'active' : ''}`}
-          onClick={() => setActiveTab('general')}
-        >
-          <User size={16} />
-          <span>General Donations</span>
-        </button>
+          <button
+            className={`workspace-tab-btn ${activeTab === 'general' ? 'active' : ''}`}
+            onClick={() => setActiveTab('general')}
+          >
+            <User size={16} />
+            <span>General Donations</span>
+          </button>
 
-        <button
-          className={`tab-pill-btn ${activeTab === 'campaigns' ? 'active' : ''}`}
-          onClick={() => setActiveTab('campaigns')}
-        >
-          <Layers size={16} />
-          <span>Campaign Donations ({campaigns.length})</span>
-        </button>
-      </div>
+          <button
+            className={`workspace-tab-btn ${activeTab === 'campaigns' ? 'active' : ''}`}
+            onClick={() => setActiveTab('campaigns')}
+          >
+            <Layers size={16} />
+            <span>Campaign Donations ({campaigns.length})</span>
+          </button>
+        </div>
 
-      {/* VIEW A & B: DONATIONS DIRECTORY (ALL & GENERAL) */}
-      {(activeTab === 'all' || activeTab === 'general') && (
-        <div className="ledgers-tab-content animate-fade-in">
-          {/* SEARCH & FILTER TOOLBAR */}
-          <div className="filter-bar glass-card">
-            <div className="search-box">
-              <Search size={18} className="search-icon" />
-              <input
-                type="text"
-                placeholder="Search donations by donor, receipt, or campaign..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              {searchQuery && (
-                <button className="clear-search-btn" onClick={() => setSearchQuery('')}>
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-
-            {/* Desktop Filter Selectors */}
-            <div className="filter-selectors-grid">
-              <div className="filter-select-wrapper">
-                <Filter size={15} className="select-icon" />
-                <select
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value as any)}
-                >
-                  <option value="">Status: All</option>
-                  <option value="received">Received</option>
-                  <option value="pending">Pending</option>
-                  <option value="cancelled">Cancelled</option>
-                  <option value="refunded">Refunded</option>
-                </select>
+        {/* TAB VIEWS A & B: DONATIONS LIST (ALL & GENERAL) */}
+        {(activeTab === 'all' || activeTab === 'general') && (
+          <>
+            {/* SEARCH & FILTER TOOLBAR */}
+            <div className="workspace-filter-toolbar">
+              <div className="search-box">
+                <Search size={18} className="search-icon" />
+                <input
+                  type="text"
+                  placeholder="Search donations by donor, receipt, or campaign..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button className="clear-search-btn" onClick={() => setSearchQuery('')}>
+                    <X size={14} />
+                  </button>
+                )}
               </div>
 
-              <div className="filter-select-wrapper">
-                <Layers size={15} className="select-icon" />
-                <select
-                  value={selectedCampaignId}
-                  onChange={(e) => setSelectedCampaignId(e.target.value)}
-                >
-                  <option value="">Campaign: All</option>
-                  {campaigns.map((c) => (
-                    <option key={c.id} value={c.id}>{c.campaign_name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="filter-select-wrapper">
-                <DollarSign size={15} className="select-icon" />
-                <select
-                  value={selectedMethod}
-                  onChange={(e) => setSelectedMethod(e.target.value)}
-                >
-                  <option value="">Method: All</option>
-                  <option value="cash">Cash</option>
-                  <option value="upi">UPI / Online</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="cheque">Cheque</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-
-              {(searchQuery || selectedStatus || selectedCampaignId || selectedMethod || selectedDonationType || fromDate || toDate) && (
-                <button className="clear-filters-link" onClick={clearFilters}>
-                  Clear Filters
-                </button>
-              )}
-            </div>
-
-            {/* Mobile Filter Button */}
-            <div className="mobile-filter-trigger">
-              <button className="pill-btn-secondary" onClick={() => setIsMobileFilterOpen(true)}>
-                <Filter size={15} />
-                <span>Filters</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Bulk Selection Bar */}
-          {selectedIds.length > 0 && (
-            <div className="bulk-selection-bar flex-between margin-bottom p-xs bg-primary-light border-rounded">
-              <span className="font-weight-600 font-sm">{selectedIds.length} selected</span>
-              <button className="pill-btn-danger font-xs" onClick={() => setIsBulkDeleteModalOpen(true)}>
-                <Trash2 size={13} /> Delete Selected
-              </button>
-            </div>
-          )}
-
-          {/* ERROR STATE */}
-          {fetchError ? (
-            <div className="table-container-card glass-card">
-              <div className="empty-state-card">
-                <div className="empty-state-icon neutral">
-                  <AlertCircle size={32} className="text-danger" />
+              {/* Desktop Filter Selectors */}
+              <div className="filter-selectors-grid">
+                <div className="filter-select-wrapper">
+                  <Filter size={15} className="select-icon" />
+                  <select
+                    value={selectedStatus}
+                    onChange={(e) => setSelectedStatus(e.target.value as any)}
+                  >
+                    <option value="">Status: All</option>
+                    <option value="received">Received</option>
+                    <option value="pending">Pending</option>
+                    <option value="cancelled">Cancelled</option>
+                    <option value="refunded">Refunded</option>
+                  </select>
                 </div>
-                <h4>Unable to load donations</h4>
-                <p>Please check your network connection and try again.</p>
-                <button className="add-btn primary-btn margin-top-sm" onClick={loadData}>
-                  <RefreshCw size={14} /> Retry
+
+                <div className="filter-select-wrapper">
+                  <Layers size={15} className="select-icon" />
+                  <select
+                    value={selectedCampaignId}
+                    onChange={(e) => setSelectedCampaignId(e.target.value)}
+                  >
+                    <option value="">Campaign: All</option>
+                    {campaigns.map((c) => (
+                      <option key={c.id} value={c.id}>{c.campaign_name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="filter-select-wrapper">
+                  <DollarSign size={15} className="select-icon" />
+                  <select
+                    value={selectedMethod}
+                    onChange={(e) => setSelectedMethod(e.target.value)}
+                  >
+                    <option value="">Method: All</option>
+                    <option value="cash">Cash</option>
+                    <option value="upi">UPI / Online</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="cheque">Cheque</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                {(searchQuery || selectedStatus || selectedCampaignId || selectedMethod || selectedDonationType || fromDate || toDate) && (
+                  <button className="clear-filters-link" onClick={clearFilters}>
+                    Clear Filters
+                  </button>
+                )}
+              </div>
+
+              {/* Mobile Filter Button */}
+              <div className="mobile-filter-trigger">
+                <button className="pill-btn-secondary" onClick={() => setIsMobileFilterOpen(true)}>
+                  <Filter size={15} />
+                  <span>Filters</span>
                 </button>
               </div>
             </div>
-          ) : (
-            /* MAIN DONATION MANAGEMENT TABLE CONTAINER */
-            <div className="table-container-card glass-card">
-              {loading ? (
-                <div className="skeleton-loading-container">
+
+            {/* Bulk Selection Bar */}
+            {selectedIds.length > 0 && (
+              <div className="bulk-selection-bar flex-between p-xs bg-primary-light border-rounded margin-sm">
+                <span className="font-weight-600 font-sm">{selectedIds.length} selected</span>
+                <button className="pill-btn-danger font-xs" onClick={() => setIsBulkDeleteModalOpen(true)}>
+                  <Trash2 size={13} /> Delete Selected
+                </button>
+              </div>
+            )}
+
+            {/* WORKSPACE TABLE CONTENT AREA */}
+            <div className="workspace-table-content">
+              {fetchError ? (
+                <div className="empty-state-card">
+                  <div className="empty-state-icon neutral">
+                    <AlertCircle size={32} className="text-danger" />
+                  </div>
+                  <h4>Unable to load donations</h4>
+                  <p>Please check your network connection and try again.</p>
+                  <button className="add-btn primary-btn margin-top-sm" onClick={loadData}>
+                    <RefreshCw size={14} /> Retry
+                  </button>
+                </div>
+              ) : loading ? (
+                <div className="skeleton-loading-container padding-md">
                   <div className="skeleton-row"></div>
                   <div className="skeleton-row"></div>
                   <div className="skeleton-row"></div>
@@ -976,7 +974,8 @@ export const Donations: React.FC = () => {
                     </button>
                   ) : (
                     <button className="add-btn primary-btn margin-top-sm" onClick={openAddDonationDrawer}>
-                      + Add Donation
+                      <Plus size={15} />
+                      <span>Add Donation</span>
                     </button>
                   )}
                 </div>
@@ -1091,7 +1090,7 @@ export const Donations: React.FC = () => {
                   </div>
 
                   {/* MOBILE CARDS VIEW (<768px - 320px, 360px, 375px, 390px, 412px, Samsung G8) */}
-                  <div className="mobile-ledger-cards-list mobile-view-only">
+                  <div className="mobile-ledger-cards-list mobile-view-only padding-md">
                     {filteredDonations.map((d) => {
                       const campObj = campaigns.find((c) => c.id === d.campaign_id);
                       const isSelected = selectedIds.includes(d.id);
@@ -1155,26 +1154,24 @@ export const Donations: React.FC = () => {
                 </>
               )}
             </div>
-          )}
-        </div>
-      )}
+          </>
+        )}
 
-      {/* VIEW C: CAMPAIGNS TAB */}
-      {activeTab === 'campaigns' && (
-        <div className="ledgers-tab-content animate-fade-in">
-          <div className="flex-between margin-bottom">
-            <div>
-              <h3 className="font-weight-700">Special Donation Campaigns</h3>
-              <p className="page-subtitle">Track targeted programme fundraising drives and target collections.</p>
+        {/* TAB VIEW C: CAMPAIGNS TAB */}
+        {activeTab === 'campaigns' && (
+          <div className="workspace-table-content padding-md animate-fade-in">
+            <div className="flex-between margin-bottom">
+              <div>
+                <h3 className="font-weight-700">Special Donation Campaigns</h3>
+                <p className="page-subtitle">Track targeted programme fundraising drives and target collections.</p>
+              </div>
+              <button className="add-btn primary-btn" onClick={openAddCampaignModal}>
+                <Plus size={16} />
+                <span>Create Campaign</span>
+              </button>
             </div>
-            <button className="add-btn primary-btn" onClick={openAddCampaignModal}>
-              <Plus size={16} />
-              <span>+ Create Campaign</span>
-            </button>
-          </div>
 
-          {campaigns.length === 0 ? (
-            <div className="table-container-card glass-card">
+            {campaigns.length === 0 ? (
               <div className="empty-state-card">
                 <div className="empty-state-icon neutral">
                   <Layers size={32} />
@@ -1182,80 +1179,81 @@ export const Donations: React.FC = () => {
                 <h4>No donation campaigns yet</h4>
                 <p>Create a campaign to start collecting special programme donations.</p>
                 <button className="add-btn primary-btn margin-top-sm" onClick={openAddCampaignModal}>
-                  + Create Campaign
+                  <Plus size={15} />
+                  <span>Create Campaign</span>
                 </button>
               </div>
-            </div>
-          ) : (
-            <div className="campaigns-cards-grid">
-              {campaigns.map((camp) => {
-                const { collected, donationCount, progress, remaining } = getCampaignMetrics(camp.id, camp.target_amount);
+            ) : (
+              <div className="campaigns-cards-grid">
+                {campaigns.map((camp) => {
+                  const { collected, donationCount, progress, remaining } = getCampaignMetrics(camp.id, camp.target_amount);
 
-                return (
-                  <div key={camp.id} className="campaign-overview-card glass-card">
-                    <div className="campaign-header flex-between">
-                      <span className="badge badge-info">{camp.campaign_type}</span>
-                      <span className={`badge badge-${camp.status === 'active' ? 'success' : camp.status === 'completed' ? 'primary' : 'secondary'}`}>
-                        {camp.status.toUpperCase()}
-                      </span>
-                    </div>
-
-                    <h3 className="campaign-title font-weight-700 margin-top-xs">{camp.campaign_name}</h3>
-                    {camp.description && <p className="campaign-desc font-xs color-subtle">{camp.description}</p>}
-
-                    <div className="campaign-collected-box margin-top-sm">
-                      <div className="font-semibold text-success font-lg">{formatCurrency(collected)} collected</div>
-                      <div className="font-xs text-muted">
-                        Goal: {camp.target_amount > 0 ? formatCurrency(camp.target_amount) : 'Open Goal'}
+                  return (
+                    <div key={camp.id} className="campaign-overview-card glass-card">
+                      <div className="campaign-header flex-between">
+                        <span className="badge badge-info">{camp.campaign_type}</span>
+                        <span className={`badge badge-${camp.status === 'active' ? 'success' : camp.status === 'completed' ? 'primary' : 'secondary'}`}>
+                          {camp.status.toUpperCase()}
+                        </span>
                       </div>
-                    </div>
 
-                    {camp.target_amount > 0 && (
-                      <div className="progress-section margin-top-xs">
-                        <div className="progress-track-bg">
-                          <div className="progress-fill-bar" style={{ width: `${progress}%` }}></div>
-                        </div>
-                        <div className="flex-between font-xs margin-top-xs color-subtle">
-                          <span>{progress}% Achieved</span>
-                          <span>Remaining: {formatCurrency(remaining)}</span>
+                      <h3 className="campaign-title font-weight-700 margin-top-xs">{camp.campaign_name}</h3>
+                      {camp.description && <p className="campaign-desc font-xs color-subtle">{camp.description}</p>}
+
+                      <div className="campaign-collected-box margin-top-sm">
+                        <div className="font-semibold text-success font-lg">{formatCurrency(collected)} collected</div>
+                        <div className="font-xs text-muted">
+                          Goal: {camp.target_amount > 0 ? formatCurrency(camp.target_amount) : 'Open Goal'}
                         </div>
                       </div>
-                    )}
 
-                    <div className="campaign-footer flex-between margin-top-md pt-sm border-top">
-                      <span className="font-xs font-weight-600 color-subtle">
-                        <HeartHandshake size={13} className="inline-block align-middle" /> {donationCount} Donations
-                      </span>
+                      {camp.target_amount > 0 && (
+                        <div className="progress-section margin-top-xs">
+                          <div className="progress-track-bg">
+                            <div className="progress-fill-bar" style={{ width: `${progress}%` }}></div>
+                          </div>
+                          <div className="flex-between font-xs margin-top-xs color-subtle">
+                            <span>{progress}% Achieved</span>
+                            <span>Remaining: {formatCurrency(remaining)}</span>
+                          </div>
+                        </div>
+                      )}
 
-                      <div className="flex-row-gap-xs">
-                        <button
-                          className="pill-btn-ghost font-xs"
-                          onClick={() => {
-                            setSelectedCampaignId(camp.id);
-                            setActiveTab('all');
-                          }}
-                        >
-                          View Donations
-                        </button>
-                        <button className="icon-btn-ghost" title="Edit" onClick={() => openEditCampaignModal(camp)}>
-                          <Edit2 size={14} />
-                        </button>
-                        <button
-                          className="icon-btn-ghost danger"
-                          title="Delete"
-                          onClick={() => promptDelete('campaign', camp.id, camp.campaign_name)}
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                      <div className="campaign-footer flex-between margin-top-md pt-sm border-top">
+                        <span className="font-xs font-weight-600 color-subtle">
+                          <HeartHandshake size={13} className="inline-block align-middle" /> {donationCount} Donations
+                        </span>
+
+                        <div className="flex-row-gap-xs">
+                          <button
+                            className="pill-btn-ghost font-xs"
+                            onClick={() => {
+                              setSelectedCampaignId(camp.id);
+                              setActiveTab('all');
+                            }}
+                          >
+                            View Donations
+                          </button>
+                          <button className="icon-btn-ghost" title="Edit" onClick={() => openEditCampaignModal(camp)}>
+                            <Edit2 size={14} />
+                          </button>
+                          <button
+                            className="icon-btn-ghost danger"
+                            title="Delete"
+                            onClick={() => promptDelete('campaign', camp.id, camp.campaign_name)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* MODAL: ADD / EDIT DONATION DRAWER */}
       {isDonationDrawerOpen && (
@@ -2025,6 +2023,70 @@ export const Donations: React.FC = () => {
         }
         .selection-card:hover { border-color: #00966b; background: #f0fdf4; }
         .selection-card.selected { border-color: #00966b; background: #e6f4ea; box-shadow: 0 0 0 2px rgba(0, 150, 107, 0.2); }
+
+        /* UNIFIED WORKSPACE MAIN CONTAINER & TABS ALIGNMENT */
+        .workspace-unified-card {
+          background: #ffffff;
+          border: 1px solid var(--border-color, #e5e7eb);
+          border-radius: var(--radius-xl, 16px);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+          overflow: hidden;
+          width: 100%;
+          box-sizing: border-box;
+        }
+
+        .workspace-card-header-tabs {
+          padding: 16px 20px 0 20px;
+          border-bottom: 1px solid #e5e7eb;
+          background: #ffffff;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .workspace-tab-btn {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 18px;
+          border-radius: 9999px;
+          border: none;
+          background: transparent;
+          color: #6b7280;
+          font-weight: 700;
+          font-size: 13.5px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          margin-bottom: 12px;
+        }
+
+        .workspace-tab-btn:hover {
+          background: #f3f4f6;
+          color: #111827;
+        }
+
+        .workspace-tab-btn.active {
+          background: #ecfdf5;
+          color: #00966b;
+          box-shadow: 0 2px 8px rgba(0, 150, 107, 0.15);
+        }
+
+        .workspace-filter-toolbar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 16px 20px;
+          gap: 14px;
+          background: #ffffff;
+          border-bottom: 1px solid #f3f4f6;
+          flex-wrap: wrap;
+        }
+
+        .workspace-table-content {
+          padding: 0;
+          width: 100%;
+          box-sizing: border-box;
+        }
 
         @media (max-width: 991px) {
           .stats-dashboard-grid { grid-template-columns: repeat(2, 1fr); }
