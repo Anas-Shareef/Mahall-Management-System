@@ -8,6 +8,7 @@ import {
   X, Loader2 
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 export const Marriages: React.FC = () => {
   const navigate = useNavigate();
@@ -16,6 +17,8 @@ export const Marriages: React.FC = () => {
   const [marriages, setMarriages] = useState<MarriageRecord[]>([]);
   const [households, setHouseholds] = useState<Household[]>([]);
   const [years, setYears] = useState<SubscriptionYear[]>([]);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -105,15 +108,23 @@ export const Marriages: React.FC = () => {
 
 
 
-  const handleDelete = async (id: string, e?: React.MouseEvent) => {
+  const handleDelete = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    if (!window.confirm('Are you sure you want to delete this marriage record?')) return;
+    setDeleteTargetId(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTargetId) return;
+    setIsDeleting(true);
     try {
-      await db.marriages.delete(id);
+      await db.marriages.delete(deleteTargetId);
       showToast('success', 'Marriage record deleted');
+      setDeleteTargetId(null);
       loadData();
     } catch (err) {
       showToast('error', 'Failed to delete marriage record');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -334,6 +345,18 @@ export const Marriages: React.FC = () => {
           </div>
         </div>
       )}
+      {/* CONFIRMATION DELETE MODAL */}
+      <ConfirmModal
+        isOpen={Boolean(deleteTargetId)}
+        onClose={() => setDeleteTargetId(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Marriage Record?"
+        message="Are you sure you want to delete this marriage record? This action cannot be undone."
+        confirmText="Delete Record"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isDeleting}
+      />
     </div>
   );
 };

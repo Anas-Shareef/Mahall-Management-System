@@ -7,6 +7,7 @@ import {
   Plus, Edit2, Trash2, Search, Filter, Home, Users, X, AlertCircle, 
   CheckCircle, Phone, MapPin, Loader2, Download, Calendar 
 } from 'lucide-react';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 export const Households: React.FC = () => {
   const { t } = useTranslation();
@@ -659,52 +660,21 @@ export const Households: React.FC = () => {
 
 
       {/* DELETE CONFIRMATION MODAL */}
-      {isDeleteModalOpen && householdToDelete && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card delete-card animate-scale-up">
-            <div className="delete-card-body">
-              <div className="delete-header">
-                <div className="delete-badge-icon">
-                  <Trash2 size={22} color="#dc2626" />
-                </div>
-                <div>
-                  <h4>Delete Household?</h4>
-                  <p className="delete-subtitle">
-                    Are you sure you want to delete household <strong>H-{householdToDelete.house_number}</strong> (
-                    {householdToDelete.house_owner_name})? This action cannot be undone.
-                  </p>
-                </div>
-              </div>
-
-              <div className="delete-actions">
-                <button
-                  type="button"
-                  className="btn-cancel"
-                  onClick={() => setIsDeleteModalOpen(false)}
-                  disabled={isDeleting}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="delete-danger-btn"
-                  onClick={handleConfirmDelete}
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? (
-                    <>
-                      <Loader2 size={16} className="spinner-icon" />
-                      <span>Deleting...</span>
-                    </>
-                  ) : (
-                    <span>Delete Household</span>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={isDeleteModalOpen && Boolean(householdToDelete)}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Household?"
+        message={
+          <>
+            Are you sure you want to delete household <strong>H-{householdToDelete?.house_number}</strong> ({householdToDelete?.house_owner_name})? This action cannot be undone.
+          </>
+        }
+        confirmText="Delete Household"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isDeleting}
+      />
 
       {/* STYLES */}
       <style>{`

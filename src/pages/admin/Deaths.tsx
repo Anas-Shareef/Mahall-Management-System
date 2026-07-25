@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { Modal } from '../../components/Modal';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 export const Deaths: React.FC = () => {
   const navigate = useNavigate();
@@ -18,6 +19,8 @@ export const Deaths: React.FC = () => {
   const [deaths, setDeaths] = useState<DeathRecord[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [households, setHouseholds] = useState<Household[]>([]);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [years, setYears] = useState<SubscriptionYear[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
@@ -173,15 +176,23 @@ export const Deaths: React.FC = () => {
 
 
 
-  const handleDelete = async (id: string, e?: React.MouseEvent) => {
+  const handleDelete = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    if (!window.confirm('Are you sure you want to delete this death record? This action cannot be undone.')) return;
+    setDeleteTargetId(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTargetId) return;
+    setIsDeleting(true);
     try {
-      await db.deaths.delete(id);
+      await db.deaths.delete(deleteTargetId);
       showToast('success', 'Death record deleted from Supabase');
+      setDeleteTargetId(null);
       loadData();
     } catch (err) {
       showToast('error', 'Failed to delete record');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -1031,44 +1042,21 @@ export const Deaths: React.FC = () => {
         .checkbox-label input[type="checkbox"] { width: 17px !important; height: 17px !important; accent-color: #00966b !important; cursor: pointer !important; margin: 0 !important; flex-shrink: 0 !important; }
 
         .pill-btn-danger { padding: 8px 16px !important; border-radius: 9999px !important; background: #fee2e2 !important; border: 1px solid #fca5a5 !important; color: #991b1b !important; font-weight: 700 !important; font-size: 12.5px !important; cursor: pointer !important; display: inline-flex !important; align-items: center !important; gap: 6px !important; transition: all 0.2s ease !important; }
-        .pill-btn-danger:hover { background: #fecaca !important; color: #7f1d1d !important; }
-
-        @media (min-width: 768px) {
-          .desktop-view-only { display: block !important; }
-          .mobile-view-only, .mobile-ledger-cards-list, .mobile-cards-directory { display: none !important; }
-        }
-        @media (max-width: 767px) {
-          .desktop-view-only { display: none !important; }
-          .mobile-view-only, .mobile-ledger-cards-list, .mobile-cards-directory { display: flex !important; flex-direction: column !important; }
-          .desktop-filters-only { display: none !important; }
-          .page-header { flex-direction: column; align-items: stretch; }
-          .header-cta-group { flex-direction: column; align-items: stretch; width: 100%; }
-          .stats-dashboard-grid-6 { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
-        }
-
-        @media (max-width: 640px) {
-          .modal-overlay { align-items: center !important; justify-content: center !important; padding: 12px !important; background: rgba(15, 23, 42, 0.65) !important; }
-          .modal-dialog-card {
-            border-radius: 20px !important;
-            max-height: 88vh !important; width: calc(100% - 16px) !important; margin: auto !important;
-            animation: popModalScale 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
-          }
-        }
-        @keyframes popModalScale {
-          from { opacity: 0; transform: scale(0.93) translateY(10px); }
-          to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        .action-row-buttons { display: flex !important; align-items: center !important; gap: 6px !important; justify-content: flex-end !important; }
-        .icon-btn-ghost {
-          width: 32px !important; height: 32px !important; border-radius: 8px !important;
-          background: transparent !important; border: none !important; color: #6b7280 !important;
-          display: inline-flex !important; align-items: center !important; justify-content: center !important;
-          cursor: pointer !important; transition: all 0.2s ease !important; outline: none !important; padding: 0 !important;
-        }
-        .icon-btn-ghost:hover { background: #f3f4f6 !important; color: #111827 !important; }
         .icon-btn-ghost.danger:hover { background: #fee2e2 !important; color: #ef4444 !important; }
       `}</style>
+
+      {/* CONFIRMATION DELETE MODAL */}
+      <ConfirmModal
+        isOpen={Boolean(deleteTargetId)}
+        onClose={() => setDeleteTargetId(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Death Record?"
+        message="Are you sure you want to delete this death record? This action cannot be undone."
+        confirmText="Delete Record"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isDeleting}
+      />
     </div>
   );
 };

@@ -5,8 +5,9 @@ import { db } from '../../services/db';
 import type { Household, Member } from '../../services/db';
 import { 
   Plus, Edit2, Trash2, Search, Filter, Users, X, AlertCircle, 
-  CheckCircle, Phone, Mail, Home, Smartphone, Loader2, UserCheck 
+  CheckCircle, Phone, Mail, Home, Smartphone, UserCheck 
 } from 'lucide-react';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 export const Members: React.FC = () => {
   const { t } = useTranslation();
@@ -468,51 +469,21 @@ export const Members: React.FC = () => {
 
 
       {/* DELETE CONFIRMATION MODAL */}
-      {isDeleteModalOpen && memberToDelete && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card delete-card animate-scale-up">
-            <div className="delete-card-body">
-              <div className="delete-header">
-                <div className="delete-badge-icon">
-                  <Trash2 size={22} color="#dc2626" />
-                </div>
-                <div>
-                  <h4>Delete Member?</h4>
-                  <p className="delete-subtitle">
-                    Are you sure you want to delete member <strong>{memberToDelete.name}</strong>? This action cannot be undone.
-                  </p>
-                </div>
-              </div>
-
-              <div className="delete-actions">
-                <button
-                  type="button"
-                  className="btn-cancel"
-                  onClick={() => setIsDeleteModalOpen(false)}
-                  disabled={isDeleting}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="delete-danger-btn"
-                  onClick={handleConfirmDelete}
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? (
-                    <>
-                      <Loader2 size={16} className="spinner-icon" />
-                      <span>Deleting...</span>
-                    </>
-                  ) : (
-                    <span>Delete Member</span>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={isDeleteModalOpen && Boolean(memberToDelete)}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Member?"
+        message={
+          <>
+            Are you sure you want to delete member <strong>{memberToDelete?.name}</strong>? This action cannot be undone.
+          </>
+        }
+        confirmText="Delete Member"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isDeleting}
+      />
 
       {/* STYLES */}
       <style>{`
