@@ -13,6 +13,7 @@ import {
   Wallet
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
+import { Modal } from '../../components/Modal';
 
 export const Donations: React.FC = () => {
   const { user } = useAuth();
@@ -933,655 +934,629 @@ export const Donations: React.FC = () => {
       </div>
 
       {/* 4. MULTI-STEP RECORD DONATION WIZARD DRAWER / MODAL */}
-      {isDonationDrawerOpen && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card animate-scale-up" style={{ maxWidth: '640px' }}>
-            <div className="modal-header">
-              <div>
-                <h4>{donationModalMode === 'add' ? 'Record New Donation' : 'Edit Donation Record'}</h4>
-                <p className="modal-subtitle">Follow the wizard steps to record donation and donor details.</p>
-              </div>
-              <button className="modal-close-btn" onClick={() => setIsDonationDrawerOpen(false)}>
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* STEPPER HEADER BAR */}
-            <div className="wizard-stepper-bar">
-              <div className={`wizard-step-item ${wizardStep === 1 ? 'active' : wizardStep > 1 ? 'completed' : ''}`}>
-                <div className="wizard-step-badge">{wizardStep > 1 ? <Check size={13} /> : '1'}</div>
-                <span>Category</span>
-              </div>
-              <div className={`wizard-step-line ${wizardStep > 1 ? 'active' : ''}`}></div>
-
-              <div className={`wizard-step-item ${wizardStep === 2 ? 'active' : wizardStep > 2 ? 'completed' : ''}`}>
-                <div className="wizard-step-badge">{wizardStep > 2 ? <Check size={13} /> : '2'}</div>
-                <span>Donor Type</span>
-              </div>
-              <div className={`wizard-step-line ${wizardStep > 2 ? 'active' : ''}`}></div>
-
-              <div className={`wizard-step-item ${wizardStep === 3 ? 'active' : wizardStep > 3 ? 'completed' : ''}`}>
-                <div className="wizard-step-badge">{wizardStep > 3 ? <Check size={13} /> : '3'}</div>
-                <span>Donor Info</span>
-              </div>
-              <div className={`wizard-step-line ${wizardStep > 3 ? 'active' : ''}`}></div>
-
-              <div className={`wizard-step-item ${wizardStep === 4 ? 'active' : wizardStep > 4 ? 'completed' : ''}`}>
-                <div className="wizard-step-badge">{wizardStep > 4 ? <Check size={13} /> : '4'}</div>
-                <span>Payment</span>
-              </div>
-              <div className={`wizard-step-line ${wizardStep > 4 ? 'active' : ''}`}></div>
-
-              <div className={`wizard-step-item ${wizardStep === 5 ? 'active' : ''}`}>
-                <div className="wizard-step-badge">5</div>
-                <span>Complete</span>
-              </div>
-            </div>
-
-            <div className="modal-body-scrollable">
-              {/* STEP 1: DONATION CATEGORY */}
-              {wizardStep === 1 && (
-                <div className="animate-fade-in flex-col gap-sm">
-                  <label className="form-label">Select Donation Category *</label>
-                  <div className="details-grid-2col">
-                    <div
-                      className={`member-select-card ${donationType === 'general' ? 'selected' : ''}`}
-                      onClick={() => setDonationType('general')}
-                    >
-                      <div className="flex-row-gap-sm">
-                        <div className="donor-avatar-circle emerald">
-                          <HeartHandshake size={20} />
-                        </div>
-                        <div>
-                          <div className="font-weight-700 font-sm text-dark">General Donation</div>
-                          <span className="font-xs color-subtle">Unrestricted general community fund</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`member-select-card ${donationType === 'campaign' ? 'selected' : ''}`}
-                      onClick={() => setDonationType('campaign')}
-                    >
-                      <div className="flex-row-gap-sm">
-                        <div className="donor-avatar-circle purple">
-                          <Target size={20} />
-                        </div>
-                        <div>
-                          <div className="font-weight-700 font-sm text-dark">Campaign Donation</div>
-                          <span className="font-xs color-subtle">Dedicated special project collection</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {donationType === 'campaign' && (
-                    <div className="form-group margin-top-xs">
-                      <label className="form-label">Select Campaign *</label>
-                      <select
-                        className="form-control"
-                        value={campaignId}
-                        onChange={(e) => setCampaignId(e.target.value)}
-                      >
-                        <option value="">-- Choose Special Campaign --</option>
-                        {campaigns.map((c) => (
-                          <option key={c.id} value={c.id}>{c.campaign_name}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
+      <Modal
+        isOpen={isDonationDrawerOpen}
+        onClose={() => setIsDonationDrawerOpen(false)}
+        title={donationModalMode === 'add' ? 'Record New Donation' : 'Edit Donation Record'}
+        subtitle="Follow the wizard steps to record donation and donor details."
+        icon={<HeartHandshake size={22} />}
+        size="lg"
+        footer={
+          wizardStep < 5 ? (
+            <div className="flex-between width-100">
+              {wizardStep > 1 ? (
+                <button
+                  type="button"
+                  className="pill-btn-ghost"
+                  onClick={() => setWizardStep((prev) => (prev - 1) as any)}
+                >
+                  Back
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="pill-btn-ghost"
+                  onClick={() => setIsDonationDrawerOpen(false)}
+                >
+                  Cancel
+                </button>
               )}
 
-              {/* STEP 2: DONOR TYPE */}
-              {wizardStep === 2 && (
-                <div className="animate-fade-in flex-col gap-sm">
-                  <label className="form-label">Select Donor Identity Type *</label>
-                  <div className="flex-col gap-xs">
-                    <div
-                      className={`member-select-card ${donorType === 'member' ? 'selected' : ''}`}
-                      onClick={() => { setDonorType('member'); }}
-                    >
-                      <div className="flex-row-gap-sm">
-                        <div className="donor-avatar-circle emerald"><User size={18} /></div>
-                        <div>
-                          <div className="font-weight-700 font-sm text-dark">Mahall Registered Member</div>
-                          <span className="font-xs color-subtle">Link donation directly to a registered member</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`member-select-card ${donorType === 'external' ? 'selected' : ''}`}
-                      onClick={() => { setDonorType('external'); }}
-                    >
-                      <div className="flex-row-gap-sm">
-                        <div className="donor-avatar-circle primary"><Users size={18} /></div>
-                        <div>
-                          <div className="font-weight-700 font-sm text-dark">External Well-Wisher</div>
-                          <span className="font-xs color-subtle">External non-member or organization contributor</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`member-select-card ${donorType === 'anonymous' ? 'selected' : ''}`}
-                      onClick={() => { setDonorType('anonymous'); setDonorName('Anonymous Donor'); }}
-                    >
-                      <div className="flex-row-gap-sm">
-                        <div className="donor-avatar-circle yellow"><HelpCircle size={18} /></div>
-                        <div>
-                          <div className="font-weight-700 font-sm text-dark">Anonymous Donor</div>
-                          <span className="font-xs color-subtle">Keep donor identity private on public records</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 3: DONOR DETAILS */}
-              {wizardStep === 3 && (
-                <div className="animate-fade-in flex-col gap-sm">
-                  {donorType === 'member' ? (
-                    <>
-                      <div className="form-group">
-                        <label className="form-label">Search Member Database *</label>
-                        <div className="search-box">
-                          <Search size={16} className="search-icon" />
-                          <input
-                            type="text"
-                            placeholder="Search member by name, ID, phone..."
-                            value={memberSearchQuery}
-                            onChange={(e) => setMemberSearchQuery(e.target.value)}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="member-search-cards-list">
-                        {searchableMembers.map((m) => {
-                          const house = households.find((h) => h.id === m.household_id);
-                          const isSel = donorMemberId === m.id;
-
-                          return (
-                            <div
-                              key={m.id}
-                              className={`member-select-card ${isSel ? 'selected' : ''}`}
-                              onClick={() => handleSelectMember(m)}
-                            >
-                              <div className="flex-row-gap-sm">
-                                <div className="donor-avatar-circle sm avatar-member">
-                                  {m.name.charAt(0).toUpperCase()}
-                                </div>
-                                <div>
-                                  <div className="font-weight-700 font-sm text-dark">{m.name}</div>
-                                  <span className="font-xs color-subtle">
-                                    ID: {m.id.substring(0, 8)} • {house ? `House #${house.house_number}` : 'No House'}
-                                  </span>
-                                </div>
-                              </div>
-                              <button className={`pill-btn-ghost font-xs ${isSel ? 'bg-success text-white' : ''}`}>
-                                {isSel ? 'Selected ✓' : 'Select'}
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </>
-                  ) : donorType === 'external' ? (
-                    <div className="form-row-2col">
-                      <div className="form-group">
-                        <label className="form-label">Donor Name *</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={donorName}
-                          onChange={(e) => setDonorName(e.target.value)}
-                          placeholder="Full Name"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">Phone Number</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={donorPhone}
-                          onChange={(e) => setDonorPhone(e.target.value)}
-                          placeholder="+91 Mobile"
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="details-section-card bg-primary-light text-center p-md">
-                      <HelpCircle size={32} className="text-primary margin-bottom-xs" />
-                      <h4 className="font-weight-700">Anonymous Donation Selected</h4>
-                      <p className="font-xs color-subtle">Donor identity will be masked as Anonymous on all public receipts and reports.</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* STEP 4: DONATION & PAYMENT DETAILS */}
-              {wizardStep === 4 && (
-                <div className="animate-fade-in flex-col gap-sm">
-                  <div className="form-row-2col">
-                    <div className="form-group">
-                      <label className="form-label">Donation Amount (₹) *</label>
-                      <input
-                        type="number"
-                        className="form-control font-weight-700 text-success"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : '')}
-                        placeholder="e.g. 5000"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Donation Date *</label>
-                      <input
-                        type="date"
-                        className="form-control"
-                        value={donationDate}
-                        onChange={(e) => setDonationDate(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-row-2col">
-                    <div className="form-group">
-                      <label className="form-label">Payment Method</label>
-                      <select
-                        className="form-control"
-                        value={paymentMethod}
-                        onChange={(e) => setPaymentMethod(e.target.value as any)}
-                      >
-                        <option value="upi">UPI / Online</option>
-                        <option value="cash">Cash</option>
-                        <option value="bank_transfer">Bank Transfer</option>
-                        <option value="cheque">Cheque</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Receipt Number</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={receiptNumber}
-                        onChange={(e) => setReceiptNumber(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Transaction Reference #</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={referenceNumber}
-                      onChange={(e) => setReferenceNumber(e.target.value)}
-                      placeholder="UPI Ref / Cheque No / Bank Reference"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Purpose / Remarks</label>
-                    <textarea
-                      className="form-control"
-                      rows={2}
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Notes or special donor instructions..."
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 5: SUCCESS VIEW */}
-              {wizardStep === 5 && (
-                <div className="animate-fade-in success-wizard-container">
-                  <div className="success-animated-badge">
-                    <CheckCircle size={40} />
-                  </div>
-                  <h3 className="font-weight-800 text-dark">Donation Recorded Successfully!</h3>
-                  <p className="font-sm color-subtle margin-top-xs">
-                    The donation of <strong>{formatCurrency(Number(amount))}</strong> has been saved to your Supabase database.
-                  </p>
-
-                  <div className="flex-row-center gap-sm margin-top-md">
-                    {selectedDonationRecord && (
-                      <button className="pill-btn-primary" onClick={() => openReceiptModal(selectedDonationRecord)}>
-                        <Award size={16} /> View Receipt
-                      </button>
-                    )}
-                    <button className="pill-btn-ghost" onClick={() => setIsDonationDrawerOpen(false)}>
-                      Back to Directory List
-                    </button>
-                  </div>
-                </div>
+              {wizardStep < 4 ? (
+                <button
+                  type="button"
+                  className="pill-btn-primary"
+                  onClick={() => {
+                    if (wizardStep === 1 && donationType === 'campaign' && !campaignId) {
+                      showToast('error', 'Please select a campaign');
+                      return;
+                    }
+                    setWizardStep((prev) => (prev + 1) as any);
+                  }}
+                >
+                  <span>Continue</span>
+                  <ChevronRight size={15} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="pill-btn-primary"
+                  disabled={isSaving}
+                  onClick={handleSaveDonation}
+                >
+                  {isSaving ? <Loader2 size={16} className="spinner" /> : 'Save Donation Record'}
+                </button>
               )}
             </div>
+          ) : undefined
+        }
+      >
+        {/* STEPPER HEADER BAR */}
+        <div className="wizard-stepper-bar margin-bottom-md">
+          <div className={`wizard-step-item ${wizardStep === 1 ? 'active' : wizardStep > 1 ? 'completed' : ''}`}>
+            <div className="wizard-step-badge">{wizardStep > 1 ? <Check size={13} /> : '1'}</div>
+            <span>Category</span>
+          </div>
+          <div className={`wizard-step-line ${wizardStep > 1 ? 'active' : ''}`}></div>
 
-            {/* WIZARD FOOTER ACTION BUTTONS */}
-            {wizardStep < 5 && (
-              <div className="modal-footer flex-between">
-                {wizardStep > 1 ? (
-                  <button
-                    type="button"
-                    className="pill-btn-ghost"
-                    onClick={() => setWizardStep((prev) => (prev - 1) as any)}
-                  >
-                    Back
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="pill-btn-ghost"
-                    onClick={() => setIsDonationDrawerOpen(false)}
-                  >
-                    Cancel
-                  </button>
-                )}
+          <div className={`wizard-step-item ${wizardStep === 2 ? 'active' : wizardStep > 2 ? 'completed' : ''}`}>
+            <div className="wizard-step-badge">{wizardStep > 2 ? <Check size={13} /> : '2'}</div>
+            <span>Donor Type</span>
+          </div>
+          <div className={`wizard-step-line ${wizardStep > 2 ? 'active' : ''}`}></div>
 
-                {wizardStep < 4 ? (
-                  <button
-                    type="button"
-                    className="pill-btn-primary"
-                    onClick={() => {
-                      if (wizardStep === 1 && donationType === 'campaign' && !campaignId) {
-                        showToast('error', 'Please select a campaign');
-                        return;
-                      }
-                      setWizardStep((prev) => (prev + 1) as any);
-                    }}
-                  >
-                    <span>Continue</span>
-                    <ChevronRight size={15} />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="pill-btn-primary"
-                    disabled={isSaving}
-                    onClick={handleSaveDonation}
-                  >
-                    {isSaving ? <Loader2 size={16} className="spinner" /> : 'Save Donation Record'}
-                  </button>
-                )}
+          <div className={`wizard-step-item ${wizardStep === 3 ? 'active' : wizardStep > 3 ? 'completed' : ''}`}>
+            <div className="wizard-step-badge">{wizardStep > 3 ? <Check size={13} /> : '3'}</div>
+            <span>Donor Info</span>
+          </div>
+          <div className={`wizard-step-line ${wizardStep > 3 ? 'active' : ''}`}></div>
+
+          <div className={`wizard-step-item ${wizardStep === 4 ? 'active' : wizardStep > 4 ? 'completed' : ''}`}>
+            <div className="wizard-step-badge">{wizardStep > 4 ? <Check size={13} /> : '4'}</div>
+            <span>Payment</span>
+          </div>
+          <div className={`wizard-step-line ${wizardStep > 4 ? 'active' : ''}`}></div>
+
+          <div className={`wizard-step-item ${wizardStep === 5 ? 'active' : ''}`}>
+            <div className="wizard-step-badge">5</div>
+            <span>Complete</span>
+          </div>
+        </div>
+
+        {/* STEP 1: DONATION CATEGORY */}
+        {wizardStep === 1 && (
+          <div className="animate-fade-in flex-col gap-sm">
+            <label className="form-label">Select Donation Category *</label>
+            <div className="details-grid-2col">
+              <div
+                className={`member-select-card ${donationType === 'general' ? 'selected' : ''}`}
+                onClick={() => setDonationType('general')}
+              >
+                <div className="flex-row-gap-sm">
+                  <div className="donor-avatar-circle emerald">
+                    <HeartHandshake size={20} />
+                  </div>
+                  <div>
+                    <div className="font-weight-700 font-sm text-dark">General Donation</div>
+                    <span className="font-xs color-subtle">Unrestricted general community fund</span>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className={`member-select-card ${donationType === 'campaign' ? 'selected' : ''}`}
+                onClick={() => setDonationType('campaign')}
+              >
+                <div className="flex-row-gap-sm">
+                  <div className="donor-avatar-circle purple">
+                    <Target size={20} />
+                  </div>
+                  <div>
+                    <div className="font-weight-700 font-sm text-dark">Campaign Donation</div>
+                    <span className="font-xs color-subtle">Dedicated special project collection</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {donationType === 'campaign' && (
+              <div className="form-group margin-top-xs">
+                <label className="form-label">Select Campaign *</label>
+                <select
+                  className="form-control"
+                  value={campaignId}
+                  onChange={(e) => setCampaignId(e.target.value)}
+                >
+                  <option value="">-- Choose Special Campaign --</option>
+                  {campaigns.map((c) => (
+                    <option key={c.id} value={c.id}>{c.campaign_name}</option>
+                  ))}
+                </select>
               </div>
             )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* 5. OFFICIAL PRINTABLE DONATION RECEIPT MODAL */}
-      {isReceiptModalOpen && receiptRecord && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card animate-scale-up" style={{ maxWidth: '640px' }}>
-            <div className="modal-header no-print">
-              <div>
-                <h4>Official Donation Receipt</h4>
-                <p className="modal-subtitle">Certified financial receipt generated from Mahall Management System.</p>
-              </div>
-              <button className="modal-close-btn" onClick={() => setIsReceiptModalOpen(false)}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="modal-body-scrollable padding-md">
-              <div className="certificate-modal-container printable-certificate">
-                <div className="certificate-header-seal">
-                  <div className="flex-row-gap-xs">
-                    <HeartHandshake size={32} className="text-success" />
-                    <div>
-                      <div className="font-weight-800 font-sm text-dark">MAHALL MANAGEMENT SYSTEM</div>
-                      <div className="font-xs color-subtle">OFFICIAL COMMUNITY DONATIONS REGISTRY</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-xs font-weight-700 text-success">RECEIPT NO.</div>
-                    <div className="font-weight-800 font-sm text-dark">{receiptRecord.receipt_number || `REC-${receiptRecord.id.substring(0, 6)}`}</div>
-                  </div>
-                </div>
-
-                <div className="certificate-title-box">
-                  <h2>Donation Receipt</h2>
-                  <p>Official record of contribution received</p>
-                </div>
-
-                <table className="certificate-details-table">
-                  <tbody>
-                    <tr>
-                      <td className="label">Donor Name</td>
-                      <td className="value">{receiptRecord.donor_name || 'Anonymous Donor'}</td>
-                    </tr>
-                    <tr>
-                      <td className="label">Donor Type</td>
-                      <td className="value">{receiptRecord.donor_type ? receiptRecord.donor_type.toUpperCase() : 'EXTERNAL'}</td>
-                    </tr>
-                    <tr>
-                      <td className="label">Donation Amount</td>
-                      <td className="value text-success font-weight-800 font-sm">{formatCurrency(receiptRecord.amount)}</td>
-                    </tr>
-                    <tr>
-                      <td className="label">Category / Campaign</td>
-                      <td className="value">{receiptRecord.donation_type === 'campaign' ? (campaigns.find(c => c.id === receiptRecord.campaign_id)?.campaign_name || 'Special Campaign') : 'General Donation'}</td>
-                    </tr>
-                    <tr>
-                      <td className="label">Payment Method</td>
-                      <td className="value">{receiptRecord.payment_method ? receiptRecord.payment_method.toUpperCase() : 'UPI'}</td>
-                    </tr>
-                    <tr>
-                      <td className="label">Donation Date</td>
-                      <td className="value">{receiptRecord.donation_date}</td>
-                    </tr>
-                    {receiptRecord.reference_number && (
-                      <tr>
-                        <td className="label">Ref / Txn ID</td>
-                        <td className="value">{receiptRecord.reference_number}</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-
-                <div className="certificate-footer-signatures">
-                  <div className="flex-row-gap-xs">
-                    <QrCode size={40} className="color-subtle" />
-                    <div className="font-xs color-subtle">
-                      Verified Financial Record<br />
-                      Txn Hash: {receiptRecord.id.substring(0, 12)}
-                    </div>
-                  </div>
-
-                  <div className="signature-line">
-                    <div className="signature-line-border">TREASURER / ACCOUNTANT</div>
+        {/* STEP 2: DONOR TYPE */}
+        {wizardStep === 2 && (
+          <div className="animate-fade-in flex-col gap-sm">
+            <label className="form-label">Select Donor Identity Type *</label>
+            <div className="flex-col gap-xs">
+              <div
+                className={`member-select-card ${donorType === 'member' ? 'selected' : ''}`}
+                onClick={() => { setDonorType('member'); }}
+              >
+                <div className="flex-row-gap-sm">
+                  <div className="donor-avatar-circle emerald"><User size={18} /></div>
+                  <div>
+                    <div className="font-weight-700 font-sm text-dark">Mahall Registered Member</div>
+                    <span className="font-xs color-subtle">Link donation directly to a registered member</span>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="modal-footer flex-between no-print">
-              <button className="pill-btn-ghost" onClick={() => setIsReceiptModalOpen(false)}>
-                Close
-              </button>
-              <div className="flex-row-gap-xs">
-                <button className="pill-btn-ghost" onClick={() => window.print()}>
-                  <Printer size={15} /> Print Receipt
-                </button>
-                <button className="pill-btn-primary" onClick={exportCSV}>
-                  <Download size={15} /> Download PDF
-                </button>
+              <div
+                className={`member-select-card ${donorType === 'external' ? 'selected' : ''}`}
+                onClick={() => { setDonorType('external'); }}
+              >
+                <div className="flex-row-gap-sm">
+                  <div className="donor-avatar-circle primary"><Users size={18} /></div>
+                  <div>
+                    <div className="font-weight-700 font-sm text-dark">External Well-Wisher</div>
+                    <span className="font-xs color-subtle">External non-member or organization contributor</span>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className={`member-select-card ${donorType === 'anonymous' ? 'selected' : ''}`}
+                onClick={() => { setDonorType('anonymous'); setDonorName('Anonymous Donor'); }}
+              >
+                <div className="flex-row-gap-sm">
+                  <div className="donor-avatar-circle yellow"><HelpCircle size={18} /></div>
+                  <div>
+                    <div className="font-weight-700 font-sm text-dark">Anonymous Donor</div>
+                    <span className="font-xs color-subtle">Keep donor identity private on public records</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* 6. RECORD DETAILS DRAWER */}
-      {isDetailsDrawerOpen && selectedDonationRecord && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card animate-scale-up" style={{ maxWidth: '600px' }}>
-            <div className="modal-header">
-              <div>
-                <h4>{selectedDonationRecord.donor_name || 'Anonymous Donor'}</h4>
-                <p className="modal-subtitle">
-                  Receipt: {selectedDonationRecord.receipt_number || `REC-${selectedDonationRecord.id.substring(0, 6)}`}
-                </p>
-              </div>
-              <button className="modal-close-btn" onClick={() => setIsDetailsDrawerOpen(false)}>
-                <X size={20} />
-              </button>
-            </div>
+        {/* STEP 3: DONOR DETAILS */}
+        {wizardStep === 3 && (
+          <div className="animate-fade-in flex-col gap-sm">
+            {donorType === 'member' ? (
+              <>
+                <div className="form-group">
+                  <label className="form-label">Search Member Database *</label>
+                  <div className="search-box">
+                    <Search size={16} className="search-icon" />
+                    <input
+                      type="text"
+                      placeholder="Search member by name, ID, phone..."
+                      value={memberSearchQuery}
+                      onChange={(e) => setMemberSearchQuery(e.target.value)}
+                    />
+                  </div>
+                </div>
 
-            <div className="modal-body-scrollable">
-              {/* DONOR INFORMATION */}
-              <div className="details-section-card">
-                <div className="details-section-title">
-                  <User size={15} /> Donor Information
-                </div>
-                <div className="details-grid-2col">
-                  <div>
-                    <div className="detail-item-label">Donor Name</div>
-                    <div className="detail-item-value">{selectedDonationRecord.donor_name || 'Anonymous Donor'}</div>
-                  </div>
-                  <div>
-                    <div className="detail-item-label">Donor Identity</div>
-                    <div className="detail-item-value">{selectedDonationRecord.donor_type ? selectedDonationRecord.donor_type.toUpperCase() : 'EXTERNAL'}</div>
-                  </div>
-                  <div>
-                    <div className="detail-item-label">Phone Number</div>
-                    <div className="detail-item-value">{selectedDonationRecord.donor_phone || 'N/A'}</div>
-                  </div>
-                  <div>
-                    <div className="detail-item-label">Email Address</div>
-                    <div className="detail-item-value">{selectedDonationRecord.donor_email || 'N/A'}</div>
-                  </div>
-                </div>
-              </div>
+                <div className="member-search-cards-list">
+                  {searchableMembers.map((m) => {
+                    const house = households.find((h) => h.id === m.household_id);
+                    const isSel = donorMemberId === m.id;
 
-              {/* DONATION DETAILS */}
-              <div className="details-section-card">
-                <div className="details-section-title">
-                  <DollarSign size={15} /> Donation & Payment Details
+                    return (
+                      <div
+                        key={m.id}
+                        className={`member-select-card ${isSel ? 'selected' : ''}`}
+                        onClick={() => handleSelectMember(m)}
+                      >
+                        <div className="flex-row-gap-sm">
+                          <div className="donor-avatar-circle sm avatar-member">
+                            {m.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-weight-700 font-sm text-dark">{m.name}</div>
+                            <span className="font-xs color-subtle">
+                              ID: {m.id.substring(0, 8)} • {house ? `House #${house.house_number}` : 'No House'}
+                            </span>
+                          </div>
+                        </div>
+                        <button className={`pill-btn-ghost font-xs ${isSel ? 'bg-success text-white' : ''}`}>
+                          {isSel ? 'Selected ✓' : 'Select'}
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="details-grid-2col">
-                  <div>
-                    <div className="detail-item-label">Donation Amount</div>
-                    <div className="detail-item-value text-success font-weight-800">{formatCurrency(selectedDonationRecord.amount)}</div>
-                  </div>
-                  <div>
-                    <div className="detail-item-label">Donation Date</div>
-                    <div className="detail-item-value">{selectedDonationRecord.donation_date}</div>
-                  </div>
-                  <div>
-                    <div className="detail-item-label">Payment Method</div>
-                    <div className="detail-item-value">{selectedDonationRecord.payment_method ? selectedDonationRecord.payment_method.toUpperCase() : 'UPI'}</div>
-                  </div>
-                  <div>
-                    <div className="detail-item-label">Category</div>
-                    <div className="detail-item-value">{selectedDonationRecord.donation_type === 'campaign' ? 'Special Campaign' : 'General Donation'}</div>
-                  </div>
+              </>
+            ) : donorType === 'external' ? (
+              <div className="form-row-2col">
+                <div className="form-group">
+                  <label className="form-label">Donor Name *</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={donorName}
+                    onChange={(e) => setDonorName(e.target.value)}
+                    placeholder="Full Name"
+                  />
                 </div>
-              </div>
-
-              {/* RECEIPT ACTION CARD */}
-              <div className="details-section-card bg-primary-light">
-                <div className="details-section-title text-primary">
-                  <FileText size={15} /> Official Receipt
-                </div>
-                <div className="flex-between margin-top-xs">
-                  <div>
-                    <div className="detail-item-label">Receipt Status</div>
-                    <div className="font-weight-700 text-success">🟢 Issued & Certified</div>
-                  </div>
-                  <div className="flex-row-gap-xs">
-                    <button className="pill-btn-primary font-xs" onClick={() => openReceiptModal(selectedDonationRecord)}>
-                      <Award size={13} /> View Receipt
-                    </button>
-                  </div>
+                <div className="form-group">
+                  <label className="form-label">Phone Number</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={donorPhone}
+                    onChange={(e) => setDonorPhone(e.target.value)}
+                    placeholder="+91 Mobile"
+                  />
                 </div>
               </div>
-            </div>
-
-            <div className="modal-footer">
-              <button className="pill-btn-ghost" onClick={() => setIsDetailsDrawerOpen(false)}>
-                Close
-              </button>
-            </div>
+            ) : (
+              <div className="details-section-card bg-primary-light text-center p-md">
+                <HelpCircle size={32} className="text-primary margin-bottom-xs" />
+                <h4 className="font-weight-700">Anonymous Donation Selected</h4>
+                <p className="font-xs color-subtle">Donor identity will be masked as Anonymous on all public receipts and reports.</p>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* MOBILE FILTER DRAWER SHEET */}
-      {isMobileFilterOpen && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card animate-scale-up" style={{ maxWidth: '440px' }}>
-            <div className="modal-header">
-              <h4>Filter Donations</h4>
-              <button className="modal-close-btn" onClick={() => setIsMobileFilterOpen(false)}>
-                <X size={20} />
-              </button>
+        {/* STEP 4: DONATION & PAYMENT DETAILS */}
+        {wizardStep === 4 && (
+          <div className="animate-fade-in flex-col gap-sm">
+            <div className="form-row-2col">
+              <div className="form-group">
+                <label className="form-label">Donation Amount (₹) *</label>
+                <input
+                  type="number"
+                  className="form-control font-weight-700 text-success"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : '')}
+                  placeholder="e.g. 5000"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Donation Date *</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={donationDate}
+                  onChange={(e) => setDonationDate(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="modal-body-scrollable">
-              <div className="form-group">
-                <label className="form-label">Subscription Year</label>
-                <YearFilter selectedYearId={selectedYearId} onChange={setSelectedYearId} showAllOption={true} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Donor Type</label>
-                <select className="form-control" value={selectedDonorType} onChange={(e) => setSelectedDonorType(e.target.value as any)}>
-                  <option value="">All Donor Types</option>
-                  <option value="member">Mahall Member</option>
-                  <option value="external">External Donor</option>
-                  <option value="anonymous">Anonymous</option>
-                </select>
-              </div>
+
+            <div className="form-row-2col">
               <div className="form-group">
                 <label className="form-label">Payment Method</label>
-                <select className="form-control" value={selectedMethod} onChange={(e) => setSelectedMethod(e.target.value)}>
-                  <option value="">All Methods</option>
+                <select
+                  className="form-control"
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value as any)}
+                >
                   <option value="upi">UPI / Online</option>
                   <option value="cash">Cash</option>
                   <option value="bank_transfer">Bank Transfer</option>
+                  <option value="cheque">Cheque</option>
                 </select>
               </div>
+              <div className="form-group">
+                <label className="form-label">Receipt Number</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={receiptNumber}
+                  onChange={(e) => setReceiptNumber(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="modal-footer flex-between">
-              <button className="pill-btn-ghost" onClick={() => { clearFilters(); setIsMobileFilterOpen(false); }}>
-                Reset
-              </button>
-              <button className="pill-btn-primary" onClick={() => setIsMobileFilterOpen(false)}>
-                Apply Filters
+
+            <div className="form-group">
+              <label className="form-label">Transaction Reference #</label>
+              <input
+                type="text"
+                className="form-control"
+                value={referenceNumber}
+                onChange={(e) => setReferenceNumber(e.target.value)}
+                placeholder="UPI Ref / Cheque No / Bank Reference"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Purpose / Remarks</label>
+              <textarea
+                className="form-control"
+                rows={2}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Notes or special donor instructions..."
+              />
+            </div>
+          </div>
+        )}
+
+        {/* STEP 5: SUCCESS VIEW */}
+        {wizardStep === 5 && (
+          <div className="animate-fade-in success-wizard-container">
+            <div className="success-animated-badge">
+              <CheckCircle size={40} />
+            </div>
+            <h3 className="font-weight-800 text-dark">Donation Recorded Successfully!</h3>
+            <p className="font-sm color-subtle margin-top-xs">
+              The donation of <strong>{formatCurrency(Number(amount))}</strong> has been saved to your Supabase database.
+            </p>
+
+            <div className="flex-row-center gap-sm margin-top-md">
+              {selectedDonationRecord && (
+                <button className="pill-btn-primary" onClick={() => openReceiptModal(selectedDonationRecord)}>
+                  <Award size={16} /> View Receipt
+                </button>
+              )}
+              <button className="pill-btn-ghost" onClick={() => setIsDonationDrawerOpen(false)}>
+                Back to Directory List
               </button>
             </div>
           </div>
+        )}
+      </Modal>
+
+      {/* 5. OFFICIAL PRINTABLE DONATION RECEIPT MODAL */}
+      <Modal
+        isOpen={isReceiptModalOpen && !!receiptRecord}
+        onClose={() => setIsReceiptModalOpen(false)}
+        title="Official Donation Receipt"
+        subtitle="Certified financial receipt generated from Mahall Management System."
+        icon={<Award size={22} />}
+        size="md"
+        footer={
+          <div className="flex-between width-100 no-print">
+            <button className="pill-btn-ghost" onClick={() => setIsReceiptModalOpen(false)}>
+              Close
+            </button>
+            <div className="flex-row-gap-xs">
+              <button className="pill-btn-ghost" onClick={() => window.print()}>
+                <Printer size={15} /> Print Receipt
+              </button>
+              <button className="pill-btn-primary" onClick={exportCSV}>
+                <Download size={15} /> Download PDF
+              </button>
+            </div>
+          </div>
+        }
+      >
+        {receiptRecord && (
+          <div className="certificate-modal-container printable-certificate">
+            <div className="certificate-header-seal">
+              <div className="flex-row-gap-xs">
+                <HeartHandshake size={32} className="text-success" />
+                <div>
+                  <div className="font-weight-800 font-sm text-dark">MAHALL MANAGEMENT SYSTEM</div>
+                  <div className="font-xs color-subtle">OFFICIAL COMMUNITY DONATIONS REGISTRY</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-xs font-weight-700 text-success">RECEIPT NO.</div>
+                <div className="font-weight-800 font-sm text-dark">{receiptRecord.receipt_number || `REC-${receiptRecord.id.substring(0, 6)}`}</div>
+              </div>
+            </div>
+
+            <div className="certificate-title-box">
+              <h2>Donation Receipt</h2>
+              <p>Official record of contribution received</p>
+            </div>
+
+            <table className="certificate-details-table">
+              <tbody>
+                <tr>
+                  <td className="label">Donor Name</td>
+                  <td className="value">{receiptRecord.donor_name || 'Anonymous Donor'}</td>
+                </tr>
+                <tr>
+                  <td className="label">Donor Type</td>
+                  <td className="value">{receiptRecord.donor_type ? receiptRecord.donor_type.toUpperCase() : 'EXTERNAL'}</td>
+                </tr>
+                <tr>
+                  <td className="label">Donation Amount</td>
+                  <td className="value text-success font-weight-800 font-sm">{formatCurrency(receiptRecord.amount)}</td>
+                </tr>
+                <tr>
+                  <td className="label">Category / Campaign</td>
+                  <td className="value">{receiptRecord.donation_type === 'campaign' ? (campaigns.find(c => c.id === receiptRecord.campaign_id)?.campaign_name || 'Special Campaign') : 'General Donation'}</td>
+                </tr>
+                <tr>
+                  <td className="label">Payment Method</td>
+                  <td className="value">{receiptRecord.payment_method ? receiptRecord.payment_method.toUpperCase() : 'UPI'}</td>
+                </tr>
+                <tr>
+                  <td className="label">Donation Date</td>
+                  <td className="value">{receiptRecord.donation_date}</td>
+                </tr>
+                {receiptRecord.reference_number && (
+                  <tr>
+                    <td className="label">Ref / Txn ID</td>
+                    <td className="value">{receiptRecord.reference_number}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+
+            <div className="certificate-footer-signatures">
+              <div className="flex-row-gap-xs">
+                <QrCode size={40} className="color-subtle" />
+                <div className="font-xs color-subtle">
+                  Verified Financial Record<br />
+                  Txn Hash: {receiptRecord.id.substring(0, 12)}
+                </div>
+              </div>
+
+              <div className="signature-line">
+                <div className="signature-line-border">TREASURER / ACCOUNTANT</div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* 6. RECORD DETAILS DRAWER */}
+      <Modal
+        isOpen={isDetailsDrawerOpen && !!selectedDonationRecord}
+        onClose={() => setIsDetailsDrawerOpen(false)}
+        title={selectedDonationRecord?.donor_name || 'Anonymous Donor'}
+        subtitle={`Receipt: ${selectedDonationRecord?.receipt_number || `REC-${selectedDonationRecord?.id.substring(0, 6)}`}`}
+        icon={<User size={20} />}
+        size="md"
+        footer={
+          <div className="flex-end width-100">
+            <button className="pill-btn-ghost" onClick={() => setIsDetailsDrawerOpen(false)}>
+              Close
+            </button>
+          </div>
+        }
+      >
+        {selectedDonationRecord && (
+          <>
+            {/* DONOR INFORMATION */}
+            <div className="form-section-card">
+              <div className="form-section-header">
+                <User size={16} className="text-primary" />
+                <span className="form-section-title">Donor Information</span>
+              </div>
+              <div className="form-grid-2col">
+                <div>
+                  <div className="detail-item-label">Donor Name</div>
+                  <div className="detail-item-value">{selectedDonationRecord.donor_name || 'Anonymous Donor'}</div>
+                </div>
+                <div>
+                  <div className="detail-item-label">Donor Identity</div>
+                  <div className="detail-item-value">{selectedDonationRecord.donor_type ? selectedDonationRecord.donor_type.toUpperCase() : 'EXTERNAL'}</div>
+                </div>
+                <div>
+                  <div className="detail-item-label">Phone Number</div>
+                  <div className="detail-item-value">{selectedDonationRecord.donor_phone || 'N/A'}</div>
+                </div>
+                <div>
+                  <div className="detail-item-label">Email Address</div>
+                  <div className="detail-item-value">{selectedDonationRecord.donor_email || 'N/A'}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* DONATION DETAILS */}
+            <div className="form-section-card">
+              <div className="form-section-header">
+                <DollarSign size={16} className="text-success" />
+                <span className="form-section-title">Donation & Payment Details</span>
+              </div>
+              <div className="form-grid-2col">
+                <div>
+                  <div className="detail-item-label">Donation Amount</div>
+                  <div className="detail-item-value text-success font-weight-800">{formatCurrency(selectedDonationRecord.amount)}</div>
+                </div>
+                <div>
+                  <div className="detail-item-label">Donation Date</div>
+                  <div className="detail-item-value">{selectedDonationRecord.donation_date}</div>
+                </div>
+                <div>
+                  <div className="detail-item-label">Payment Method</div>
+                  <div className="detail-item-value">{selectedDonationRecord.payment_method ? selectedDonationRecord.payment_method.toUpperCase() : 'UPI'}</div>
+                </div>
+                <div>
+                  <div className="detail-item-label">Category</div>
+                  <div className="detail-item-value">{selectedDonationRecord.donation_type === 'campaign' ? 'Special Campaign' : 'General Donation'}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* RECEIPT ACTION CARD */}
+            <div className="form-section-card bg-primary-light">
+              <div className="form-section-header">
+                <FileText size={16} className="text-primary" />
+                <span className="form-section-title text-primary">Official Receipt</span>
+              </div>
+              <div className="flex-between margin-top-xs">
+                <div>
+                  <div className="detail-item-label">Receipt Status</div>
+                  <div className="font-weight-700 text-success">🟢 Issued & Certified</div>
+                </div>
+                <div className="flex-row-gap-xs">
+                  <button className="pill-btn-primary font-xs" onClick={() => openReceiptModal(selectedDonationRecord)}>
+                    <Award size={13} /> View Receipt
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </Modal>
+
+      {/* MOBILE FILTER DRAWER SHEET */}
+      <Modal
+        isOpen={isMobileFilterOpen}
+        onClose={() => setIsMobileFilterOpen(false)}
+        title="Filter Donations"
+        icon={<Filter size={18} />}
+        size="sm"
+        footer={
+          <div className="flex-between width-100">
+            <button className="pill-btn-ghost" onClick={() => { clearFilters(); setIsMobileFilterOpen(false); }}>
+              Reset
+            </button>
+            <button className="pill-btn-primary" onClick={() => setIsMobileFilterOpen(false)}>
+              Apply Filters
+            </button>
+          </div>
+        }
+      >
+        <div className="form-group">
+          <label className="form-label">Subscription Year</label>
+          <YearFilter selectedYearId={selectedYearId} onChange={setSelectedYearId} showAllOption={true} />
         </div>
-      )}
+        <div className="form-group margin-top-sm">
+          <label className="form-label">Donor Type</label>
+          <select className="form-control" value={selectedDonorType} onChange={(e) => setSelectedDonorType(e.target.value as any)}>
+            <option value="">All Donor Types</option>
+            <option value="member">Mahall Member</option>
+            <option value="external">External Donor</option>
+            <option value="anonymous">Anonymous</option>
+          </select>
+        </div>
+        <div className="form-group margin-top-sm">
+          <label className="form-label">Payment Method</label>
+          <select className="form-control" value={selectedMethod} onChange={(e) => setSelectedMethod(e.target.value)}>
+            <option value="">All Methods</option>
+            <option value="upi">UPI / Online</option>
+            <option value="cash">Cash</option>
+            <option value="bank_transfer">Bank Transfer</option>
+          </select>
+        </div>
+      </Modal>
 
       {/* BULK DELETE CONFIRMATION MODAL */}
-      {isBulkDeleteModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card animate-scale-up" style={{ maxWidth: '440px' }}>
-            <div className="modal-header">
-              <h4>Delete Donation Records</h4>
-              <button className="modal-close-btn" onClick={() => setIsBulkDeleteModalOpen(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            <div className="modal-body-scrollable">
-              <p className="font-sm text-dark">
-                Are you sure you want to permanently delete {selectedIds.length} selected donation records? This action cannot be undone.
-              </p>
-            </div>
-            <div className="modal-footer flex-between">
-              <button className="pill-btn-ghost" onClick={() => setIsBulkDeleteModalOpen(false)}>
-                Cancel
-              </button>
-              <button className="pill-btn-primary bg-danger" onClick={handleBulkDelete}>
-                Delete Records
-              </button>
-            </div>
+      <Modal
+        isOpen={isBulkDeleteModalOpen}
+        onClose={() => setIsBulkDeleteModalOpen(false)}
+        title="Delete Donation Records"
+        icon={<Trash2 size={18} className="text-danger" />}
+        size="sm"
+        footer={
+          <div className="flex-between width-100">
+            <button className="pill-btn-ghost" onClick={() => setIsBulkDeleteModalOpen(false)}>
+              Cancel
+            </button>
+            <button className="pill-btn-primary bg-danger" onClick={handleBulkDelete}>
+              Delete Records
+            </button>
           </div>
-        </div>
-      )}
+        }
+      >
+        <p className="font-sm text-dark">
+          Are you sure you want to permanently delete {selectedIds.length} selected donation records? This action cannot be undone.
+        </p>
+      </Modal>
 
       {/* EMBEDDED STYLES FOR ABSOLUTE DESIGN CONSISTENCY */}
       <style>{`

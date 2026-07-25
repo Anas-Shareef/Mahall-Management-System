@@ -8,6 +8,7 @@ import {
   Home, Building2, ChevronLeft, Award, QrCode
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
+import { Modal } from '../../components/Modal';
 
 export const Deaths: React.FC = () => {
 
@@ -900,665 +901,560 @@ export const Deaths: React.FC = () => {
       </div>
 
       {/* 4. MULTI-STEP RECORD DEATH WIZARD DRAWER / MODAL */}
-      {isAddDrawerOpen && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card animate-scale-up" style={{ maxWidth: '640px' }}>
-            <div className="modal-header">
-              <div>
-                <h4>{modalMode === 'add' ? 'Record Deceased Member' : 'Edit Death Record'}</h4>
-                <p className="modal-subtitle">Follow the wizard steps to capture complete death and family information.</p>
+      <Modal
+        isOpen={isAddDrawerOpen}
+        onClose={() => setIsAddDrawerOpen(false)}
+        title={modalMode === 'add' ? 'Record Deceased Member' : 'Edit Death Record'}
+        subtitle="Follow the wizard steps to capture complete death and family information."
+        icon={<UserX size={22} />}
+        size="lg"
+        footer={
+          wizardStep < 4 ? (
+            <div className="flex-between width-100">
+              {wizardStep > 1 ? (
+                <button
+                  type="button"
+                  className="pill-btn-ghost"
+                  onClick={() => setWizardStep((prev) => (prev - 1) as any)}
+                >
+                  Back
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="pill-btn-ghost"
+                  onClick={() => setIsAddDrawerOpen(false)}
+                >
+                  Cancel
+                </button>
+              )}
+
+              {wizardStep < 3 ? (
+                <button
+                  type="button"
+                  className="pill-btn-primary"
+                  onClick={() => {
+                    if (wizardStep === 1 && !deceasedName.trim() && !selectedMemberId) {
+                      showToast('error', 'Please select or enter deceased member name');
+                      return;
+                    }
+                    setWizardStep((prev) => (prev + 1) as any);
+                  }}
+                >
+                  <span>Continue</span>
+                  <ChevronRight size={15} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="pill-btn-primary"
+                  disabled={isSaving}
+                  onClick={handleSave}
+                >
+                  {isSaving ? <Loader2 size={16} className="spinner" /> : 'Save Death Record'}
+                </button>
+              )}
+            </div>
+          ) : undefined
+        }
+      >
+        {/* STEPPER HEADER BAR */}
+        <div className="wizard-stepper-bar margin-bottom-md">
+          <div className={`wizard-step-item ${wizardStep === 1 ? 'active' : wizardStep > 1 ? 'completed' : ''}`}>
+            <div className="wizard-step-badge">{wizardStep > 1 ? <Check size={13} /> : '1'}</div>
+            <span>Member</span>
+          </div>
+          <div className={`wizard-step-line ${wizardStep > 1 ? 'active' : ''}`}></div>
+
+          <div className={`wizard-step-item ${wizardStep === 2 ? 'active' : wizardStep > 2 ? 'completed' : ''}`}>
+            <div className="wizard-step-badge">{wizardStep > 2 ? <Check size={13} /> : '2'}</div>
+            <span>Death Details</span>
+          </div>
+          <div className={`wizard-step-line ${wizardStep > 2 ? 'active' : ''}`}></div>
+
+          <div className={`wizard-step-item ${wizardStep === 3 ? 'active' : wizardStep > 3 ? 'completed' : ''}`}>
+            <div className="wizard-step-badge">{wizardStep > 3 ? <Check size={13} /> : '3'}</div>
+            <span>Review</span>
+          </div>
+          <div className={`wizard-step-line ${wizardStep > 3 ? 'active' : ''}`}></div>
+
+          <div className={`wizard-step-item ${wizardStep === 4 ? 'active' : ''}`}>
+            <div className="wizard-step-badge">4</div>
+            <span>Complete</span>
+          </div>
+        </div>
+
+        {/* STEP 1: MEMBER SELECTION */}
+        {wizardStep === 1 && (
+          <div className="animate-fade-in flex-col gap-sm">
+            <div className="form-group">
+              <label className="form-label">Search Registered Member Database *</label>
+              <div className="search-box">
+                <Search size={16} className="search-icon" />
+                <input
+                  type="text"
+                  placeholder="Search member by name, ID, phone..."
+                  value={memberSearch}
+                  onChange={(e) => setMemberSearch(e.target.value)}
+                />
               </div>
-              <button className="modal-close-btn" onClick={() => setIsAddDrawerOpen(false)}>
-                <X size={20} />
-              </button>
             </div>
 
-            {/* STEPPER HEADER BAR */}
-            <div className="wizard-stepper-bar">
-              <div className={`wizard-step-item ${wizardStep === 1 ? 'active' : wizardStep > 1 ? 'completed' : ''}`}>
-                <div className="wizard-step-badge">{wizardStep > 1 ? <Check size={13} /> : '1'}</div>
-                <span>Member</span>
-              </div>
-              <div className={`wizard-step-line ${wizardStep > 1 ? 'active' : ''}`}></div>
+            <div className="member-search-cards-list">
+              {searchableMembers.map((m) => {
+                const house = households.find((h) => h.id === m.household_id);
+                const isSel = selectedMemberId === m.id;
 
-              <div className={`wizard-step-item ${wizardStep === 2 ? 'active' : wizardStep > 2 ? 'completed' : ''}`}>
-                <div className="wizard-step-badge">{wizardStep > 2 ? <Check size={13} /> : '2'}</div>
-                <span>Death Details</span>
-              </div>
-              <div className={`wizard-step-line ${wizardStep > 2 ? 'active' : ''}`}></div>
-
-              <div className={`wizard-step-item ${wizardStep === 3 ? 'active' : wizardStep > 3 ? 'completed' : ''}`}>
-                <div className="wizard-step-badge">{wizardStep > 3 ? <Check size={13} /> : '3'}</div>
-                <span>Review</span>
-              </div>
-              <div className={`wizard-step-line ${wizardStep > 3 ? 'active' : ''}`}></div>
-
-              <div className={`wizard-step-item ${wizardStep === 4 ? 'active' : ''}`}>
-                <div className="wizard-step-badge">4</div>
-                <span>Complete</span>
-              </div>
-            </div>
-
-            <div className="modal-body-scrollable">
-              {/* STEP 1: SELECT DECEASED MEMBER */}
-              {wizardStep === 1 && (
-                <div className="animate-fade-in flex-col gap-sm">
-                  <div className="form-group">
-                    <label className="form-label">Search Member Database *</label>
-                    <div className="search-box">
-                      <Search size={16} className="search-icon" />
-                      <input
-                        type="text"
-                        placeholder="Search member by name, ID, phone, or house number..."
-                        value={memberSearch}
-                        onChange={(e) => setMemberSearch(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="member-search-cards-list margin-top-xs">
-                    {searchableMembers.map((m) => {
-                      const house = households.find((h) => h.id === m.household_id);
-                      const isSel = selectedMemberId === m.id;
-
-                      return (
-                        <div
-                          key={m.id}
-                          className={`member-select-card ${isSel ? 'selected' : ''}`}
-                          onClick={() => handleSelectMember(m.id)}
-                        >
-                          <div className="flex-row-gap-sm">
-                            <div className="donor-avatar-circle sm avatar-member">
-                              {m.name.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                              <div className="font-weight-700 font-sm text-dark">{m.name}</div>
-                              <span className="font-xs color-subtle">
-                                ID: {m.id.substring(0, 8)} • {house ? `House: ${house.house_number}` : 'No House'}
-                              </span>
-                            </div>
-                          </div>
-                          <button className={`pill-btn-ghost font-xs ${isSel ? 'bg-success text-white' : ''}`}>
-                            {isSel ? 'Selected ✓' : 'Select'}
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="margin-top-sm border-top pt-sm">
-                    <label className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={!isLinkedMember}
-                        onChange={(e) => {
-                          setIsLinkedMember(!e.target.checked);
-                          if (e.target.checked) setSelectedMemberId('');
-                        }}
-                      />
-                      <span>Deceased person is an unlinked / external non-member</span>
-                    </label>
-                  </div>
-
-                  {!isLinkedMember && (
-                    <div className="form-row-2col margin-top-xs">
-                      <div className="form-group">
-                        <label className="form-label">Deceased Name *</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={deceasedName}
-                          onChange={(e) => setDeceasedName(e.target.value)}
-                          placeholder="Full Name"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">Father / Husband Name</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={fatherOrHusbandName}
-                          onChange={(e) => setFatherOrHusbandName(e.target.value)}
-                          placeholder="Relative Name"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* STEP 2: DEATH & MEDICAL DETAILS */}
-              {wizardStep === 2 && (
-                <div className="animate-fade-in flex-col gap-sm">
-                  <div className="form-row-2col">
-                    <div className="form-group">
-                      <label className="form-label">Date of Death *</label>
-                      <input
-                        type="date"
-                        className="form-control"
-                        value={dateOfDeath}
-                        onChange={(e) => setDateOfDeath(e.target.value)}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Time of Death</label>
-                      <input
-                        type="time"
-                        className="form-control"
-                        value={timeOfDeath}
-                        onChange={(e) => setTimeOfDeath(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-row-2col">
-                    <div className="form-group">
-                      <label className="form-label">Place of Death</label>
-                      <select
-                        className="form-control"
-                        value={placeOfDeath}
-                        onChange={(e) => setPlaceOfDeath(e.target.value)}
-                      >
-                        <option value="Hospital">Hospital</option>
-                        <option value="Home">Home</option>
-                        <option value="Other">Other Location</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Cause of Death</label>
-                      <select
-                        className="form-control"
-                        value={causeOfDeath}
-                        onChange={(e) => setCauseOfDeath(e.target.value)}
-                      >
-                        <option value="Natural">Natural</option>
-                        <option value="Illness">Illness / Disease</option>
-                        <option value="Accident">Accident</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="form-row-2col">
-                    <div className="form-group">
-                      <label className="form-label">Age at Death</label>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={age}
-                        onChange={(e) => setAge(e.target.value ? Number(e.target.value) : '')}
-                        placeholder="Age in years"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Gender</label>
-                      <select
-                        className="form-control"
-                        value={gender}
-                        onChange={(e) => setGender(e.target.value as any)}
-                      >
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Hospital / Facility / Location Name</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={facilityName}
-                      onChange={(e) => setFacilityName(e.target.value)}
-                      placeholder="e.g. City Hospital, Ward 4, etc."
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Burial Location / Qabar Number</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={burialLocation}
-                      onChange={(e) => setBurialLocation(e.target.value)}
-                      placeholder="e.g. Central Mahall Qabarstan, Plot B-14"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Death Certificate Number</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={certificateNumber}
-                      onChange={(e) => setCertificateNumber(e.target.value)}
-                      placeholder="e.g. DC-2026-00124"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Attending Doctor / Certifier Name</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={certifierName}
-                      onChange={(e) => setCertifierName(e.target.value)}
-                      placeholder="Dr. Name or Medical Officer"
-                    />
-                  </div>
-
-                  <div className="margin-top-xs margin-bottom-xs">
-                    <label className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={medicallyCertified}
-                        onChange={(e) => setMedicallyCertified(e.target.checked)}
-                      />
-                      <span>Medically Certified Record</span>
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 3: REVIEW & CONFIRM */}
-              {wizardStep === 3 && (
-                <div className="animate-fade-in flex-col gap-sm">
-                  <div className="details-section-card bg-primary-light">
-                    <div className="details-section-title text-primary">Deceased Summary</div>
-                    <div className="details-grid-2col">
-                      <div>
-                        <div className="detail-item-label">Deceased Name</div>
-                        <div className="detail-item-value">{deceasedName || 'Not specified'}</div>
+                return (
+                  <div
+                    key={m.id}
+                    className={`member-select-card ${isSel ? 'selected' : ''}`}
+                    onClick={() => handleSelectMember(m.id)}
+                  >
+                    <div className="flex-row-gap-sm">
+                      <div className="donor-avatar-circle sm avatar-member">
+                        {m.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <div className="detail-item-label">Date of Death</div>
-                        <div className="detail-item-value">{dateOfDeath}</div>
-                      </div>
-                      <div>
-                        <div className="detail-item-label">Age & Gender</div>
-                        <div className="detail-item-value">{age ? `${age} yrs` : 'N/A'} • {gender.toUpperCase()}</div>
-                      </div>
-                      <div>
-                        <div className="detail-item-label">Place of Death</div>
-                        <div className="detail-item-value">{placeOfDeath}</div>
+                        <div className="font-weight-700 font-sm text-dark">{m.name}</div>
+                        <span className="font-xs color-subtle">
+                          ID: {m.id.substring(0, 8)} • {house ? `House #${house.house_number}` : 'No House'}
+                        </span>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="details-section-card">
-                    <div className="details-section-title">Medical & Certificate Review</div>
-                    <div className="details-grid-2col">
-                      <div>
-                        <div className="detail-item-label">Doctor / Certifier</div>
-                        <div className="detail-item-value">{certifierName || 'N/A'}</div>
-                      </div>
-                      <div>
-                        <div className="detail-item-label">Certificate Status</div>
-                        <div className="detail-item-value text-success">
-                          {medicallyCertified || certificateNumber ? 'Available 🟢' : 'Pending 🟠'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 4: SUCCESS VIEW */}
-              {wizardStep === 4 && (
-                <div className="animate-fade-in success-wizard-container">
-                  <div className="success-animated-badge">
-                    <CheckCircle size={40} />
-                  </div>
-                  <h3 className="font-weight-800 text-dark">Death Record Saved Successfully!</h3>
-                  <p className="font-sm color-subtle margin-top-xs">
-                    The record for <strong>{deceasedName}</strong> has been saved to your Supabase database and member status updated.
-                  </p>
-
-                  <div className="flex-row-center gap-sm margin-top-md">
-                    {selectedDeathRecord && (
-                      <button className="pill-btn-primary" onClick={() => openCertificateModal(selectedDeathRecord)}>
-                        <Award size={16} /> View Certificate
-                      </button>
-                    )}
-                    <button className="pill-btn-ghost" onClick={() => setIsAddDrawerOpen(false)}>
-                      Back to Directory List
+                    <button className={`pill-btn-ghost font-xs ${isSel ? 'bg-success text-white' : ''}`}>
+                      {isSel ? 'Selected ✓' : 'Select'}
                     </button>
                   </div>
-                </div>
-              )}
+                );
+              })}
             </div>
 
-            {/* WIZARD FOOTER ACTION BUTTONS */}
-            {wizardStep < 4 && (
-              <div className="modal-footer flex-between">
-                {wizardStep > 1 ? (
-                  <button
-                    type="button"
-                    className="pill-btn-ghost"
-                    onClick={() => setWizardStep((prev) => (prev - 1) as any)}
-                  >
-                    Back
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="pill-btn-ghost"
-                    onClick={() => setIsAddDrawerOpen(false)}
-                  >
-                    Cancel
-                  </button>
-                )}
-
-                {wizardStep < 3 ? (
-                  <button
-                    type="button"
-                    className="pill-btn-primary"
-                    onClick={() => {
-                      if (wizardStep === 1 && !deceasedName.trim() && !selectedMemberId) {
-                        showToast('error', 'Please select or enter deceased member name');
-                        return;
-                      }
-                      setWizardStep((prev) => (prev + 1) as any);
-                    }}
-                  >
-                    <span>Continue</span>
-                    <ChevronRight size={15} />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="pill-btn-primary"
-                    disabled={isSaving}
-                    onClick={handleSave}
-                  >
-                    {isSaving ? <Loader2 size={16} className="spinner" /> : 'Save Death Record'}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 5. OFFICIAL PRINTABLE DEATH CERTIFICATE MODAL */}
-      {isCertificateModalOpen && certificateRecord && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card animate-scale-up" style={{ maxWidth: '680px' }}>
-            <div className="modal-header no-print">
-              <div>
-                <h4>Official Death Certificate</h4>
-                <p className="modal-subtitle">Certified document generated from Mahall Management System.</p>
-              </div>
-              <button className="modal-close-btn" onClick={() => setIsCertificateModalOpen(false)}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="modal-body-scrollable padding-md">
-              <div className="certificate-modal-container printable-certificate">
-                <div className="certificate-header-seal">
-                  <div className="flex-row-gap-xs">
-                    <Award size={32} className="text-primary" />
-                    <div>
-                      <div className="font-weight-800 font-sm text-dark">MAHALL MANAGEMENT SYSTEM</div>
-                      <div className="font-xs color-subtle">OFFICIAL COMMUNITY RECORDS REGISTRY</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-xs font-weight-700 text-primary">CERTIFICATE NO.</div>
-                    <div className="font-weight-800 font-sm text-dark">
-                      {certificateRecord.notes?.includes('DC-') 
-                        ? certificateRecord.notes 
-                        : `DC-${new Date().getFullYear()}-${certificateRecord.id.substring(0, 5).toUpperCase()}`}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="certificate-title-box">
-                  <h2>Certificate of Death</h2>
-                  <p>Issued under official Mahall Committee Governance Records</p>
-                </div>
-
-                <table className="certificate-details-table">
-                  <tbody>
-                    <tr>
-                      <td className="label">Deceased Person Name</td>
-                      <td className="value">{certificateRecord.deceased_name}</td>
-                    </tr>
-                    <tr>
-                      <td className="label">Member / Registration Code</td>
-                      <td className="value">{certificateRecord.member_id ? certificateRecord.member_id.substring(0, 8) : 'External / Non-Member'}</td>
-                    </tr>
-                    <tr>
-                      <td className="label">Father / Husband Name</td>
-                      <td className="value">{certificateRecord.father_or_husband_name || 'N/A'}</td>
-                    </tr>
-                    <tr>
-                      <td className="label">Date of Death</td>
-                      <td className="value">{certificateRecord.date_of_death}</td>
-                    </tr>
-                    <tr>
-                      <td className="label">Age & Gender</td>
-                      <td className="value">{certificateRecord.age ? `${certificateRecord.age} Years` : 'N/A'} • {certificateRecord.gender ? certificateRecord.gender.toUpperCase() : 'MALE'}</td>
-                    </tr>
-                    <tr>
-                      <td className="label">Place of Death</td>
-                      <td className="value">{certificateRecord.place_of_death || 'Hospital'}</td>
-                    </tr>
-                    <tr>
-                      <td className="label">Cause of Death</td>
-                      <td className="value">{certificateRecord.cause_of_death || 'Natural'}</td>
-                    </tr>
-                    <tr>
-                      <td className="label">Medical Certification</td>
-                      <td className="value">
-                        {certificateRecord.medically_certified ? `Certified (${certificateRecord.certifier_name || 'Medical Officer'})` : 'Uncertified Record'}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-
-                <div className="certificate-footer-signatures">
-                  <div className="flex-row-gap-xs">
-                    <QrCode size={40} className="color-subtle" />
-                    <div className="font-xs color-subtle">
-                      Verified Registry Record<br />
-                      System Hash: {certificateRecord.id.substring(0, 12)}
-                    </div>
-                  </div>
-
-                  <div className="signature-line">
-                    <div className="signature-line-border">MAHALL GENERAL SECRETARY</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="modal-footer flex-between no-print">
-              <button className="pill-btn-ghost" onClick={() => setIsCertificateModalOpen(false)}>
-                Close
-              </button>
-              <div className="flex-row-gap-xs">
-                <button className="pill-btn-ghost" onClick={() => window.print()}>
-                  <Printer size={15} /> Print Certificate
-                </button>
-                <button className="pill-btn-primary" onClick={exportCSV}>
-                  <Download size={15} /> Download PDF
-                </button>
-              </div>
+            <div className="form-group margin-top-xs">
+              <label className="form-label">Deceased Name (Or Non-Member Name) *</label>
+              <input
+                type="text"
+                className="form-control"
+                value={deceasedName}
+                onChange={(e) => setDeceasedName(e.target.value)}
+                placeholder="Full name of deceased person"
+              />
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* 6. RECORD DETAILS DRAWER */}
-      {isDetailsOpen && selectedDeathRecord && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card animate-scale-up" style={{ maxWidth: '600px' }}>
-            <div className="modal-header">
-              <div>
-                <h4>{selectedDeathRecord.deceased_name}</h4>
-                <p className="modal-subtitle">
-                  Member ID: {selectedDeathRecord.member_id || 'External Non-Member'}
-                </p>
-              </div>
-              <button className="modal-close-btn" onClick={() => setIsDetailsOpen(false)}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="modal-body-scrollable">
-              {/* SECTION 1: PERSONAL INFORMATION */}
-              <div className="details-section-card">
-                <div className="details-section-title">
-                  <User size={15} /> Section 1 — Personal Information
-                </div>
-                <div className="details-grid-2col">
-                  <div>
-                    <div className="detail-item-label">Full Name</div>
-                    <div className="detail-item-value">{selectedDeathRecord.deceased_name}</div>
-                  </div>
-                  <div>
-                    <div className="detail-item-label">Relative Name</div>
-                    <div className="detail-item-value">{selectedDeathRecord.father_or_husband_name || 'N/A'}</div>
-                  </div>
-                  <div>
-                    <div className="detail-item-label">Age at Death</div>
-                    <div className="detail-item-value">{selectedDeathRecord.age ? `${selectedDeathRecord.age} years` : 'N/A'}</div>
-                  </div>
-                  <div>
-                    <div className="detail-item-label">Gender</div>
-                    <div className="detail-item-value">{selectedDeathRecord.gender ? selectedDeathRecord.gender.toUpperCase() : 'MALE'}</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* SECTION 2: DEATH INFORMATION */}
-              <div className="details-section-card">
-                <div className="details-section-title">
-                  <Calendar size={15} /> Section 2 — Death Information
-                </div>
-                <div className="details-grid-2col">
-                  <div>
-                    <div className="detail-item-label">Date of Death</div>
-                    <div className="detail-item-value">{selectedDeathRecord.date_of_death}</div>
-                  </div>
-                  <div>
-                    <div className="detail-item-label">Place of Death</div>
-                    <div className="detail-item-value">{selectedDeathRecord.place_of_death || 'Hospital'}</div>
-                  </div>
-                  <div>
-                    <div className="detail-item-label">Cause of Death</div>
-                    <div className="detail-item-value">{selectedDeathRecord.cause_of_death || 'Natural'}</div>
-                  </div>
-                  <div>
-                    <div className="detail-item-label">Medical Certification</div>
-                    <div className="detail-item-value">
-                      {selectedDeathRecord.medically_certified ? 'Yes (Certified)' : 'Uncertified'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* SECTION 3: CERTIFICATE CARD */}
-              <div className="details-section-card bg-primary-light">
-                <div className="details-section-title text-primary">
-                  <FileText size={15} /> Death Certificate Section
-                </div>
-                <div className="flex-between margin-top-xs">
-                  <div>
-                    <div className="detail-item-label">Certificate Status</div>
-                    <div className="font-weight-700 text-success">🟢 Certificate Available</div>
-                  </div>
-                  <div className="flex-row-gap-xs">
-                    <button className="pill-btn-primary font-xs" onClick={() => openCertificateModal(selectedDeathRecord)}>
-                      <Award size={13} /> View Certificate
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              <button className="pill-btn-ghost" onClick={() => setIsDetailsOpen(false)}>
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MOBILE FILTER DRAWER SHEET */}
-      {isMobileFilterOpen && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card animate-scale-up" style={{ maxWidth: '440px' }}>
-            <div className="modal-header">
-              <h4>Filter Death Records</h4>
-              <button className="modal-close-btn" onClick={() => setIsMobileFilterOpen(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            <div className="modal-body-scrollable">
+        {/* STEP 2: MEDICAL & BURIAL DETAILS */}
+        {wizardStep === 2 && (
+          <div className="animate-fade-in flex-col gap-sm">
+            <div className="form-row-2col">
               <div className="form-group">
-                <label className="form-label">Subscription Year</label>
-                <YearFilter selectedYearId={selectedYearId} onChange={setSelectedYearId} showAllOption={true} />
+                <label className="form-label">Date of Death *</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={dateOfDeath}
+                  onChange={(e) => setDateOfDeath(e.target.value)}
+                />
               </div>
               <div className="form-group">
-                <label className="form-label">Ward / Area</label>
-                <select className="form-control" value={selectedWard} onChange={(e) => setSelectedWard(e.target.value)}>
-                  <option value="">All Wards</option>
-                  {uniqueWards.map((w) => (
-                    <option key={w} value={w}>{w}</option>
-                  ))}
-                </select>
+                <label className="form-label">Time of Death</label>
+                <input
+                  type="time"
+                  className="form-control"
+                  value={timeOfDeath}
+                  onChange={(e) => setTimeOfDeath(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="form-row-2col">
+              <div className="form-group">
+                <label className="form-label">Age at Death</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  value={age}
+                  onChange={(e) => setAge(e.target.value ? Number(e.target.value) : '')}
+                  placeholder="e.g. 68"
+                />
               </div>
               <div className="form-group">
                 <label className="form-label">Gender</label>
-                <select className="form-control" value={selectedGender} onChange={(e) => setSelectedGender(e.target.value)}>
-                  <option value="">All Genders</option>
+                <select
+                  className="form-control"
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value as any)}
+                >
                   <option value="male">Male</option>
                   <option value="female">Female</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
             </div>
-            <div className="modal-footer flex-between">
-              <button className="pill-btn-ghost" onClick={() => { clearFilters(); setIsMobileFilterOpen(false); }}>
-                Reset
-              </button>
-              <button className="pill-btn-primary" onClick={() => setIsMobileFilterOpen(false)}>
-                Apply Filters
+
+            <div className="form-row-2col">
+              <div className="form-group">
+                <label className="form-label">Place of Death</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={placeOfDeath}
+                  onChange={(e) => setPlaceOfDeath(e.target.value)}
+                  placeholder="e.g. City Hospital / Residence"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Cause of Death</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={causeOfDeath}
+                  onChange={(e) => setCauseOfDeath(e.target.value)}
+                  placeholder="e.g. Natural causes / Cardiac arrest"
+                />
+              </div>
+            </div>
+
+            <div className="form-row-2col">
+              <div className="form-group">
+                <label className="form-label">Burial Location / Cemetery</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={burialLocation}
+                  onChange={(e) => setBurialLocation(e.target.value)}
+                  placeholder="e.g. Central Mahall Qabristan"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Facility / Hospital Name</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={facilityName}
+                  onChange={(e) => setFacilityName(e.target.value)}
+                  placeholder="e.g. City General Hospital"
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={medicallyCertified}
+                  onChange={(e) => setMedicallyCertified(e.target.checked)}
+                />
+                <span>Medically Certified Death Record</span>
+              </label>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 3: REVIEW SUMMARY */}
+        {wizardStep === 3 && (
+          <div className="animate-fade-in flex-col gap-sm">
+            <div className="details-section-card">
+              <div className="details-section-title">Deceased Person Summary</div>
+              <div className="details-grid-2col font-xs">
+                <div><strong>Name:</strong> {deceasedName}</div>
+                <div><strong>Date of Death:</strong> {dateOfDeath}</div>
+                <div><strong>Age & Gender:</strong> {age ? `${age} Yrs` : 'N/A'} • {gender.toUpperCase()}</div>
+                <div><strong>Place:</strong> {placeOfDeath || 'N/A'}</div>
+                <div><strong>Cause:</strong> {causeOfDeath || 'N/A'}</div>
+                <div><strong>Medical Cert:</strong> {medicallyCertified ? 'Yes ✓' : 'Pending'}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 4: SUCCESS VIEW */}
+        {wizardStep === 4 && (
+          <div className="animate-fade-in success-wizard-container">
+            <div className="success-animated-badge">
+              <CheckCircle size={40} />
+            </div>
+            <h3 className="font-weight-800 text-dark">Death Record Saved Successfully!</h3>
+            <p className="font-sm color-subtle margin-top-xs">
+              The death record for <strong>{deceasedName}</strong> has been saved and linked member status updated to inactive.
+            </p>
+
+            <div className="flex-row-center gap-sm margin-top-md">
+              {selectedDeathRecord && (
+                <button className="pill-btn-primary" onClick={() => openCertificateModal(selectedDeathRecord)}>
+                  <Award size={16} /> View Death Certificate
+                </button>
+              )}
+              <button className="pill-btn-ghost" onClick={() => setIsAddDrawerOpen(false)}>
+                Back to Directory List
               </button>
             </div>
           </div>
+        )}
+      </Modal>
+
+      {/* 5. OFFICIAL PRINTABLE DEATH CERTIFICATE MODAL */}
+      <Modal
+        isOpen={isCertificateModalOpen && !!certificateRecord}
+        onClose={() => setIsCertificateModalOpen(false)}
+        title="Official Death Certificate"
+        subtitle="Certified document generated from Mahall Management System."
+        icon={<Award size={22} />}
+        size="md"
+        footer={
+          <div className="flex-between width-100 no-print">
+            <button className="pill-btn-ghost" onClick={() => setIsCertificateModalOpen(false)}>
+              Close
+            </button>
+            <div className="flex-row-gap-xs">
+              <button className="pill-btn-ghost" onClick={() => window.print()}>
+                <Printer size={15} /> Print Certificate
+              </button>
+              <button className="pill-btn-primary" onClick={exportCSV}>
+                <Download size={15} /> Download PDF
+              </button>
+            </div>
+          </div>
+        }
+      >
+        {certificateRecord && (
+          <div className="certificate-modal-container printable-certificate">
+            <div className="certificate-header-seal">
+              <div className="flex-row-gap-xs">
+                <Award size={32} className="text-primary" />
+                <div>
+                  <div className="font-weight-800 font-sm text-dark">MAHALL MANAGEMENT SYSTEM</div>
+                  <div className="font-xs color-subtle">OFFICIAL COMMUNITY RECORDS REGISTRY</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-xs font-weight-700 text-primary">CERTIFICATE NO.</div>
+                <div className="font-weight-800 font-sm text-dark">
+                  {certificateRecord.notes?.includes('DC-') 
+                    ? certificateRecord.notes 
+                    : `DC-${new Date().getFullYear()}-${certificateRecord.id.substring(0, 5).toUpperCase()}`}
+                </div>
+              </div>
+            </div>
+
+            <div className="certificate-title-box">
+              <h2>Certificate of Death</h2>
+              <p>Issued under official Mahall Committee Governance Records</p>
+            </div>
+
+            <table className="certificate-details-table">
+              <tbody>
+                <tr>
+                  <td className="label">Deceased Person Name</td>
+                  <td className="value">{certificateRecord.deceased_name}</td>
+                </tr>
+                <tr>
+                  <td className="label">Member / Registration Code</td>
+                  <td className="value">{certificateRecord.member_id ? certificateRecord.member_id.substring(0, 8) : 'External / Non-Member'}</td>
+                </tr>
+                <tr>
+                  <td className="label">Father / Husband Name</td>
+                  <td className="value">{certificateRecord.father_or_husband_name || 'N/A'}</td>
+                </tr>
+                <tr>
+                  <td className="label">Date of Death</td>
+                  <td className="value">{certificateRecord.date_of_death}</td>
+                </tr>
+                <tr>
+                  <td className="label">Age & Gender</td>
+                  <td className="value">{certificateRecord.age ? `${certificateRecord.age} Years` : 'N/A'} • {certificateRecord.gender ? certificateRecord.gender.toUpperCase() : 'MALE'}</td>
+                </tr>
+                <tr>
+                  <td className="label">Place of Death</td>
+                  <td className="value">{certificateRecord.place_of_death || 'Hospital'}</td>
+                </tr>
+                <tr>
+                  <td className="label">Cause of Death</td>
+                  <td className="value">{certificateRecord.cause_of_death || 'Natural'}</td>
+                </tr>
+                <tr>
+                  <td className="label">Medical Certification</td>
+                  <td className="value">
+                    {certificateRecord.medically_certified ? `Certified (${certificateRecord.certifier_name || 'Medical Officer'})` : 'Uncertified Record'}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div className="certificate-footer-signatures">
+              <div className="flex-row-gap-xs">
+                <QrCode size={40} className="color-subtle" />
+                <div className="font-xs color-subtle">
+                  Verified Registry Record<br />
+                  System Hash: {certificateRecord.id.substring(0, 12)}
+                </div>
+              </div>
+
+              <div className="signature-line">
+                <div className="signature-line-border">MAHALL GENERAL SECRETARY</div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* 6. RECORD DETAILS DRAWER */}
+      <Modal
+        isOpen={isDetailsOpen && !!selectedDeathRecord}
+        onClose={() => setIsDetailsOpen(false)}
+        title={selectedDeathRecord?.deceased_name || 'Deceased Record Details'}
+        subtitle={`Member ID: ${selectedDeathRecord?.member_id || 'External Non-Member'}`}
+        icon={<User size={20} />}
+        size="md"
+        footer={
+          <div className="flex-end width-100">
+            <button className="pill-btn-ghost" onClick={() => setIsDetailsOpen(false)}>
+              Close
+            </button>
+          </div>
+        }
+      >
+        {selectedDeathRecord && (
+          <>
+            {/* SECTION 1: PERSONAL INFORMATION */}
+            <div className="form-section-card">
+              <div className="form-section-header">
+                <User size={16} className="text-primary" />
+                <span className="form-section-title">Personal Information</span>
+              </div>
+              <div className="form-grid-2col font-xs">
+                <div>
+                  <div className="detail-item-label">Full Name</div>
+                  <div className="detail-item-value">{selectedDeathRecord.deceased_name}</div>
+                </div>
+                <div>
+                  <div className="detail-item-label">Relative Name</div>
+                  <div className="detail-item-value">{selectedDeathRecord.father_or_husband_name || 'N/A'}</div>
+                </div>
+                <div>
+                  <div className="detail-item-label">Age at Death</div>
+                  <div className="detail-item-value">{selectedDeathRecord.age ? `${selectedDeathRecord.age} years` : 'N/A'}</div>
+                </div>
+                <div>
+                  <div className="detail-item-label">Gender</div>
+                  <div className="detail-item-value">{selectedDeathRecord.gender ? selectedDeathRecord.gender.toUpperCase() : 'MALE'}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* SECTION 2: DEATH INFORMATION */}
+            <div className="form-section-card">
+              <div className="form-section-header">
+                <Calendar size={16} className="text-success" />
+                <span className="form-section-title">Death Information</span>
+              </div>
+              <div className="form-grid-2col font-xs">
+                <div>
+                  <div className="detail-item-label">Date of Death</div>
+                  <div className="detail-item-value">{selectedDeathRecord.date_of_death}</div>
+                </div>
+                <div>
+                  <div className="detail-item-label">Place of Death</div>
+                  <div className="detail-item-value">{selectedDeathRecord.place_of_death || 'Hospital'}</div>
+                </div>
+                <div>
+                  <div className="detail-item-label">Cause of Death</div>
+                  <div className="detail-item-value">{selectedDeathRecord.cause_of_death || 'Natural'}</div>
+                </div>
+                <div>
+                  <div className="detail-item-label">Medical Certification</div>
+                  <div className="detail-item-value">
+                    {selectedDeathRecord.medically_certified ? 'Yes (Certified)' : 'Uncertified'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* SECTION 3: CERTIFICATE CARD */}
+            <div className="form-section-card bg-primary-light">
+              <div className="form-section-header">
+                <FileText size={16} className="text-primary" />
+                <span className="form-section-title text-primary">Death Certificate Section</span>
+              </div>
+              <div className="flex-between margin-top-xs">
+                <div>
+                  <div className="detail-item-label">Certificate Status</div>
+                  <div className="font-weight-700 text-success">🟢 Certificate Available</div>
+                </div>
+                <div className="flex-row-gap-xs">
+                  <button className="pill-btn-primary font-xs" onClick={() => openCertificateModal(selectedDeathRecord)}>
+                    <Award size={13} /> View Certificate
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </Modal>
+
+      {/* MOBILE FILTER DRAWER SHEET */}
+      <Modal
+        isOpen={isMobileFilterOpen}
+        onClose={() => setIsMobileFilterOpen(false)}
+        title="Filter Death Records"
+        icon={<Filter size={18} />}
+        size="sm"
+        footer={
+          <div className="flex-between width-100">
+            <button className="pill-btn-ghost" onClick={() => { clearFilters(); setIsMobileFilterOpen(false); }}>
+              Reset
+            </button>
+            <button className="pill-btn-primary" onClick={() => setIsMobileFilterOpen(false)}>
+              Apply Filters
+            </button>
+          </div>
+        }
+      >
+        <div className="form-group">
+          <label className="form-label">Subscription Year</label>
+          <YearFilter selectedYearId={selectedYearId} onChange={setSelectedYearId} showAllOption={true} />
         </div>
-      )}
+        <div className="form-group margin-top-sm">
+          <label className="form-label">Ward / Area</label>
+          <select className="form-control" value={selectedWard} onChange={(e) => setSelectedWard(e.target.value)}>
+            <option value="">All Wards</option>
+            {uniqueWards.map((w) => (
+              <option key={w} value={w}>{w}</option>
+            ))}
+          </select>
+        </div>
+        <div className="form-group margin-top-sm">
+          <label className="form-label">Gender</label>
+          <select className="form-control" value={selectedGender} onChange={(e) => setSelectedGender(e.target.value)}>
+            <option value="">All Genders</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+      </Modal>
 
       {/* BULK DELETE CONFIRMATION MODAL */}
-      {isBulkDeleteModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card animate-scale-up" style={{ maxWidth: '440px' }}>
-            <div className="modal-header">
-              <h4>Delete Death Records</h4>
-              <button className="modal-close-btn" onClick={() => setIsBulkDeleteModalOpen(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            <div className="modal-body-scrollable">
-              <p className="font-sm text-dark">
-                Are you sure you want to permanently delete {selectedIds.length} selected death records? This action cannot be undone.
-              </p>
-            </div>
-            <div className="modal-footer flex-between">
-              <button className="pill-btn-ghost" onClick={() => setIsBulkDeleteModalOpen(false)}>
-                Cancel
-              </button>
-              <button className="pill-btn-primary bg-danger" onClick={handleBulkDelete}>
-                Delete Records
-              </button>
-            </div>
+      <Modal
+        isOpen={isBulkDeleteModalOpen}
+        onClose={() => setIsBulkDeleteModalOpen(false)}
+        title="Delete Death Records"
+        icon={<Trash2 size={18} className="text-danger" />}
+        size="sm"
+        footer={
+          <div className="flex-between width-100">
+            <button className="pill-btn-ghost" onClick={() => setIsBulkDeleteModalOpen(false)}>
+              Cancel
+            </button>
+            <button className="pill-btn-primary bg-danger" onClick={handleBulkDelete}>
+              Delete Records
+            </button>
           </div>
-        </div>
-      )}
+        }
+      >
+        <p className="font-sm text-dark">
+          Are you sure you want to permanently delete {selectedIds.length} selected death records? This action cannot be undone.
+        </p>
+      </Modal>
 
       {/* EMBEDDED STYLES FOR ABSOLUTE DESIGN CONSISTENCY */}
       <style>{`
