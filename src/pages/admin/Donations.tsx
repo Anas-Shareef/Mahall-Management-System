@@ -959,22 +959,22 @@ export const Donations: React.FC = () => {
                 </div>
               ) : filteredDonations.length === 0 ? (
                 <div className="empty-state-card">
-                  <div className="empty-state-icon neutral">
-                    <Search size={32} />
+                  <div className="empty-state-icon emerald">
+                    <HeartHandshake size={28} />
                   </div>
                   <h4>No donations found</h4>
                   <p>
-                    {searchQuery || selectedStatus || selectedCampaignId
+                    {searchQuery || selectedStatus || selectedCampaignId || selectedMethod
                       ? 'No donations match your current filters. Try clearing filters.'
                       : 'Start recording donations to keep track of Mahall contributions.'}
                   </p>
-                  {searchQuery || selectedStatus || selectedCampaignId ? (
+                  {searchQuery || selectedStatus || selectedCampaignId || selectedMethod ? (
                     <button className="clear-filters-link margin-top-xs" onClick={clearFilters}>
                       Clear Filters
                     </button>
                   ) : (
                     <button className="add-btn primary-btn margin-top-sm" onClick={openAddDonationDrawer}>
-                      <Plus size={15} />
+                      <Plus size={16} />
                       <span>Add Donation</span>
                     </button>
                   )}
@@ -1159,32 +1159,33 @@ export const Donations: React.FC = () => {
 
         {/* TAB VIEW C: CAMPAIGNS TAB */}
         {activeTab === 'campaigns' && (
-          <div className="workspace-table-content padding-md animate-fade-in">
-            <div className="flex-between margin-bottom">
-              <div>
-                <h3 className="font-weight-700">Special Donation Campaigns</h3>
-                <p className="page-subtitle">Track targeted programme fundraising drives and target collections.</p>
-              </div>
-              <button className="add-btn primary-btn" onClick={openAddCampaignModal}>
-                <Plus size={16} />
-                <span>Create Campaign</span>
-              </button>
-            </div>
-
+          <div className="workspace-table-content animate-fade-in">
             {campaigns.length === 0 ? (
               <div className="empty-state-card">
-                <div className="empty-state-icon neutral">
-                  <Layers size={32} />
+                <div className="empty-state-icon emerald">
+                  <Layers size={28} />
                 </div>
                 <h4>No donation campaigns yet</h4>
                 <p>Create a campaign to start collecting special programme donations.</p>
                 <button className="add-btn primary-btn margin-top-sm" onClick={openAddCampaignModal}>
-                  <Plus size={15} />
+                  <Plus size={16} />
                   <span>Create Campaign</span>
                 </button>
               </div>
             ) : (
-              <div className="campaigns-cards-grid">
+              <div className="padding-md">
+                <div className="flex-between margin-bottom">
+                  <div>
+                    <h3 className="font-weight-700">Special Donation Campaigns</h3>
+                    <p className="page-subtitle">Track targeted programme fundraising drives and target collections.</p>
+                  </div>
+                  <button className="add-btn primary-btn" onClick={openAddCampaignModal}>
+                    <Plus size={16} />
+                    <span>Create Campaign</span>
+                  </button>
+                </div>
+
+                <div className="campaigns-cards-grid">
                 {campaigns.map((camp) => {
                   const { collected, donationCount, progress, remaining } = getCampaignMetrics(camp.id, camp.target_amount);
 
@@ -1249,6 +1250,7 @@ export const Donations: React.FC = () => {
                     </div>
                   );
                 })}
+              </div>
               </div>
             )}
           </div>

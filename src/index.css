@@ -1436,4 +1436,60 @@ img, svg, video, canvas {
   box-sizing: border-box;
 }
 
+/* CENTERED EMPTY STATE CARD (MATCHING PAYMENTS PAGE) */
+.empty-state-card {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  padding: 56px 24px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin: 0 auto !important;
+}
+
+.empty-state-icon {
+  width: 64px !important;
+  height: 64px !important;
+  border-radius: 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-bottom: 16px !important;
+  flex-shrink: 0 !important;
+}
+
+.empty-state-icon.emerald {
+  background: #ecfdf5 !important;
+  color: #00966b !important;
+}
+
+.empty-state-icon.neutral {
+  background: #f3f4f6 !important;
+  color: #6b7280 !important;
+}
+
+.empty-state-card h4 {
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  color: #111827 !important;
+  margin: 0 0 6px 0 !important;
+  text-align: center !important;
+}
+
+.empty-state-card p {
+  font-size: 13.5px !important;
+  color: #6b7280 !important;
+  max-width: 340px !important;
+  margin: 0 auto 20px auto !important;
+  text-align: center !important;
+  line-height: 1.5 !important;
+}
+
+.empty-state-card .add-btn, .empty-state-card button {
+  margin-top: 4px;
+}
+
+
 
