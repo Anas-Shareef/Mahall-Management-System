@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { db } from '../../services/db';
-import type { Household, Member } from '../../services/db';
+import type { Member } from '../../services/db';
 import { 
-  Home, User, Phone, MapPin, Building2, CheckCircle, AlertCircle, 
-  ArrowLeft, Save, Loader2, Users, Plus, ShieldCheck 
+  Home, Phone, MapPin, Building2, CheckCircle, AlertCircle, 
+  ArrowLeft, Save, Loader2, Users, Plus 
 } from 'lucide-react';
 
 export const HouseholdForm: React.FC = () => {

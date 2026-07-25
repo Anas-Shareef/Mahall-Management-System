@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { db } from '../../services/db';
 import type { Household, Member, MemberSubscription, SubscriptionYear } from '../../services/db';
@@ -25,22 +25,6 @@ export const Households: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedYearId, setSelectedYearId] = useState<string>('all');
 
-  // Add / Edit Modal States
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
-  const [currentId, setCurrentId] = useState<string | null>(null);
-
-  // Form Fields & Validation Errors
-  const [houseNumber, setHouseNumber] = useState('');
-  const [ownerName, setOwnerName] = useState('');
-  const [ownerPhone, setOwnerPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [area, setArea] = useState('');
-  const [status, setStatus] = useState<'active' | 'inactive'>('active');
-  
-  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
-  const [formError, setFormError] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
   // Delete Modal State
@@ -167,73 +151,7 @@ export const Households: React.FC = () => {
     }
   };
 
-  // Validate Form
-  const validateForm = (): boolean => {
-    const errors: { [key: string]: string } = {};
 
-    if (!houseNumber.trim()) {
-      errors.houseNumber = 'House number is required.';
-    } else {
-      const duplicate = households.find(
-        (h) => h.house_number.toLowerCase() === houseNumber.trim().toLowerCase() && h.id !== currentId
-      );
-      if (duplicate) {
-        errors.houseNumber = `A household with house number "${houseNumber}" already exists.`;
-      }
-    }
-
-    if (!ownerName.trim()) {
-      errors.ownerName = 'House owner name is required.';
-    }
-
-    if (ownerPhone.trim() && !/^[0-9+--\s()]{7,15}$/.test(ownerPhone.trim())) {
-      errors.ownerPhone = 'Please enter a valid phone number.';
-    }
-
-    setFieldErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  // Save Modal Form
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError('');
-
-    if (!validateForm()) return;
-
-    setIsSaving(true);
-
-    try {
-      const data = {
-        house_number: houseNumber.trim(),
-        house_owner_name: ownerName.trim(),
-        house_owner_phone: ownerPhone.trim() || null,
-        address: address.trim() || null,
-        area: area.trim() || null,
-        status,
-      };
-
-      if (modalMode === 'add') {
-        await db.households.create(data);
-        showToast('success', '✓ Household added successfully.');
-      } else if (currentId) {
-        await db.households.update(currentId, data);
-        showToast('success', '✓ Household updated successfully.');
-      }
-
-      setIsModalOpen(false);
-      loadData();
-
-      if (selectedHouseholdDetails && selectedHouseholdDetails.id === currentId) {
-        const updatedH = await db.households.getById(currentId);
-        setSelectedHouseholdDetails(updatedH);
-      }
-    } catch (err: any) {
-      setFormError(err.message || 'Unable to save household. Please try again.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   // Dynamic Report Download (CSV Export)
   const handleDownloadReport = () => {
@@ -738,172 +656,7 @@ export const Households: React.FC = () => {
         )}
       </div>
 
-      {/* ADD / EDIT HOUSEHOLD MODAL DIALOG */}
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card animate-scale-up">
-            <div className="modal-header">
-              <div>
-                <h4>{modalMode === 'add' ? 'Add Household' : 'Edit Household'}</h4>
-                <p className="modal-subtitle">
-                  {modalMode === 'add'
-                    ? 'Add a new household to the Mahall system directory.'
-                    : `Update details for House No. ${houseNumber}`}
-                </p>
-              </div>
-              <button
-                className="modal-close-btn"
-                onClick={() => setIsModalOpen(false)}
-                aria-label="Close Add Household dialog"
-              >
-                <X size={20} />
-              </button>
-            </div>
 
-            <form onSubmit={handleSave} className="modal-form">
-              <div className="form-section-title">Household Information</div>
-
-              {formError && (
-                <div className="form-alert error">
-                  <AlertCircle size={16} />
-                  <span>{formError}</span>
-                </div>
-              )}
-
-              <div className="form-row-grid">
-                <div className="form-group">
-                  <label htmlFor="house-no-input">House Number *</label>
-                  <input
-                    id="house-no-input"
-                    type="text"
-                    required
-                    placeholder="e.g. H-12"
-                    value={houseNumber}
-                    className={fieldErrors.houseNumber ? 'input-error' : ''}
-                    onChange={(e) => {
-                      setHouseNumber(e.target.value);
-                      if (fieldErrors.houseNumber) {
-                        setFieldErrors({ ...fieldErrors, houseNumber: '' });
-                      }
-                    }}
-                  />
-                  {fieldErrors.houseNumber && (
-                    <span className="field-error-text">⚠ {fieldErrors.houseNumber}</span>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="owner-name-input">House Owner Name *</label>
-                  <input
-                    id="owner-name-input"
-                    type="text"
-                    required
-                    placeholder="e.g. Ashraf K."
-                    value={ownerName}
-                    className={fieldErrors.ownerName ? 'input-error' : ''}
-                    onChange={(e) => {
-                      setOwnerName(e.target.value);
-                      if (fieldErrors.ownerName) {
-                        setFieldErrors({ ...fieldErrors, ownerName: '' });
-                      }
-                    }}
-                  />
-                  {fieldErrors.ownerName && (
-                    <span className="field-error-text">⚠ {fieldErrors.ownerName}</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="form-row-grid">
-                <div className="form-group">
-                  <label htmlFor="phone-input">Owner Phone Number</label>
-                  <input
-                    id="phone-input"
-                    type="tel"
-                    placeholder="e.g. 9876543210"
-                    value={ownerPhone}
-                    className={fieldErrors.ownerPhone ? 'input-error' : ''}
-                    onChange={(e) => {
-                      setOwnerPhone(e.target.value);
-                      if (fieldErrors.ownerPhone) {
-                        setFieldErrors({ ...fieldErrors, ownerPhone: '' });
-                      }
-                    }}
-                  />
-                  {fieldErrors.ownerPhone && (
-                    <span className="field-error-text">⚠ {fieldErrors.ownerPhone}</span>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="area-input">Area / Ward</label>
-                  <input
-                    id="area-input"
-                    type="text"
-                    placeholder="e.g. Ward 4 / North Area"
-                    value={area}
-                    onChange={(e) => setArea(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="address-input">Address</label>
-                <textarea
-                  id="address-input"
-                  rows={3}
-                  placeholder="Detailed house address..."
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Status</label>
-                <div className="status-pill-toggle-group">
-                  <button
-                    type="button"
-                    className={`status-toggle-pill active-pill ${status === 'active' ? 'selected' : ''}`}
-                    onClick={() => setStatus('active')}
-                  >
-                    <span className="dot active-dot"></span>
-                    <span>Active</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`status-toggle-pill inactive-pill ${status === 'inactive' ? 'selected' : ''}`}
-                    onClick={() => setStatus('inactive')}
-                  >
-                    <span className="dot inactive-dot"></span>
-                    <span>Inactive</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  className="btn-cancel"
-                  onClick={() => setIsModalOpen(false)}
-                  disabled={isSaving}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="primary-btn submit-pill-btn" disabled={isSaving}>
-                  {isSaving ? (
-                    <>
-                      <Loader2 size={16} className="spinner-icon" />
-                      <span>Saving Household...</span>
-                    </>
-                  ) : (
-                    <span>{modalMode === 'add' ? 'Save Household' : 'Update Household'}</span>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* DELETE CONFIRMATION MODAL */}
       {isDeleteModalOpen && householdToDelete && (

@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { db } from '../../services/db';
 import type { DeathRecord, Member, Household, SubscriptionYear } from '../../services/db';
 import { 
   UserX, Plus, Search, Trash2, Edit2, Eye, CheckCircle, AlertCircle, 
-  X, Loader2, Calendar, CalendarDays, FileWarning, Download, 
-  Filter, ChevronRight, User, Printer, RefreshCw, FileText, Check,
+  X, Calendar, CalendarDays, FileWarning, Download, 
+  Filter, ChevronRight, User, Printer, RefreshCw, FileText,
   Home, Building2, ChevronLeft, Award, QrCode
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
@@ -42,11 +42,6 @@ export const Deaths: React.FC = () => {
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
 
   // Modal / Drawer States
-  const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
-  const [currentId, setCurrentId] = useState<string | null>(null);
-  const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4>(1);
-
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedDeathRecord, setSelectedDeathRecord] = useState<DeathRecord | null>(null);
 
@@ -54,30 +49,6 @@ export const Deaths: React.FC = () => {
   const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
   const [certificateRecord, setCertificateRecord] = useState<DeathRecord | null>(null);
 
-  // Form Fields
-  const [memberSearch, setMemberSearch] = useState('');
-  const [isLinkedMember, setIsLinkedMember] = useState(true);
-  const [selectedMemberId, setSelectedMemberId] = useState<string>('');
-  const [deceasedName, setDeceasedName] = useState('');
-  const [fatherOrHusbandName, setFatherOrHusbandName] = useState('');
-  const [dateOfDeath, setDateOfDeath] = useState(new Date().toISOString().split('T')[0]);
-  const [timeOfDeath, setTimeOfDeath] = useState('');
-  const [burialDate, setBurialDate] = useState('');
-  const [burialTime, setBurialTime] = useState('');
-  const [burialLocation, setBurialLocation] = useState('');
-  const [placeOfDeath, setPlaceOfDeath] = useState<'Hospital' | 'Home' | 'Other' | string>('Hospital');
-  const [facilityName, setFacilityName] = useState('');
-  const [age, setAge] = useState<number | ''>('');
-  const [gender, setGender] = useState<'male' | 'female' | 'other'>('male');
-  const [address, setAddress] = useState('');
-  const [wardOrArea, setWardOrArea] = useState('');
-  const [causeOfDeath, setCauseOfDeath] = useState('Natural');
-  const [certificateNumber, setCertificateNumber] = useState('');
-  const [medicallyCertified, setMedicallyCertified] = useState(true);
-  const [certifierName, setCertifierName] = useState('');
-  const [notes, setNotes] = useState('');
-
-  const [isSaving, setIsSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const showToast = (type: 'success' | 'error', text: string) => {
@@ -189,30 +160,7 @@ export const Deaths: React.FC = () => {
     return Array.from(set);
   }, [deaths, households]);
 
-  // Filtered active members for Step 1 wizard search
-  const searchableMembers = useMemo(() => {
-    const query = memberSearch.toLowerCase().trim();
-    if (!query) return members.slice(0, 8);
-    return members.filter((m) => 
-      m.name.toLowerCase().includes(query) ||
-      (m.id && m.id.toLowerCase().includes(query)) ||
-      (m.phone && m.phone.includes(query))
-    ).slice(0, 10);
-  }, [members, memberSearch]);
 
-  const handleSelectMember = (mId: string) => {
-    setSelectedMemberId(mId);
-    const m = members.find((x) => x.id === mId);
-    if (m) {
-      setDeceasedName(m.name);
-      setFatherOrHusbandName(m.relationship || '');
-      const h = households.find((x) => x.id === m.household_id);
-      if (h) {
-        setAddress(h.address || '');
-        setWardOrArea(h.area || '');
-      }
-    }
-  };
 
   const openAddDrawer = () => {
     navigate('/admin/deaths/new');
@@ -223,60 +171,7 @@ export const Deaths: React.FC = () => {
     navigate(`/admin/deaths/${d.id}/edit`);
   };
 
-  const handleSave = async () => {
-    if (!deceasedName.trim()) {
-      showToast('error', 'Deceased person name is required');
-      return;
-    }
-    if (!dateOfDeath) {
-      showToast('error', 'Date of death is required');
-      return;
-    }
 
-    setIsSaving(true);
-    try {
-      const payload: Omit<DeathRecord, 'id' | 'created_at' | 'updated_at'> = {
-        deceased_name: deceasedName.trim(),
-        member_id: isLinkedMember && selectedMemberId ? selectedMemberId : null,
-        father_or_husband_name: fatherOrHusbandName.trim() || null,
-        date_of_death: dateOfDeath,
-        burial_date: burialDate || null,
-        burial_time: burialTime || null,
-        place_of_death: placeOfDeath || null,
-        age: age !== '' ? Number(age) : null,
-        gender: gender,
-        address: address.trim() || null,
-        ward_or_area: wardOrArea.trim() || null,
-        cause_of_death: causeOfDeath.trim() || null,
-        medically_certified: medicallyCertified,
-        certifier_name: medicallyCertified ? certifierName.trim() || null : null,
-        notes: notes.trim() || (certificateNumber ? `DC-${certificateNumber}` : null),
-        certificate_url: null,
-        created_by: null,
-      };
-
-      if (modalMode === 'add') {
-        const createdRecord = await db.deaths.create(payload);
-        if (isLinkedMember && selectedMemberId) {
-          await db.members.update(selectedMemberId, { status: 'inactive' });
-        }
-        setSelectedDeathRecord(createdRecord);
-        showToast('success', 'Death record created successfully in Supabase');
-      } else if (currentId) {
-        const updatedRecord = await db.deaths.update(currentId, payload);
-        setSelectedDeathRecord(updatedRecord);
-        showToast('success', 'Death record updated successfully in Supabase');
-      }
-
-      setWizardStep(4); // Advance to Step 4 Success View
-      loadData();
-    } catch (err) {
-      console.error('Error saving death record:', err);
-      showToast('error', 'Failed to save death record');
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const handleDelete = async (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -855,298 +750,6 @@ export const Deaths: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. MULTI-STEP RECORD DEATH WIZARD DRAWER / MODAL */}
-      <Modal
-        isOpen={isAddDrawerOpen}
-        onClose={() => setIsAddDrawerOpen(false)}
-        title={modalMode === 'add' ? 'Record Deceased Member' : 'Edit Death Record'}
-        subtitle="Follow the wizard steps to capture complete death and family information."
-        icon={<UserX size={22} />}
-        size="lg"
-        footer={
-          wizardStep < 4 ? (
-            <div className="flex-between width-100">
-              {wizardStep > 1 ? (
-                <button
-                  type="button"
-                  className="pill-btn-ghost"
-                  onClick={() => setWizardStep((prev) => (prev - 1) as any)}
-                >
-                  Back
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="pill-btn-ghost"
-                  onClick={() => setIsAddDrawerOpen(false)}
-                >
-                  Cancel
-                </button>
-              )}
-
-              {wizardStep < 3 ? (
-                <button
-                  type="button"
-                  className="pill-btn-primary"
-                  onClick={() => {
-                    if (wizardStep === 1 && !deceasedName.trim() && !selectedMemberId) {
-                      showToast('error', 'Please select or enter deceased member name');
-                      return;
-                    }
-                    setWizardStep((prev) => (prev + 1) as any);
-                  }}
-                >
-                  <span>Continue</span>
-                  <ChevronRight size={15} />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="pill-btn-primary"
-                  disabled={isSaving}
-                  onClick={handleSave}
-                >
-                  {isSaving ? <Loader2 size={16} className="spinner" /> : 'Save Death Record'}
-                </button>
-              )}
-            </div>
-          ) : undefined
-        }
-      >
-        {/* STEPPER HEADER BAR */}
-        <div className="wizard-stepper-bar margin-bottom-md">
-          <div className={`wizard-step-item ${wizardStep === 1 ? 'active' : wizardStep > 1 ? 'completed' : ''}`}>
-            <div className="wizard-step-badge">{wizardStep > 1 ? <Check size={13} /> : '1'}</div>
-            <span>Member</span>
-          </div>
-          <div className={`wizard-step-line ${wizardStep > 1 ? 'active' : ''}`}></div>
-
-          <div className={`wizard-step-item ${wizardStep === 2 ? 'active' : wizardStep > 2 ? 'completed' : ''}`}>
-            <div className="wizard-step-badge">{wizardStep > 2 ? <Check size={13} /> : '2'}</div>
-            <span>Death Details</span>
-          </div>
-          <div className={`wizard-step-line ${wizardStep > 2 ? 'active' : ''}`}></div>
-
-          <div className={`wizard-step-item ${wizardStep === 3 ? 'active' : wizardStep > 3 ? 'completed' : ''}`}>
-            <div className="wizard-step-badge">{wizardStep > 3 ? <Check size={13} /> : '3'}</div>
-            <span>Review</span>
-          </div>
-          <div className={`wizard-step-line ${wizardStep > 3 ? 'active' : ''}`}></div>
-
-          <div className={`wizard-step-item ${wizardStep === 4 ? 'active' : ''}`}>
-            <div className="wizard-step-badge">4</div>
-            <span>Complete</span>
-          </div>
-        </div>
-
-        {/* STEP 1: MEMBER SELECTION */}
-        {wizardStep === 1 && (
-          <div className="animate-fade-in flex-col gap-sm">
-            <div className="form-group">
-              <label className="form-label">Search Registered Member Database *</label>
-              <div className="search-box">
-                <Search size={16} className="search-icon" />
-                <input
-                  type="text"
-                  placeholder="Search member by name, ID, phone..."
-                  value={memberSearch}
-                  onChange={(e) => setMemberSearch(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="member-search-cards-list">
-              {searchableMembers.map((m) => {
-                const house = households.find((h) => h.id === m.household_id);
-                const isSel = selectedMemberId === m.id;
-
-                return (
-                  <div
-                    key={m.id}
-                    className={`member-select-card ${isSel ? 'selected' : ''}`}
-                    onClick={() => handleSelectMember(m.id)}
-                  >
-                    <div className="flex-row-gap-sm">
-                      <div className="donor-avatar-circle sm avatar-member">
-                        {m.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="font-weight-700 font-sm text-dark">{m.name}</div>
-                        <span className="font-xs color-subtle">
-                          ID: {m.id.substring(0, 8)} • {house ? `House #${house.house_number}` : 'No House'}
-                        </span>
-                      </div>
-                    </div>
-                    <button className={`pill-btn-ghost font-xs ${isSel ? 'bg-success text-white' : ''}`}>
-                      {isSel ? 'Selected ✓' : 'Select'}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="form-group margin-top-xs">
-              <label className="form-label">Deceased Name (Or Non-Member Name) *</label>
-              <input
-                type="text"
-                className="form-control"
-                value={deceasedName}
-                onChange={(e) => setDeceasedName(e.target.value)}
-                placeholder="Full name of deceased person"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* STEP 2: MEDICAL & BURIAL DETAILS */}
-        {wizardStep === 2 && (
-          <div className="animate-fade-in flex-col gap-sm">
-            <div className="form-row-2col">
-              <div className="form-group">
-                <label className="form-label">Date of Death *</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={dateOfDeath}
-                  onChange={(e) => setDateOfDeath(e.target.value)}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Time of Death</label>
-                <input
-                  type="time"
-                  className="form-control"
-                  value={timeOfDeath}
-                  onChange={(e) => setTimeOfDeath(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="form-row-2col">
-              <div className="form-group">
-                <label className="form-label">Age at Death</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={age}
-                  onChange={(e) => setAge(e.target.value ? Number(e.target.value) : '')}
-                  placeholder="e.g. 68"
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Gender</label>
-                <select
-                  className="form-control"
-                  value={gender}
-                  onChange={(e) => setGender(e.target.value as any)}
-                >
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="form-row-2col">
-              <div className="form-group">
-                <label className="form-label">Place of Death</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={placeOfDeath}
-                  onChange={(e) => setPlaceOfDeath(e.target.value)}
-                  placeholder="e.g. City Hospital / Residence"
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Cause of Death</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={causeOfDeath}
-                  onChange={(e) => setCauseOfDeath(e.target.value)}
-                  placeholder="e.g. Natural causes / Cardiac arrest"
-                />
-              </div>
-            </div>
-
-            <div className="form-row-2col">
-              <div className="form-group">
-                <label className="form-label">Burial Location / Cemetery</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={burialLocation}
-                  onChange={(e) => setBurialLocation(e.target.value)}
-                  placeholder="e.g. Central Mahall Qabristan"
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Facility / Hospital Name</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={facilityName}
-                  onChange={(e) => setFacilityName(e.target.value)}
-                  placeholder="e.g. City General Hospital"
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={medicallyCertified}
-                  onChange={(e) => setMedicallyCertified(e.target.checked)}
-                />
-                <span>Medically Certified Death Record</span>
-              </label>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 3: REVIEW SUMMARY */}
-        {wizardStep === 3 && (
-          <div className="animate-fade-in flex-col gap-sm">
-            <div className="details-section-card">
-              <div className="details-section-title">Deceased Person Summary</div>
-              <div className="details-grid-2col font-xs">
-                <div><strong>Name:</strong> {deceasedName}</div>
-                <div><strong>Date of Death:</strong> {dateOfDeath}</div>
-                <div><strong>Age & Gender:</strong> {age ? `${age} Yrs` : 'N/A'} • {gender.toUpperCase()}</div>
-                <div><strong>Place:</strong> {placeOfDeath || 'N/A'}</div>
-                <div><strong>Cause:</strong> {causeOfDeath || 'N/A'}</div>
-                <div><strong>Medical Cert:</strong> {medicallyCertified ? 'Yes ✓' : 'Pending'}</div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 4: SUCCESS VIEW */}
-        {wizardStep === 4 && (
-          <div className="animate-fade-in success-wizard-container">
-            <div className="success-animated-badge">
-              <CheckCircle size={40} />
-            </div>
-            <h3 className="font-weight-800 text-dark">Death Record Saved Successfully!</h3>
-            <p className="font-sm color-subtle margin-top-xs">
-              The death record for <strong>{deceasedName}</strong> has been saved and linked member status updated to inactive.
-            </p>
-
-            <div className="flex-row-center gap-sm margin-top-md">
-              {selectedDeathRecord && (
-                <button className="pill-btn-primary" onClick={() => openCertificateModal(selectedDeathRecord)}>
-                  <Award size={16} /> View Death Certificate
-                </button>
-              )}
-              <button className="pill-btn-ghost" onClick={() => setIsAddDrawerOpen(false)}>
-                Back to Directory List
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
 
       {/* 5. OFFICIAL PRINTABLE DEATH CERTIFICATE MODAL */}
       <Modal

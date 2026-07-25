@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { db } from '../../services/db';
-import type { MarriageRecord, Member, Household, SubscriptionYear } from '../../services/db';
+import type { MarriageRecord, Household, SubscriptionYear } from '../../services/db';
 import { 
   Heart, Plus, Search, 
   Trash2, Edit2, Eye, CheckCircle, AlertCircle, 
@@ -14,7 +14,6 @@ export const Marriages: React.FC = () => {
 
   // Data States
   const [marriages, setMarriages] = useState<MarriageRecord[]>([]);
-  const [members, setMembers] = useState<Member[]>([]);
   const [households, setHouseholds] = useState<Household[]>([]);
   const [years, setYears] = useState<SubscriptionYear[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,62 +29,9 @@ export const Marriages: React.FC = () => {
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
 
   // Modal States
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
-  const [currentId, setCurrentId] = useState<string | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedMarriage, setSelectedMarriage] = useState<MarriageRecord | null>(null);
 
-  // Form Fields
-  // Groom
-  const [isGroomMember, setIsGroomMember] = useState(true);
-  const [groomMemberId, setGroomMemberId] = useState('');
-  const [groomName, setGroomName] = useState('');
-  const [groomFatherName, setGroomFatherName] = useState('');
-  const [groomPhone, setGroomPhone] = useState('');
-  const [groomHouseNumber, setGroomHouseNumber] = useState('');
-  const [groomWard, setGroomWard] = useState('');
-  const [groomAddress, setGroomAddress] = useState('');
-
-  // Bride
-  const [brideType, setBrideType] = useState<'member' | 'external'>('external');
-  const [brideMemberId, setBrideMemberId] = useState('');
-  const [brideName, setBrideName] = useState('');
-  const [brideFatherName, setBrideFatherName] = useState('');
-  const [bridePhone, setBridePhone] = useState('');
-  const [brideAddress, setBrideAddress] = useState('');
-  const [brideWard, setBrideWard] = useState('');
-
-  // Nikah Info
-  const [nikahDate, setNikahDate] = useState(new Date().toISOString().split('T')[0]);
-  const [nikahTime, setNikahTime] = useState('');
-  const [nikahVenue, setNikahVenue] = useState('Vellikkeel Mahall Juma Masjid');
-  const [registrationNumber, setRegistrationNumber] = useState('');
-  const [conductedBy, setConductedBy] = useState('');
-  const [nikahType, setNikahType] = useState('Mahall Nikah');
-
-  // Wali Info
-  const [waliName, setWaliName] = useState('');
-  const [waliRelationship, setWaliRelationship] = useState('Father');
-  const [waliPhone, setWaliPhone] = useState('');
-
-  // Witnesses
-  const [witness1Name, setWitness1Name] = useState('');
-  const [witness1Phone, setWitness1Phone] = useState('');
-  const [witness2Name, setWitness2Name] = useState('');
-  const [witness2Phone, setWitness2Phone] = useState('');
-
-  // Mahr Info
-  const [mahrType, setMahrType] = useState('Gold');
-  const [mahrDescription, setMahrDescription] = useState('');
-  const [mahrPaymentStatus, setMahrPaymentStatus] = useState('Paid Immediately');
-  const [mahrNotes, setMahrNotes] = useState('');
-
-  // Status & Notes
-  const [status, setStatus] = useState<'completed' | 'cancelled'>('completed');
-  const [notes, setNotes] = useState('');
-
-  const [isSaving, setIsSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const showToast = (type: 'success' | 'error', text: string) => {
@@ -96,14 +42,12 @@ export const Marriages: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [marriageList, memberList, houseList, yearList] = await Promise.all([
+      const [marriageList, houseList, yearList] = await Promise.all([
         db.marriages.get(),
-        db.members.get(),
         db.households.get(),
         db.years.get(),
       ]);
       setMarriages(marriageList);
-      setMembers(memberList);
       setHouseholds(houseList);
       setYears(yearList);
     } catch (err) {
@@ -148,34 +92,7 @@ export const Marriages: React.FC = () => {
     return Array.from(set);
   }, [marriages, households]);
 
-  const handleSelectGroomMember = (mId: string) => {
-    setGroomMemberId(mId);
-    const m = members.find((x) => x.id === mId);
-    if (m) {
-      setGroomName(m.name);
-      setGroomPhone(m.phone || '');
-      const h = households.find((x) => x.id === m.household_id);
-      if (h) {
-        setGroomHouseNumber(`H-${h.house_number}`);
-        setGroomWard(h.area || '');
-        setGroomAddress(h.address || '');
-      }
-    }
-  };
 
-  const handleSelectBrideMember = (mId: string) => {
-    setBrideMemberId(mId);
-    const m = members.find((x) => x.id === mId);
-    if (m) {
-      setBrideName(m.name);
-      setBridePhone(m.phone || '');
-      const h = households.find((x) => x.id === m.household_id);
-      if (h) {
-        setBrideWard(h.area || '');
-        setBrideAddress(h.address || '');
-      }
-    }
-  };
 
   const openAddModal = () => {
     navigate('/admin/marriages/new');
@@ -186,84 +103,7 @@ export const Marriages: React.FC = () => {
     navigate(`/admin/marriages/${m.id}/edit`);
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!groomName.trim()) {
-      showToast('error', 'Groom name is required');
-      return;
-    }
-    if (!brideName.trim()) {
-      showToast('error', 'Bride name is required');
-      return;
-    }
-    if (!nikahDate) {
-      showToast('error', 'Nikah date is required');
-      return;
-    }
 
-    setIsSaving(true);
-    try {
-      const payload: Omit<MarriageRecord, 'id' | 'created_at' | 'updated_at'> = {
-        groom_name: groomName.trim(),
-        groom_member_id: isGroomMember && groomMemberId ? groomMemberId : null,
-        groom_father_name: groomFatherName.trim() || null,
-        groom_phone: groomPhone.trim() || null,
-        groom_house_number: groomHouseNumber.trim() || null,
-        groom_ward: groomWard.trim() || null,
-        groom_address: groomAddress.trim() || null,
-
-        bride_type: brideType,
-        bride_name: brideName.trim(),
-        bride_member_id: brideType === 'member' && brideMemberId ? brideMemberId : null,
-        bride_father_name: brideFatherName.trim() || null,
-        bride_phone: bridePhone.trim() || null,
-        bride_address: brideAddress.trim() || null,
-        bride_ward: brideWard.trim() || null,
-
-        nikah_date: nikahDate,
-        nikah_time: nikahTime || null,
-        nikah_venue: nikahVenue.trim() || null,
-        registration_number: registrationNumber.trim() || null,
-        conducted_by: conductedBy.trim() || null,
-        nikah_type: nikahType.trim() || null,
-
-        wali_name: waliName.trim() || null,
-        wali_relationship: waliRelationship.trim() || null,
-        wali_phone: waliPhone.trim() || null,
-
-        witness1_name: witness1Name.trim() || null,
-        witness1_phone: witness1Phone.trim() || null,
-        witness2_name: witness2Name.trim() || null,
-        witness2_phone: witness2Phone.trim() || null,
-
-        mahr_type: mahrType || null,
-        mahr_description: mahrDescription.trim() || null,
-        mahr_payment_status: mahrPaymentStatus || null,
-        mahr_notes: mahrNotes.trim() || null,
-
-        status: status,
-        certificate_url: null,
-        notes: notes.trim() || null,
-        created_by: null,
-      };
-
-      if (modalMode === 'add') {
-        await db.marriages.create(payload);
-        showToast('success', 'Marriage record created successfully');
-      } else if (currentId) {
-        await db.marriages.update(currentId, payload);
-        showToast('success', 'Marriage record updated successfully');
-      }
-
-      setIsModalOpen(false);
-      loadData();
-    } catch (err) {
-      console.error('Error saving marriage record:', err);
-      showToast('error', 'Failed to save marriage record');
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const handleDelete = async (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -455,150 +295,7 @@ export const Marriages: React.FC = () => {
         )}
       </div>
 
-      {/* ADD / EDIT MARRIAGE MODAL */}
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card glass-card animate-fade-in" style={{ maxWidth: '680px' }}>
-            <div className="modal-header">
-              <h3>{modalMode === 'add' ? '+ Add Marriage Record' : 'Edit Marriage Record'}</h3>
-              <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}><X size={18} /></button>
-            </div>
 
-            <form onSubmit={handleSave} className="modal-body-scroll">
-              {/* SECTION A — GROOM INFORMATION */}
-              <div className="form-section-title">SECTION A — GROOM INFORMATION</div>
-              <div className="toggle-switch-row margin-bottom font-sm">
-                <label className="checkbox-label">
-                  <input type="checkbox" checked={isGroomMember} onChange={(e) => setIsGroomMember(e.target.checked)} />
-                  <span>Groom is Existing Mahall Member</span>
-                </label>
-              </div>
-
-              {isGroomMember && (
-                <div className="form-group">
-                  <label>Select Groom Member</label>
-                  <select value={groomMemberId} onChange={(e) => handleSelectGroomMember(e.target.value)}>
-                    <option value="">-- Choose Groom Member --</option>
-                    {members.map((m) => (
-                      <option key={m.id} value={m.id}>{m.name} ({m.relationship})</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div className="form-group">
-                <label>Groom Name *</label>
-                <input type="text" required value={groomName} onChange={(e) => setGroomName(e.target.value)} />
-              </div>
-
-              <div className="form-row-grid">
-                <div className="form-group">
-                  <label>Father's Name</label>
-                  <input type="text" value={groomFatherName} onChange={(e) => setGroomFatherName(e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label>Phone Number</label>
-                  <input type="text" value={groomPhone} onChange={(e) => setGroomPhone(e.target.value)} />
-                </div>
-              </div>
-
-              {/* SECTION B — BRIDE INFORMATION */}
-              <div className="form-section-title">SECTION B — BRIDE INFORMATION</div>
-              <div className="form-group">
-                <label>Bride Type</label>
-                <div className="flex-row-gap margin-top font-sm">
-                  <label><input type="radio" name="brideType" value="member" checked={brideType === 'member'} onChange={() => setBrideType('member')} /> Mahall Member</label>
-                  <label><input type="radio" name="brideType" value="external" checked={brideType === 'external'} onChange={() => setBrideType('external')} /> External / Non-Member</label>
-                </div>
-              </div>
-
-              {brideType === 'member' && (
-                <div className="form-group">
-                  <label>Select Bride Member</label>
-                  <select value={brideMemberId} onChange={(e) => handleSelectBrideMember(e.target.value)}>
-                    <option value="">-- Choose Bride Member --</option>
-                    {members.map((m) => (
-                      <option key={m.id} value={m.id}>{m.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div className="form-group">
-                <label>Bride Name *</label>
-                <input type="text" required value={brideName} onChange={(e) => setBrideName(e.target.value)} />
-              </div>
-
-              {/* SECTION C — NIKAH INFORMATION */}
-              <div className="form-section-title">SECTION C — NIKAH INFORMATION</div>
-              <div className="form-row-grid">
-                <div className="form-group">
-                  <label>Nikah Date *</label>
-                  <input type="date" required value={nikahDate} onChange={(e) => setNikahDate(e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label>Nikah Time</label>
-                  <input type="time" value={nikahTime} onChange={(e) => setNikahTime(e.target.value)} />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Nikah Venue</label>
-                <input type="text" value={nikahVenue} onChange={(e) => setNikahVenue(e.target.value)} />
-              </div>
-
-              {/* SECTION D & E — WALI & WITNESSES */}
-              <div className="form-section-title">SECTION D — WALI & WITNESS DETAILS</div>
-              <div className="form-row-grid">
-                <div className="form-group">
-                  <label>Wali Name</label>
-                  <input type="text" value={waliName} onChange={(e) => setWaliName(e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label>Wali Phone</label>
-                  <input type="text" value={waliPhone} onChange={(e) => setWaliPhone(e.target.value)} />
-                </div>
-              </div>
-
-              <div className="form-row-grid">
-                <div className="form-group">
-                  <label>Witness 1 Name</label>
-                  <input type="text" value={witness1Name} onChange={(e) => setWitness1Name(e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label>Witness 2 Name</label>
-                  <input type="text" value={witness2Name} onChange={(e) => setWitness2Name(e.target.value)} />
-                </div>
-              </div>
-
-              {/* SECTION F — MAHR INFORMATION */}
-              <div className="form-section-title">SECTION F — MAHR / SADAQ INFORMATION</div>
-              <div className="form-row-grid">
-                <div className="form-group">
-                  <label>Mahr Type</label>
-                  <select value={mahrType} onChange={(e) => setMahrType(e.target.value)}>
-                    <option value="Gold">Gold</option>
-                    <option value="Cash">Cash</option>
-                    <option value="Property">Property</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Mahr Description / Amount</label>
-                  <input type="text" placeholder="e.g. 5 Sovereign Gold" value={mahrDescription} onChange={(e) => setMahrDescription(e.target.value)} />
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button type="button" className="pill-btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                <button type="submit" className="pill-btn-primary" disabled={isSaving}>
-                  {isSaving ? <Loader2 size={16} className="spinner" /> : 'Save Marriage Record'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* DETAILS VIEW MODAL */}
       {isDetailsOpen && selectedMarriage && (

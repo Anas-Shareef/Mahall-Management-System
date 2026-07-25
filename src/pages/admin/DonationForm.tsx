@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { db } from '../../services/db';
-import type { Donation, DonationCampaign, Member, Household } from '../../services/db';
+import type { DonationCampaign, Member, Household } from '../../services/db';
 import { 
-  HeartHandshake, User, Users, DollarSign, Calendar, FileText, 
+  HeartHandshake, User, Users, DollarSign, 
   CheckCircle, AlertCircle, ArrowLeft, Save, Loader2, Target, HelpCircle, Search
 } from 'lucide-react';
 

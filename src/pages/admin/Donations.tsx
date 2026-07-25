@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { db } from '../../services/db';
 import type { 
-  Donation, DonationCampaign, SubscriptionYear, Member, Household 
+  Donation, DonationCampaign, SubscriptionYear 
 } from '../../services/db';
 import { 
   Plus, Search, Filter, Calendar, X, AlertCircle, 
-  CheckCircle, Loader2, DollarSign, Eye,
-  Download, Edit2, Trash2, User, Users,
-  HelpCircle, Check, Printer, RefreshCw, FileText, HeartHandshake,
+  CheckCircle, DollarSign, Eye,
+  Download, Edit2, Trash2, User,
+  Printer, RefreshCw, FileText, HeartHandshake,
   TrendingUp, CalendarDays, Target, Award, QrCode, ChevronLeft, ChevronRight,
   Wallet
 } from 'lucide-react';
@@ -17,7 +16,6 @@ import { YearFilter } from '../../components/YearFilter';
 import { Modal } from '../../components/Modal';
 
 export const Donations: React.FC = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
 
   // Primary Sub-Tab State ('all' | 'general' | 'campaigns')
@@ -28,8 +26,6 @@ export const Donations: React.FC = () => {
   const [selectedYearId, setSelectedYearId] = useState<string>('');
   const [donations, setDonations] = useState<Donation[]>([]);
   const [campaigns, setCampaigns] = useState<DonationCampaign[]>([]);
-  const [members, setMembers] = useState<Member[]>([]);
-  const [households, setHouseholds] = useState<Household[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
 
@@ -53,12 +49,6 @@ export const Donations: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
 
-  // Add / Edit Donation Wizard Drawer State
-  const [isDonationDrawerOpen, setIsDonationDrawerOpen] = useState(false);
-  const [donationModalMode, setDonationModalMode] = useState<'add' | 'edit'>('add');
-  const [editingDonationId, setEditingDonationId] = useState<string | null>(null);
-  const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4 | 5>(1);
-
   // View Details Drawer & Printable Receipt Modal States
   const [isDetailsDrawerOpen, setIsDetailsDrawerOpen] = useState(false);
   const [selectedDonationRecord, setSelectedDonationRecord] = useState<Donation | null>(null);
@@ -66,26 +56,6 @@ export const Donations: React.FC = () => {
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [receiptRecord, setReceiptRecord] = useState<Donation | null>(null);
 
-  // Form Fields - Record / Edit Donation
-  const [donationType, setDonationType] = useState<'general' | 'campaign'>('general');
-  const [campaignId, setCampaignId] = useState('');
-  const [donorType, setDonorType] = useState<'member' | 'external' | 'anonymous'>('external');
-  const [memberSearchQuery, setMemberSearchQuery] = useState('');
-  const [donorMemberId, setDonorMemberId] = useState<string>('');
-  const [donorName, setDonorName] = useState('');
-  const [donorPhone, setDonorPhone] = useState('');
-  const [donorEmail, setDonorEmail] = useState('');
-  const [donorAddress, setDonorAddress] = useState('');
-  const [amount, setAmount] = useState<number | ''>('');
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi' | 'bank_transfer' | 'cheque' | 'other'>('upi');
-  const [donationDate, setDonationDate] = useState(new Date().toISOString().split('T')[0]);
-  const [receiptNumber, setReceiptNumber] = useState('');
-  const [referenceNumber, setReferenceNumber] = useState('');
-  const [purpose, setPurpose] = useState('');
-  const [status, setStatus] = useState<'received' | 'pending' | 'cancelled'>('received');
-  const [notes, setNotes] = useState('');
-
-  const [isSaving, setIsSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const showToast = (type: 'success' | 'error', text: string) => {
@@ -97,18 +67,14 @@ export const Donations: React.FC = () => {
     setLoading(true);
     setFetchError(false);
     try {
-      const [yearList, donationList, campaignList, memberList, houseList] = await Promise.all([
+      const [yearList, donationList, campaignList] = await Promise.all([
         db.years.get(),
         db.donations.get(),
         db.donationCampaigns.get(),
-        db.members.get(),
-        db.households.get(),
       ]);
       setYears(yearList || []);
       setDonations(donationList || []);
       setCampaigns(campaignList || []);
-      setMembers(memberList || []);
-      setHouseholds(houseList || []);
     } catch (err) {
       console.error('Failed to load donation records:', err);
       setFetchError(true);
@@ -229,25 +195,7 @@ export const Donations: React.FC = () => {
     return filteredDonations.slice(start, start + rowsPerPage);
   }, [filteredDonations, currentPage, rowsPerPage]);
 
-  // Filtered members for wizard Step 3 live search
-  const searchableMembers = useMemo(() => {
-    const query = memberSearchQuery.toLowerCase().trim();
-    if (!query) return members.slice(0, 8);
-    return members.filter((m) =>
-      m.name.toLowerCase().includes(query) ||
-      (m.id && m.id.toLowerCase().includes(query)) ||
-      (m.phone && m.phone.includes(query))
-    ).slice(0, 10);
-  }, [members, memberSearchQuery]);
 
-  const handleSelectMember = (m: Member) => {
-    setDonorMemberId(m.id);
-    setDonorName(m.name);
-    setDonorPhone(m.phone || '');
-    setDonorEmail(m.email || '');
-    const h = households.find((x) => x.id === m.household_id);
-    if (h) setDonorAddress(h.address || h.house_number || '');
-  };
 
   const openAddDrawer = () => {
     navigate('/admin/donations/new');
@@ -256,63 +204,6 @@ export const Donations: React.FC = () => {
   const openEditDrawer = (d: Donation, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     navigate(`/admin/donations/${d.id}/edit`);
-  };
-
-  const handleSaveDonation = async () => {
-    if (!amount || Number(amount) <= 0) {
-      showToast('error', 'Please enter a valid donation amount');
-      return;
-    }
-    if (donorType === 'external' && !donorName.trim()) {
-      showToast('error', 'Please enter external donor name');
-      return;
-    }
-    if (donorType === 'member' && !donorMemberId) {
-      showToast('error', 'Please select a member from the database');
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const payload: Omit<Donation, 'id' | 'created_at' | 'updated_at'> = {
-        donation_type: donationType,
-        campaign_id: donationType === 'campaign' && campaignId ? campaignId : null,
-        donor_type: donorType,
-        donor_name: donorType === 'anonymous' ? 'Anonymous Donor' : donorName.trim(),
-        donor_phone: donorType === 'anonymous' ? null : donorPhone.trim() || null,
-        donor_email: donorType === 'anonymous' ? null : donorEmail.trim() || null,
-        donor_address: donorType === 'anonymous' ? null : donorAddress.trim() || null,
-        donor_member_id: donorType === 'member' && donorMemberId ? donorMemberId : null,
-        is_anonymous: donorType === 'anonymous',
-        amount: Number(amount),
-        payment_method: paymentMethod,
-        donation_date: donationDate,
-        receipt_number: receiptNumber.trim() || `REC-${Date.now()}`,
-        reference_number: referenceNumber.trim() || null,
-        purpose: purpose.trim() || null,
-        status: status,
-        notes: notes.trim() || null,
-        recorded_by: user?.id || null,
-      };
-
-      if (donationModalMode === 'add') {
-        const created = await db.donations.create(payload);
-        setSelectedDonationRecord(created);
-        showToast('success', 'Donation record saved to Supabase');
-      } else if (editingDonationId) {
-        const updated = await db.donations.update(editingDonationId, payload);
-        setSelectedDonationRecord(updated);
-        showToast('success', 'Donation record updated in Supabase');
-      }
-
-      setWizardStep(5); // Advance to Step 5 Success Screen
-      loadData();
-    } catch (err) {
-      console.error('Error saving donation record:', err);
-      showToast('error', 'Failed to save donation record');
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   const handleDeleteDonation = async (id: string, e?: React.MouseEvent) => {
@@ -896,376 +787,7 @@ export const Donations: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. MULTI-STEP RECORD DONATION WIZARD DRAWER / MODAL */}
-      <Modal
-        isOpen={isDonationDrawerOpen}
-        onClose={() => setIsDonationDrawerOpen(false)}
-        title={donationModalMode === 'add' ? 'Record New Donation' : 'Edit Donation Record'}
-        subtitle="Follow the wizard steps to record donation and donor details."
-        icon={<HeartHandshake size={22} />}
-        size="lg"
-        footer={
-          wizardStep < 5 ? (
-            <div className="flex-between width-100">
-              {wizardStep > 1 ? (
-                <button
-                  type="button"
-                  className="pill-btn-ghost"
-                  onClick={() => setWizardStep((prev) => (prev - 1) as any)}
-                >
-                  Back
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="pill-btn-ghost"
-                  onClick={() => setIsDonationDrawerOpen(false)}
-                >
-                  Cancel
-                </button>
-              )}
 
-              {wizardStep < 4 ? (
-                <button
-                  type="button"
-                  className="pill-btn-primary"
-                  onClick={() => {
-                    if (wizardStep === 1 && donationType === 'campaign' && !campaignId) {
-                      showToast('error', 'Please select a campaign');
-                      return;
-                    }
-                    setWizardStep((prev) => (prev + 1) as any);
-                  }}
-                >
-                  <span>Continue</span>
-                  <ChevronRight size={15} />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="pill-btn-primary"
-                  disabled={isSaving}
-                  onClick={handleSaveDonation}
-                >
-                  {isSaving ? <Loader2 size={16} className="spinner" /> : 'Save Donation Record'}
-                </button>
-              )}
-            </div>
-          ) : undefined
-        }
-      >
-        {/* STEPPER HEADER BAR */}
-        <div className="wizard-stepper-bar margin-bottom-md">
-          <div className={`wizard-step-item ${wizardStep === 1 ? 'active' : wizardStep > 1 ? 'completed' : ''}`}>
-            <div className="wizard-step-badge">{wizardStep > 1 ? <Check size={13} /> : '1'}</div>
-            <span>Category</span>
-          </div>
-          <div className={`wizard-step-line ${wizardStep > 1 ? 'active' : ''}`}></div>
-
-          <div className={`wizard-step-item ${wizardStep === 2 ? 'active' : wizardStep > 2 ? 'completed' : ''}`}>
-            <div className="wizard-step-badge">{wizardStep > 2 ? <Check size={13} /> : '2'}</div>
-            <span>Donor Type</span>
-          </div>
-          <div className={`wizard-step-line ${wizardStep > 2 ? 'active' : ''}`}></div>
-
-          <div className={`wizard-step-item ${wizardStep === 3 ? 'active' : wizardStep > 3 ? 'completed' : ''}`}>
-            <div className="wizard-step-badge">{wizardStep > 3 ? <Check size={13} /> : '3'}</div>
-            <span>Donor Info</span>
-          </div>
-          <div className={`wizard-step-line ${wizardStep > 3 ? 'active' : ''}`}></div>
-
-          <div className={`wizard-step-item ${wizardStep === 4 ? 'active' : wizardStep > 4 ? 'completed' : ''}`}>
-            <div className="wizard-step-badge">{wizardStep > 4 ? <Check size={13} /> : '4'}</div>
-            <span>Payment</span>
-          </div>
-          <div className={`wizard-step-line ${wizardStep > 4 ? 'active' : ''}`}></div>
-
-          <div className={`wizard-step-item ${wizardStep === 5 ? 'active' : ''}`}>
-            <div className="wizard-step-badge">5</div>
-            <span>Complete</span>
-          </div>
-        </div>
-
-        {/* STEP 1: DONATION CATEGORY */}
-        {wizardStep === 1 && (
-          <div className="animate-fade-in flex-col gap-sm">
-            <label className="form-label">Select Donation Category *</label>
-            <div className="details-grid-2col">
-              <div
-                className={`member-select-card ${donationType === 'general' ? 'selected' : ''}`}
-                onClick={() => setDonationType('general')}
-              >
-                <div className="flex-row-gap-sm">
-                  <div className="donor-avatar-circle emerald">
-                    <HeartHandshake size={20} />
-                  </div>
-                  <div>
-                    <div className="font-weight-700 font-sm text-dark">General Donation</div>
-                    <span className="font-xs color-subtle">Unrestricted general community fund</span>
-                  </div>
-                </div>
-              </div>
-
-              <div
-                className={`member-select-card ${donationType === 'campaign' ? 'selected' : ''}`}
-                onClick={() => setDonationType('campaign')}
-              >
-                <div className="flex-row-gap-sm">
-                  <div className="donor-avatar-circle purple">
-                    <Target size={20} />
-                  </div>
-                  <div>
-                    <div className="font-weight-700 font-sm text-dark">Campaign Donation</div>
-                    <span className="font-xs color-subtle">Dedicated special project collection</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {donationType === 'campaign' && (
-              <div className="form-group margin-top-xs">
-                <label className="form-label">Select Campaign *</label>
-                <select
-                  className="form-control"
-                  value={campaignId}
-                  onChange={(e) => setCampaignId(e.target.value)}
-                >
-                  <option value="">-- Choose Special Campaign --</option>
-                  {campaigns.map((c) => (
-                    <option key={c.id} value={c.id}>{c.campaign_name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* STEP 2: DONOR TYPE */}
-        {wizardStep === 2 && (
-          <div className="animate-fade-in flex-col gap-sm">
-            <label className="form-label">Select Donor Identity Type *</label>
-            <div className="flex-col gap-xs">
-              <div
-                className={`member-select-card ${donorType === 'member' ? 'selected' : ''}`}
-                onClick={() => { setDonorType('member'); }}
-              >
-                <div className="flex-row-gap-sm">
-                  <div className="donor-avatar-circle emerald"><User size={18} /></div>
-                  <div>
-                    <div className="font-weight-700 font-sm text-dark">Mahall Registered Member</div>
-                    <span className="font-xs color-subtle">Link donation directly to a registered member</span>
-                  </div>
-                </div>
-              </div>
-
-              <div
-                className={`member-select-card ${donorType === 'external' ? 'selected' : ''}`}
-                onClick={() => { setDonorType('external'); }}
-              >
-                <div className="flex-row-gap-sm">
-                  <div className="donor-avatar-circle primary"><Users size={18} /></div>
-                  <div>
-                    <div className="font-weight-700 font-sm text-dark">External Well-Wisher</div>
-                    <span className="font-xs color-subtle">External non-member or organization contributor</span>
-                  </div>
-                </div>
-              </div>
-
-              <div
-                className={`member-select-card ${donorType === 'anonymous' ? 'selected' : ''}`}
-                onClick={() => { setDonorType('anonymous'); setDonorName('Anonymous Donor'); }}
-              >
-                <div className="flex-row-gap-sm">
-                  <div className="donor-avatar-circle yellow"><HelpCircle size={18} /></div>
-                  <div>
-                    <div className="font-weight-700 font-sm text-dark">Anonymous Donor</div>
-                    <span className="font-xs color-subtle">Keep donor identity private on public records</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 3: DONOR DETAILS */}
-        {wizardStep === 3 && (
-          <div className="animate-fade-in flex-col gap-sm">
-            {donorType === 'member' ? (
-              <>
-                <div className="form-group">
-                  <label className="form-label">Search Member Database *</label>
-                  <div className="search-box">
-                    <Search size={16} className="search-icon" />
-                    <input
-                      type="text"
-                      placeholder="Search member by name, ID, phone..."
-                      value={memberSearchQuery}
-                      onChange={(e) => setMemberSearchQuery(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="member-search-cards-list">
-                  {searchableMembers.map((m) => {
-                    const house = households.find((h) => h.id === m.household_id);
-                    const isSel = donorMemberId === m.id;
-
-                    return (
-                      <div
-                        key={m.id}
-                        className={`member-select-card ${isSel ? 'selected' : ''}`}
-                        onClick={() => handleSelectMember(m)}
-                      >
-                        <div className="flex-row-gap-sm">
-                          <div className="donor-avatar-circle sm avatar-member">
-                            {m.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <div className="font-weight-700 font-sm text-dark">{m.name}</div>
-                            <span className="font-xs color-subtle">
-                              ID: {m.id.substring(0, 8)} • {house ? `House #${house.house_number}` : 'No House'}
-                            </span>
-                          </div>
-                        </div>
-                        <button className={`pill-btn-ghost font-xs ${isSel ? 'bg-success text-white' : ''}`}>
-                          {isSel ? 'Selected ✓' : 'Select'}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            ) : donorType === 'external' ? (
-              <div className="form-row-2col">
-                <div className="form-group">
-                  <label className="form-label">Donor Name *</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={donorName}
-                    onChange={(e) => setDonorName(e.target.value)}
-                    placeholder="Full Name"
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Phone Number</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={donorPhone}
-                    onChange={(e) => setDonorPhone(e.target.value)}
-                    placeholder="+91 Mobile"
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="details-section-card bg-primary-light text-center p-md">
-                <HelpCircle size={32} className="text-primary margin-bottom-xs" />
-                <h4 className="font-weight-700">Anonymous Donation Selected</h4>
-                <p className="font-xs color-subtle">Donor identity will be masked as Anonymous on all public receipts and reports.</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* STEP 4: DONATION & PAYMENT DETAILS */}
-        {wizardStep === 4 && (
-          <div className="animate-fade-in flex-col gap-sm">
-            <div className="form-row-2col">
-              <div className="form-group">
-                <label className="form-label">Donation Amount (₹) *</label>
-                <input
-                  type="number"
-                  className="form-control font-weight-700 text-success"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : '')}
-                  placeholder="e.g. 5000"
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Donation Date *</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={donationDate}
-                  onChange={(e) => setDonationDate(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="form-row-2col">
-              <div className="form-group">
-                <label className="form-label">Payment Method</label>
-                <select
-                  className="form-control"
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value as any)}
-                >
-                  <option value="upi">UPI / Online</option>
-                  <option value="cash">Cash</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="cheque">Cheque</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Receipt Number</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={receiptNumber}
-                  onChange={(e) => setReceiptNumber(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Transaction Reference #</label>
-              <input
-                type="text"
-                className="form-control"
-                value={referenceNumber}
-                onChange={(e) => setReferenceNumber(e.target.value)}
-                placeholder="UPI Ref / Cheque No / Bank Reference"
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Purpose / Remarks</label>
-              <textarea
-                className="form-control"
-                rows={2}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Notes or special donor instructions..."
-              />
-            </div>
-          </div>
-        )}
-
-        {/* STEP 5: SUCCESS VIEW */}
-        {wizardStep === 5 && (
-          <div className="animate-fade-in success-wizard-container">
-            <div className="success-animated-badge">
-              <CheckCircle size={40} />
-            </div>
-            <h3 className="font-weight-800 text-dark">Donation Recorded Successfully!</h3>
-            <p className="font-sm color-subtle margin-top-xs">
-              The donation of <strong>{formatCurrency(Number(amount))}</strong> has been saved to your Supabase database.
-            </p>
-
-            <div className="flex-row-center gap-sm margin-top-md">
-              {selectedDonationRecord && (
-                <button className="pill-btn-primary" onClick={() => openReceiptModal(selectedDonationRecord)}>
-                  <Award size={16} /> View Receipt
-                </button>
-              )}
-              <button className="pill-btn-ghost" onClick={() => setIsDonationDrawerOpen(false)}>
-                Back to Directory List
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
 
       {/* 5. OFFICIAL PRINTABLE DONATION RECEIPT MODAL */}
       <Modal

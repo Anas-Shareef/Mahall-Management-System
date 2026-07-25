@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { db } from '../../services/db';
-import type { Household, Member, Profile } from '../../services/db';
+import type { Household, Member } from '../../services/db';
 import { 
   Plus, Edit2, Trash2, Search, Filter, Users, X, AlertCircle, 
   CheckCircle, Phone, Mail, Home, Smartphone, Loader2, UserCheck 
@@ -15,7 +15,6 @@ export const Members: React.FC = () => {
   // Data States
   const [members, setMembers] = useState<Member[]>([]);
   const [households, setHouseholds] = useState<Household[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Search & Filter States
@@ -23,26 +22,6 @@ export const Members: React.FC = () => {
   const [selectedHouseholdId, setSelectedHouseholdId] = useState('');
   const [selectedRelationship, setSelectedRelationship] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
-
-  // Add / Edit Modal States
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
-  const [currentId, setCurrentId] = useState<string | null>(null);
-
-  // Form Fields
-  const [householdId, setHouseholdId] = useState('');
-  const [name, setName] = useState('');
-  const [relationship, setRelationship] = useState('Son');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'active' | 'inactive'>('active');
-  const [enableLogin, setEnableLogin] = useState(false);
-  const [isSubscriptionAccountable, setIsSubscriptionAccountable] = useState(true);
-
-  // Form Validation & Saving States
-  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
-  const [formError, setFormError] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
 
   // Delete Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -68,14 +47,12 @@ export const Members: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [memberList, houseList, profileList] = await Promise.all([
+      const [memberList, houseList] = await Promise.all([
         db.members.get(),
         db.households.get(),
-        db.profiles.get(),
       ]);
       setMembers(memberList);
       setHouseholds(houseList);
-      setProfiles(profileList);
     } catch (err) {
       console.error('Failed to load members page data:', err);
       showToast('error', 'Unable to load members. Please try again.');
@@ -123,104 +100,6 @@ export const Members: React.FC = () => {
       showToast('error', err.message || 'Failed to delete member.');
     } finally {
       setIsDeleting(false);
-    }
-  };
-
-  // Validate Form Fields
-  const validateForm = (): boolean => {
-    const errors: { [key: string]: string } = {};
-
-    if (!name.trim()) {
-      errors.name = 'Member full name is required.';
-    }
-
-    if (!householdId) {
-      errors.householdId = 'Please select a household.';
-    }
-
-    if (phone.trim() && !/^[0-9+--\s()]{7,15}$/.test(phone.trim())) {
-      errors.phone = 'Please enter a valid phone number.';
-    }
-
-    if (enableLogin && !phone.trim()) {
-      errors.phone = 'Phone number is required to enable portal login.';
-    }
-
-    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      errors.email = 'Please enter a valid email address.';
-    }
-
-    setFieldErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  // Save Modal Form
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError('');
-
-    if (!validateForm()) return;
-
-    setIsSaving(true);
-
-    try {
-      let userId: string | null = null;
-      
-      if (enableLogin) {
-        // Search existing profile by phone
-        const existingProf = profiles.find((p) => p.phone === phone.trim());
-        if (existingProf) {
-          userId = existingProf.id;
-        } else {
-          // Create new user profile for member portal login
-          const profileId = 'user-' + Math.random().toString(36).substr(2, 9);
-          const newProfile: Profile = {
-            id: profileId,
-            name: name.trim(),
-            phone: phone.trim(),
-            email: email.trim() || null,
-            role: 'member',
-            language: 'en',
-            status: 'active',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          };
-          
-          await db.profiles.create(newProfile);
-          userId = profileId;
-        }
-      }
-
-      const data = {
-        household_id: householdId,
-        name: name.trim(),
-        relationship,
-        phone: phone.trim() || null,
-        email: email.trim() || null,
-        status,
-        user_id: enableLogin ? userId : null,
-        is_subscription_accountable: isSubscriptionAccountable,
-      };
-
-      if (modalMode === 'add') {
-        await db.members.create(data);
-        showToast('success', '✓ Member added successfully.');
-      } else if (currentId) {
-        await db.members.update(currentId, data);
-        showToast('success', '✓ Member updated successfully.');
-      }
-
-      setIsModalOpen(false);
-      loadData();
-
-      if (selectedMemberDetails && selectedMemberDetails.id === currentId) {
-        const updatedM = await db.members.getById(currentId);
-        setSelectedMemberDetails(updatedM);
-      }
-    } catch (err: any) {
-      setFormError(err.message || 'Unable to save member. Please try again.');
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -586,215 +465,7 @@ export const Members: React.FC = () => {
         )}
       </div>
 
-      {/* ADD / EDIT MEMBER MODAL DIALOG */}
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card animate-scale-up">
-            <div className="modal-header">
-              <div>
-                <h4>{modalMode === 'add' ? 'Add Member' : 'Edit Member'}</h4>
-                <p className="modal-subtitle">
-                  {modalMode === 'add'
-                    ? 'Register a new member to a Mahallu household.'
-                    : `Update details for member ${name}`}
-                </p>
-              </div>
-              <button
-                className="modal-close-btn"
-                onClick={() => setIsModalOpen(false)}
-                aria-label="Close Add Member dialog"
-              >
-                <X size={20} />
-              </button>
-            </div>
 
-            <form onSubmit={handleSave} className="modal-form">
-              <div className="form-section-title">Personal Information</div>
-
-              {formError && (
-                <div className="form-alert error">
-                  <AlertCircle size={16} />
-                  <span>{formError}</span>
-                </div>
-              )}
-
-              <div className="form-row-grid">
-                <div className="form-group">
-                  <label htmlFor="member-name-input">Full Name *</label>
-                  <input
-                    id="member-name-input"
-                    type="text"
-                    required
-                    placeholder="e.g. Ameer K."
-                    value={name}
-                    className={fieldErrors.name ? 'input-error' : ''}
-                    onChange={(e) => {
-                      setName(e.target.value);
-                      if (fieldErrors.name) setFieldErrors({ ...fieldErrors, name: '' });
-                    }}
-                  />
-                  {fieldErrors.name && (
-                    <span className="field-error-text">⚠ {fieldErrors.name}</span>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="relationship-select">Relationship to Owner *</label>
-                  <select
-                    id="relationship-select"
-                    value={relationship}
-                    onChange={(e) => setRelationship(e.target.value)}
-                  >
-                    {relationshipsList.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-row-grid">
-                <div className="form-group">
-                  <label htmlFor="phone-input">Phone Number</label>
-                  <input
-                    id="phone-input"
-                    type="tel"
-                    placeholder="e.g. 9876543210"
-                    value={phone}
-                    className={fieldErrors.phone ? 'input-error' : ''}
-                    onChange={(e) => {
-                      setPhone(e.target.value);
-                      if (fieldErrors.phone) setFieldErrors({ ...fieldErrors, phone: '' });
-                    }}
-                  />
-                  {fieldErrors.phone && (
-                    <span className="field-error-text">⚠ {fieldErrors.phone}</span>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="email-input">Email Address</label>
-                  <input
-                    id="email-input"
-                    type="email"
-                    placeholder="e.g. member@mahal.com"
-                    value={email}
-                    className={fieldErrors.email ? 'input-error' : ''}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: '' });
-                    }}
-                  />
-                  {fieldErrors.email && (
-                    <span className="field-error-text">⚠ {fieldErrors.email}</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="form-section-title margin-top-sm">Household Association</div>
-
-              <div className="form-group">
-                <label htmlFor="household-select">Household *</label>
-                <select
-                  id="household-select"
-                  value={householdId}
-                  className={fieldErrors.householdId ? 'input-error' : ''}
-                  onChange={(e) => {
-                    setHouseholdId(e.target.value);
-                    if (fieldErrors.householdId) setFieldErrors({ ...fieldErrors, householdId: '' });
-                  }}
-                >
-                  <option value="">-- Select Household --</option>
-                  {households.map((h) => (
-                    <option key={h.id} value={h.id}>
-                      House No. H-{h.house_number} ({h.house_owner_name})
-                    </option>
-                  ))}
-                </select>
-                {fieldErrors.householdId && (
-                  <span className="field-error-text">⚠ {fieldErrors.householdId}</span>
-                )}
-              </div>
-
-              <div className="form-row-grid margin-top-sm">
-                <div className="form-group">
-                  <label>Status</label>
-                  <div className="status-pill-toggle-group">
-                    <button
-                      type="button"
-                      className={`status-toggle-pill active-pill ${status === 'active' ? 'selected' : ''}`}
-                      onClick={() => setStatus('active')}
-                    >
-                      <span className="dot active-dot"></span>
-                      <span>Active</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`status-toggle-pill inactive-pill ${status === 'inactive' ? 'selected' : ''}`}
-                      onClick={() => setStatus('inactive')}
-                    >
-                      <span className="dot inactive-dot"></span>
-                      <span>Inactive</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label>Portal Access</label>
-                  <label className="checkbox-toggle-card">
-                    <input
-                      type="checkbox"
-                      checked={enableLogin}
-                      onChange={(e) => setEnableLogin(e.target.checked)}
-                    />
-                    <div className="checkbox-text font-sm">
-                      <span className="bold-text">Enable Portal Login</span>
-                      <p>Allows OTP login via phone number</p>
-                    </div>
-                  </label>
-                </div>
-
-                <div className="form-group">
-                  <label>Subscription Accountability</label>
-                  <label className="checkbox-toggle-card">
-                    <input
-                      type="checkbox"
-                      checked={isSubscriptionAccountable}
-                      onChange={(e) => setIsSubscriptionAccountable(e.target.checked)}
-                    />
-                    <div className="checkbox-text font-sm">
-                      <span className="bold-text">Accountable for Annual Subscription</span>
-                      <p>If ON, member is included in yearly subscription ledgers</p>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  className="btn-cancel"
-                  onClick={() => setIsModalOpen(false)}
-                  disabled={isSaving}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="primary-btn submit-pill-btn" disabled={isSaving}>
-                  {isSaving ? (
-                    <>
-                      <Loader2 size={16} className="spinner-icon" />
-                      <span>Saving Member...</span>
-                    </>
-                  ) : (
-                    <span>{modalMode === 'add' ? 'Save Member' : 'Update Member'}</span>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* DELETE CONFIRMATION MODAL */}
       {isDeleteModalOpen && memberToDelete && (

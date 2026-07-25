@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { db } from '../../services/db';
-import type { DeathRecord, Member, Household } from '../../services/db';
+import type { Member, Household } from '../../services/db';
 import { 
-  UserX, User, Calendar, MapPin, FileText, CheckCircle, AlertCircle, 
-  ArrowLeft, Save, Loader2, Search, Building2, ShieldCheck, Award
+  UserX, User, Calendar, CheckCircle, AlertCircle, 
+  ArrowLeft, Save, Loader2, Search, Award
 } from 'lucide-react';
 
 export const DeathForm: React.FC = () => {
