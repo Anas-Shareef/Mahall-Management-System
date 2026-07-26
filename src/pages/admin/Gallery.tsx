@@ -5,12 +5,47 @@ import {
   Image as ImageIcon, Plus, Search, Calendar, 
   Trash2, CheckCircle, AlertCircle, 
   Loader2, Upload, Download, Eye, MapPin,
-  ChevronLeft, ChevronRight 
+  ChevronLeft, ChevronRight, Edit3, Settings 
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { Modal } from '../../components/Modal';
 import { SidePanel } from '../../components/SidePanel';
 import { ConfirmModal } from '../../components/ConfirmModal';
+
+// Canvas image compressor utility
+const compressImage = (file: File, maxWidth = 1400, quality = 0.8): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(event.target?.result as string);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
 
 export const Gallery: React.FC = () => {
   // Data States
@@ -43,9 +78,57 @@ export const Gallery: React.FC = () => {
   const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
   const [coverIndex, setCoverIndex] = useState(0);
 
+  // Dynamic Programme Types State
+  const [programmeTypes, setProgrammeTypes] = useState<string[]>(() => {
+    const saved = localStorage.getItem('mahall_programme_types');
+    return saved ? JSON.parse(saved) : ['Religious Programme', 'Educational Programme', 'Community Programme', 'Ramadan Programme', 'Eid Programme'];
+  });
+  const [isManageTypesOpen, setIsManageTypesOpen] = useState(false);
+  const [newTypeName, setNewTypeName] = useState('');
+  const [editingTypeIndex, setEditingTypeIndex] = useState<number | null>(null);
+  const [editingTypeName, setEditingTypeName] = useState('');
+  const [isCompressingPhotos, setIsCompressingPhotos] = useState(false);
+
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
+
+  const handleAddProgrammeType = () => {
+    if (!newTypeName.trim()) return;
+    const name = newTypeName.trim();
+    if (programmeTypes.includes(name)) {
+      showToast('error', 'Programme type already exists');
+      return;
+    }
+    const updated = [...programmeTypes, name];
+    setProgrammeTypes(updated);
+    localStorage.setItem('mahall_programme_types', JSON.stringify(updated));
+    setNewTypeName('');
+    showToast('success', `Added "${name}" programme type`);
+  };
+
+  const handleEditProgrammeType = (index: number) => {
+    if (!editingTypeName.trim()) return;
+    const name = editingTypeName.trim();
+    const updated = [...programmeTypes];
+    updated[index] = name;
+    setProgrammeTypes(updated);
+    localStorage.setItem('mahall_programme_types', JSON.stringify(updated));
+    setEditingTypeIndex(null);
+    setEditingTypeName('');
+    showToast('success', 'Programme type updated');
+  };
+
+  const handleDeleteProgrammeType = (index: number) => {
+    const typeToRemove = programmeTypes[index];
+    const updated = programmeTypes.filter((_, idx) => idx !== index);
+    setProgrammeTypes(updated);
+    localStorage.setItem('mahall_programme_types', JSON.stringify(updated));
+    if (programmeType === typeToRemove) {
+      setProgrammeType(updated[0] || 'General Programme');
+    }
+    showToast('success', `Removed "${typeToRemove}"`);
+  };
 
   const [isSaving, setIsSaving] = useState(false);
   const [albumToDelete, setAlbumToDelete] = useState<GalleryAlbum | null>(null);
@@ -207,20 +290,30 @@ export const Gallery: React.FC = () => {
     }
   };
 
-  const handleFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        if (evt.target?.result) {
-          setUploadedImageUrls((prev) => [...prev, evt.target!.result as string]);
+    setIsCompressingPhotos(true);
+    let addedCount = 0;
+    try {
+      for (const file of Array.from(files)) {
+        if (file.size > 8 * 1024 * 1024) {
+          showToast('error', `"${file.name}" exceeds 8MB size limit. Skipped.`);
+          continue;
         }
-      };
-      reader.readAsDataURL(file);
-    });
-    showToast('success', `${files.length} photo(s) added`);
+        const compressedDataUrl = await compressImage(file);
+        setUploadedImageUrls((prev) => [...prev, compressedDataUrl]);
+        addedCount++;
+      }
+      if (addedCount > 0) {
+        showToast('success', `${addedCount} photo(s) compressed & added successfully!`);
+      }
+    } catch (err) {
+      showToast('error', 'Error processing selected photo files.');
+    } finally {
+      setIsCompressingPhotos(false);
+    }
   };
 
   const handleRemoveUploadedPhoto = (indexToRemove: number, e: React.MouseEvent) => {
@@ -295,13 +388,11 @@ export const Gallery: React.FC = () => {
         <div className="filter-selectors-grid">
           <YearFilter selectedYearId={selectedYearId} onChange={setSelectedYearId} showAllOption={true} />
 
-          <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)}>
+          <select className="custom-select-pill" value={selectedType} onChange={(e) => setSelectedType(e.target.value)}>
             <option value="">All Programme Types</option>
-            <option value="Religious Programme">Religious Programme</option>
-            <option value="Educational Programme">Educational Programme</option>
-            <option value="Community Programme">Community Programme</option>
-            <option value="Ramadan Programme">Ramadan Programme</option>
-            <option value="Eid Programme">Eid Programme</option>
+            {programmeTypes.map((type) => (
+              <option key={type} value={type}>{type}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -444,17 +535,17 @@ export const Gallery: React.FC = () => {
         icon={<ImageIcon size={20} />}
         size="lg"
         footer={
-          <div className="flex-between width-100 align-items-center">
+          <div className="flex-between width-100 align-items-center gap-md">
             <button className="pill-btn-danger font-xs" onClick={() => selectedAlbum && handleDeleteAlbum(selectedAlbum)}>
               <Trash2 size={14} /> Delete Album
             </button>
-            <div className="flex-row-gap-xs">
+            <div className="flex-row-gap-xs align-items-center">
               {selectedAlbum && (
-                <button className="album-btn-download font-xs" onClick={() => handleDownloadAlbum(selectedAlbum)}>
+                <button className="pill-btn-primary font-xs flex-row-gap-xs" onClick={() => handleDownloadAlbum(selectedAlbum)}>
                   <Download size={14} /> Download Photos
                 </button>
               )}
-              <button className="pill-btn-ghost font-xs" onClick={() => setSelectedAlbum(null)}>
+              <button className="pill-btn-secondary font-xs" onClick={() => setSelectedAlbum(null)}>
                 Close
               </button>
             </div>
@@ -493,7 +584,7 @@ export const Gallery: React.FC = () => {
             <button type="button" className="pill-btn-ghost" onClick={() => setIsAlbumModalOpen(false)}>
               Cancel
             </button>
-            <button type="submit" form="album-side-panel-form" className="pill-btn-primary" disabled={isSaving}>
+            <button type="submit" form="album-side-panel-form" className="pill-btn-primary" disabled={isSaving || isCompressingPhotos}>
               {isSaving ? 'Saving...' : modalMode === 'edit' ? 'Update Album' : 'Save Album'}
             </button>
           </>
@@ -521,13 +612,21 @@ export const Gallery: React.FC = () => {
 
               <div className="form-grid-2col">
                 <div className="form-group">
-                  <label className="form-label">Programme Type</label>
-                  <select className="form-control" value={programmeType} onChange={(e) => setProgrammeType(e.target.value)}>
-                    <option value="Religious Programme">Religious Programme</option>
-                    <option value="Educational Programme">Educational Programme</option>
-                    <option value="Community Programme">Community Programme</option>
-                    <option value="Ramadan Programme">Ramadan Programme</option>
-                    <option value="Eid Programme">Eid Programme</option>
+                  <div className="flex-between align-items-center margin-bottom-xs">
+                    <label className="form-label margin-bottom-0">Programme Type</label>
+                    <button
+                      type="button"
+                      className="pill-btn-ghost font-xs padding-xs"
+                      onClick={() => setIsManageTypesOpen(true)}
+                      title="Manage Programme Types"
+                    >
+                      <Settings size={12} /> Manage Types
+                    </button>
+                  </div>
+                  <select className="custom-select-pill" value={programmeType} onChange={(e) => setProgrammeType(e.target.value)}>
+                    {programmeTypes.map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
                   </select>
                 </div>
                 <div className="form-group">
@@ -556,9 +655,18 @@ export const Gallery: React.FC = () => {
 
             {/* INTERACTIVE FILE DROPZONE */}
             <label htmlFor="file-upload-input" className="upload-dropzone margin-bottom-md cursor-pointer">
-              <Upload size={28} className="text-emerald" />
-              <div className="font-xs font-weight-700 text-dark">Click or Drag photos to upload</div>
-              <p className="font-xs color-subtle">JPG, PNG, WEBP files supported (Select multiple files at once)</p>
+              {isCompressingPhotos ? (
+                <>
+                  <Loader2 size={28} className="spinner text-emerald" />
+                  <div className="font-xs font-weight-700 text-dark">Optimizing & compressing photos...</div>
+                </>
+              ) : (
+                <>
+                  <Upload size={28} className="text-emerald" />
+                  <div className="font-xs font-weight-700 text-dark">Click or Drag photos to upload</div>
+                  <p className="font-xs color-subtle">JPG, PNG, WEBP files (Multiple selection allowed • Auto-optimized)</p>
+                </>
+              )}
               <input
                 id="file-upload-input"
                 type="file"
@@ -569,44 +677,116 @@ export const Gallery: React.FC = () => {
               />
             </label>
 
-            <div className="flex-between align-items-center margin-bottom-xs">
-              <span className="form-label">Uploaded Photos ({uploadedImageUrls.length}) — Click thumbnail to set as Cover:</span>
-              <button
-                type="button"
-                className="pill-btn-ghost font-xs"
-                onClick={() => setUploadedImageUrls((prev) => [...prev, 'https://images.unsplash.com/photo-1542810634-71277d95dcbb?auto=format&fit=crop&q=80&w=800'])}
-              >
-                + Add Sample Photo
-              </button>
-            </div>
-
             {/* COMPACT THUMBNAIL GRID */}
-            <div className="upload-thumbnail-grid">
-              {uploadedImageUrls.map((url, idx) => (
-                <div
-                  key={idx}
-                  className={`compact-photo-chip ${coverIndex === idx ? 'cover-selected' : ''}`}
-                  onClick={() => setCoverIndex(idx)}
-                  title="Click to set as Cover Image"
-                >
-                  <img src={url} alt={`preview ${idx}`} />
-                  {coverIndex === idx && <span className="chip-cover-pill">Cover</span>}
-                  <button
-                    type="button"
-                    className="chip-remove-btn"
-                    onClick={(e) => handleRemoveUploadedPhoto(idx, e)}
-                    title="Remove photo"
+            {uploadedImageUrls.length > 0 && (
+              <div className="upload-thumbnail-grid">
+                {uploadedImageUrls.map((url, idx) => (
+                  <div
+                    key={idx}
+                    className={`compact-photo-chip ${coverIndex === idx ? 'cover-selected' : ''}`}
+                    onClick={() => setCoverIndex(idx)}
+                    title="Click to set as Cover Image"
                   >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
+                    <img src={url} alt={`preview ${idx}`} />
+                    {coverIndex === idx && <span className="chip-cover-pill">Cover</span>}
+                    <button
+                      type="button"
+                      className="chip-remove-btn"
+                      onClick={(e) => handleRemoveUploadedPhoto(idx, e)}
+                      title="Remove photo"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </form>
       </SidePanel>
 
-      {/* CONFIRMation POPUP MODAL FOR DELETING ALBUM */}
+      {/* MANAGE PROGRAMME TYPES MODAL */}
+      <Modal
+        isOpen={isManageTypesOpen}
+        onClose={() => setIsManageTypesOpen(false)}
+        title="Manage Programme Types"
+        subtitle="Add, edit, or remove programme categories for albums."
+        icon={<Settings size={20} />}
+        size="md"
+        footer={
+          <button className="pill-btn-ghost font-xs" onClick={() => setIsManageTypesOpen(false)}>
+            Done
+          </button>
+        }
+      >
+        <div className="flex-col gap-md">
+          {/* Add New Type Input */}
+          <div className="flex-row-gap-xs align-items-center">
+            <input
+              type="text"
+              className="form-control font-xs"
+              placeholder="New Programme Type Name..."
+              value={newTypeName}
+              onChange={(e) => setNewTypeName(e.target.value)}
+            />
+            <button type="button" className="pill-btn-primary font-xs" onClick={handleAddProgrammeType}>
+              <Plus size={14} /> Add
+            </button>
+          </div>
+
+          {/* List of Existing Types */}
+          <div className="flex-col gap-xs margin-top-xs">
+            {programmeTypes.map((type, idx) => (
+              <div key={type} className="glass-card padding-xs flex-between align-items-center">
+                {editingTypeIndex === idx ? (
+                  <div className="flex-row-gap-xs width-100">
+                    <input
+                      type="text"
+                      className="form-control font-xs"
+                      value={editingTypeName}
+                      onChange={(e) => setEditingTypeName(e.target.value)}
+                      autoFocus
+                    />
+                    <button type="button" className="pill-btn-primary font-xs" onClick={() => handleEditProgrammeType(idx)}>
+                      Save
+                    </button>
+                    <button type="button" className="pill-btn-ghost font-xs" onClick={() => setEditingTypeIndex(null)}>
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <span className="font-xs font-weight-600 text-dark">{type}</span>
+                    <div className="flex-row-gap-xs">
+                      <button
+                        type="button"
+                        className="pill-btn-ghost font-xs padding-xs"
+                        onClick={() => {
+                          setEditingTypeIndex(idx);
+                          setEditingTypeName(type);
+                        }}
+                        title="Edit Type"
+                      >
+                        <Edit3 size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        className="pill-btn-danger font-xs padding-xs"
+                        onClick={() => handleDeleteProgrammeType(idx)}
+                        title="Delete Type"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </Modal>
+
+      {/* CONFIRMATION POPUP MODAL FOR DELETING ALBUM */}
       <ConfirmModal
         isOpen={Boolean(albumToDelete)}
         onClose={() => setAlbumToDelete(null)}

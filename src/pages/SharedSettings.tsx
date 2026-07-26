@@ -93,6 +93,7 @@ export const SharedSettings: React.FC = () => {
 
       // Save user profile changes
       if (user) {
+        localStorage.setItem('admin_display_name', name);
         await db.profiles.update(user.id, {
           name,
           email: email || null,
