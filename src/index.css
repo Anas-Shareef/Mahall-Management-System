@@ -1217,6 +1217,250 @@ img, svg, video, canvas {
   z-index: 2 !important;
 }
 
+/* MODERN GALLERY ALBUM CARD GRID SYSTEM */
+.gallery-albums-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
+  gap: 24px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 640px) {
+  .gallery-albums-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+}
+
+.gallery-album-card {
+  background: #ffffff !important;
+  border-radius: 20px !important;
+  border: 1px solid #e2e8f0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05) !important;
+  position: relative !important;
+  cursor: pointer !important;
+}
+
+.gallery-album-card:hover {
+  transform: translateY(-6px) !important;
+  box-shadow: 0 20px 40px -8px rgba(0, 150, 107, 0.18) !important;
+  border-color: rgba(0, 150, 107, 0.3) !important;
+}
+
+/* ALBUM THUMBNAIL CONTAINER WITH ZOOM EFFECT */
+.album-card-media {
+  position: relative !important;
+  width: 100% !important;
+  height: 200px !important;
+  overflow: hidden !important;
+  background: #0f172a !important;
+}
+
+.album-card-media img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.gallery-album-card:hover .album-card-media img {
+  transform: scale(1.08) !important;
+}
+
+/* GRADIENT SCRIM OVER THUMBNAIL */
+.album-card-scrim {
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(to top, rgba(15, 23, 42, 0.75) 0%, rgba(15, 23, 42, 0.1) 60%, rgba(0, 0, 0, 0) 100%) !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+}
+
+/* TOP GLASS BADGES */
+.album-card-top-badges {
+  position: absolute !important;
+  top: 12px !important;
+  left: 12px !important;
+  right: 12px !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
+}
+
+.album-type-chip {
+  background: rgba(15, 23, 42, 0.7) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  color: #ffffff !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  padding: 5px 12px !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  letter-spacing: 0.02em !important;
+}
+
+.album-count-chip {
+  background: rgba(0, 150, 107, 0.85) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  color: #ffffff !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  padding: 5px 10px !important;
+  border-radius: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* CARD CONTENT BODY */
+.album-card-content {
+  padding: 18px 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  flex: 1 !important;
+  background: #ffffff !important;
+}
+
+.album-card-title {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  line-height: 1.3 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  transition: color 0.2s ease !important;
+}
+
+.gallery-album-card:hover .album-card-title {
+  color: #00966b !important;
+}
+
+.album-card-meta {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 12px !important;
+  font-size: 12px !important;
+  color: #64748b !important;
+  font-weight: 600 !important;
+}
+
+.album-meta-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.album-card-description {
+  font-size: 13px !important;
+  color: #475569 !important;
+  line-height: 1.5 !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+}
+
+/* CARD FOOTER WITH BEAUTIFUL DOWNLOAD BUTTON */
+.album-card-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding-top: 14px !important;
+  border-top: 1px solid #f1f5f9 !important;
+  margin-top: auto !important;
+  gap: 10px !important;
+}
+
+.album-btn-download {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 8px 14px !important;
+  border-radius: 12px !important;
+  background: #ecfdf5 !important;
+  color: #00966b !important;
+  border: 1px solid #a7f3d0 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: all 0.22s ease !important;
+}
+
+.album-btn-download:hover {
+  background: #00966b !important;
+  color: #ffffff !important;
+  border-color: #00966b !important;
+  box-shadow: 0 4px 12px rgba(0, 150, 107, 0.3) !important;
+  transform: translateY(-1px) !important;
+}
+
+.album-btn-view {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 8px 14px !important;
+  border-radius: 12px !important;
+  background: #f8fafc !important;
+  color: #334155 !important;
+  border: 1px solid #e2e8f0 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: all 0.22s ease !important;
+}
+
+.album-btn-view:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+.album-btn-delete {
+  background: transparent !important;
+  border: none !important;
+  color: #94a3b8 !important;
+  padding: 6px !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.album-btn-delete:hover {
+  background: #fef2f2 !important;
+  color: #ef4444 !important;
+}
+
+/* STAGGERED SCROLL ENTRANCE ANIMATION */
+.scroll-animate-card {
+  animation: slideUpFade 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  opacity: 0;
+}
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* SIZING PRESETS */
 .modal-size-sm { max-width: min(600px, calc(100vw - 32px)) !important; }
 .modal-size-md { max-width: min(900px, calc(100vw - 32px)) !important; }

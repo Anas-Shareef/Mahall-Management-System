@@ -4,7 +4,7 @@ import type { GalleryAlbum, GalleryImage, SubscriptionYear } from '../../service
 import { 
   Image as ImageIcon, Plus, Search, Calendar, 
   Trash2, CheckCircle, AlertCircle, 
-  Loader2, Upload 
+  Loader2, Upload, Download, Eye, MapPin 
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { Modal } from '../../components/Modal';
@@ -188,6 +188,26 @@ export const Gallery: React.FC = () => {
     }
   };
 
+  const handleDownloadAlbum = async (album: GalleryAlbum, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    try {
+      const images = await db.galleryImages.getByAlbum(album.id);
+      const downloadUrl = images[0]?.image_url || album.cover_image || 'https://images.unsplash.com/photo-1542810634-71277d95dcbb?auto=format&fit=crop&q=80&w=800';
+      
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `${album.title.replace(/\s+/g, '_')}_Cover.jpg`;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showToast('success', `Downloading photos for "${album.title}"...`);
+    } catch (err) {
+      showToast('error', 'Could not download album photos.');
+    }
+  };
+
   return (
     <div className="gallery-page animate-fade-in">
       {/* Toast */}
@@ -250,19 +270,80 @@ export const Gallery: React.FC = () => {
       ) : filteredAlbums.length === 0 ? (
         <div className="glass-card notif-empty">No gallery albums found matching filters.</div>
       ) : (
-        <div className="report-stats-grid">
-          {filteredAlbums.map((album) => (
-            <div key={album.id} className="glass-card album-card-wrapper" onClick={() => openAlbumDetail(album)}>
-              <div className="album-cover-box">
-                <img src={album.cover_image || 'https://images.unsplash.com/photo-1542810634-71277d95dcbb?auto=format&fit=crop&q=80&w=800'} alt={album.title} />
-                <span className="album-type-badge">{album.programme_type}</span>
+        <div className="gallery-albums-grid">
+          {filteredAlbums.map((album, idx) => (
+            <div
+              key={album.id}
+              className="gallery-album-card scroll-animate-card"
+              style={{ animationDelay: `${idx * 60}ms` }}
+              onClick={() => openAlbumDetail(album)}
+            >
+              <div className="album-card-media">
+                <img
+                  src={album.cover_image || 'https://images.unsplash.com/photo-1542810634-71277d95dcbb?auto=format&fit=crop&q=80&w=800'}
+                  alt={album.title}
+                  loading="lazy"
+                />
+                <div className="album-card-scrim" />
+                <div className="album-card-top-badges">
+                  <span className="album-type-chip">{album.programme_type || 'Programme'}</span>
+                  <span className="album-count-chip">
+                    <ImageIcon size={12} />
+                    <span>Album</span>
+                  </span>
+                </div>
               </div>
-              <div className="album-info-body padding">
-                <h3 className="summary-card-title">{album.title}</h3>
-                <p className="font-xs text-muted margin-top"><Calendar size={12} /> {album.event_date} • {album.venue || 'Mahall'}</p>
-                <div className="album-card-footer margin-top">
-                  <span className="badge-pill success">{album.visibility}</span>
-                  <button className="action-btn delete" onClick={(e) => handleDeleteAlbum(album.id, e)}><Trash2 size={14} /></button>
+
+              <div className="album-card-content">
+                <h3 className="album-card-title" title={album.title}>
+                  {album.title}
+                </h3>
+
+                <div className="album-card-meta">
+                  <div className="album-meta-item">
+                    <Calendar size={13} className="text-emerald" />
+                    <span>{album.event_date}</span>
+                  </div>
+                  {album.venue && (
+                    <div className="album-meta-item">
+                      <MapPin size={13} className="text-emerald" />
+                      <span>{album.venue}</span>
+                    </div>
+                  )}
+                </div>
+
+                {album.description && (
+                  <p className="album-card-description">{album.description}</p>
+                )}
+
+                <div className="album-card-actions">
+                  <button
+                    type="button"
+                    className="album-btn-download"
+                    onClick={(e) => handleDownloadAlbum(album, e)}
+                    title="Download high-resolution photos"
+                  >
+                    <Download size={14} />
+                    <span>Download</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="album-btn-view"
+                    onClick={() => openAlbumDetail(album)}
+                  >
+                    <Eye size={14} />
+                    <span>View Album</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="album-btn-delete"
+                    onClick={(e) => handleDeleteAlbum(album.id, e)}
+                    title="Delete album"
+                  >
+                    <Trash2 size={15} />
+                  </button>
                 </div>
               </div>
             </div>
@@ -279,13 +360,20 @@ export const Gallery: React.FC = () => {
         icon={<ImageIcon size={20} />}
         size="lg"
         footer={
-          <div className="flex-between width-100">
+          <div className="flex-between width-100 align-items-center">
             <button className="pill-btn-danger font-xs" onClick={() => selectedAlbum && handleDeleteAlbum(selectedAlbum.id)}>
               <Trash2 size={14} /> Delete Album
             </button>
-            <button className="pill-btn-ghost font-xs" onClick={() => setSelectedAlbum(null)}>
-              Close
-            </button>
+            <div className="flex-row-gap-xs">
+              {selectedAlbum && (
+                <button className="album-btn-download font-xs" onClick={() => handleDownloadAlbum(selectedAlbum)}>
+                  <Download size={14} /> Download Photos
+                </button>
+              )}
+              <button className="pill-btn-ghost font-xs" onClick={() => setSelectedAlbum(null)}>
+                Close
+              </button>
+            </div>
           </div>
         }
       >
