@@ -1217,6 +1217,81 @@ img, svg, video, canvas {
   z-index: 2 !important;
 }
 
+/* COMPACT MULTI-PHOTO UPLOAD THUMBNAILS */
+.upload-thumbnail-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)) !important;
+  gap: 12px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.compact-photo-chip {
+  position: relative !important;
+  width: 100% !important;
+  height: 95px !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  border: 2px solid #e2e8f0 !important;
+  background: #f8fafc !important;
+  cursor: pointer !important;
+  transition: all 0.22s ease !important;
+}
+
+.compact-photo-chip:hover {
+  transform: scale(1.03) !important;
+  border-color: #00966b !important;
+  box-shadow: 0 4px 14px rgba(0, 150, 107, 0.2) !important;
+}
+
+.compact-photo-chip.cover-selected {
+  border-color: #00966b !important;
+  box-shadow: 0 0 0 3px rgba(0, 150, 107, 0.3) !important;
+}
+
+.compact-photo-chip img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+.chip-cover-pill {
+  position: absolute !important;
+  top: 6px !important;
+  left: 6px !important;
+  background: #00966b !important;
+  color: #ffffff !important;
+  padding: 2px 6px !important;
+  border-radius: 6px !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  z-index: 2 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25) !important;
+}
+
+.chip-remove-btn {
+  position: absolute !important;
+  top: 6px !important;
+  right: 6px !important;
+  background: rgba(15, 23, 42, 0.75) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 50% !important;
+  width: 20px !important;
+  height: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  z-index: 3 !important;
+  transition: all 0.2s ease !important;
+}
+
+.chip-remove-btn:hover {
+  background: #ef4444 !important;
+  transform: scale(1.1) !important;
+}
+
 /* MODERN GALLERY ALBUM CARD GRID SYSTEM */
 .gallery-albums-grid {
   display: grid !important;

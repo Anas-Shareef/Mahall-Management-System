@@ -9,6 +9,7 @@ import {
 import { YearFilter } from '../../components/YearFilter';
 import { Modal } from '../../components/Modal';
 import { SidePanel } from '../../components/SidePanel';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 export const Gallery: React.FC = () => {
   // Data States
@@ -46,6 +47,8 @@ export const Gallery: React.FC = () => {
   const [coverIndex, setCoverIndex] = useState(0);
 
   const [isSaving, setIsSaving] = useState(false);
+  const [albumToDelete, setAlbumToDelete] = useState<GalleryAlbum | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const showToast = (type: 'success' | 'error', text: string) => {
@@ -175,16 +178,50 @@ export const Gallery: React.FC = () => {
     }
   };
 
-  const handleDeleteAlbum = async (id: string, e?: React.MouseEvent) => {
+  const handleDeleteAlbum = (album: GalleryAlbum, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    if (!window.confirm('Are you sure you want to delete this gallery album and all photos?')) return;
+    setAlbumToDelete(album);
+  };
+
+  const handleConfirmDeleteAlbum = async () => {
+    if (!albumToDelete) return;
+    setIsDeleting(true);
     try {
-      await db.galleryAlbums.delete(id);
-      showToast('success', 'Album deleted successfully');
-      if (selectedAlbum?.id === id) setSelectedAlbum(null);
+      await db.galleryAlbums.delete(albumToDelete.id);
+      showToast('success', `Album "${albumToDelete.title}" deleted successfully`);
+      if (selectedAlbum?.id === albumToDelete.id) setSelectedAlbum(null);
+      setAlbumToDelete(null);
       loadData();
     } catch (err) {
       showToast('error', 'Failed to delete album');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        if (evt.target?.result) {
+          setUploadedImageUrls((prev) => [...prev, evt.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    showToast('success', `${files.length} photo(s) added`);
+  };
+
+  const handleRemoveUploadedPhoto = (indexToRemove: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setUploadedImageUrls((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    if (coverIndex === indexToRemove) {
+      setCoverIndex(0);
+    } else if (coverIndex > indexToRemove) {
+      setCoverIndex((prev) => prev - 1);
     }
   };
 
@@ -339,7 +376,7 @@ export const Gallery: React.FC = () => {
                   <button
                     type="button"
                     className="album-btn-delete"
-                    onClick={(e) => handleDeleteAlbum(album.id, e)}
+                    onClick={(e) => handleDeleteAlbum(album, e)}
                     title="Delete album"
                   >
                     <Trash2 size={15} />
@@ -361,7 +398,7 @@ export const Gallery: React.FC = () => {
         size="lg"
         footer={
           <div className="flex-between width-100 align-items-center">
-            <button className="pill-btn-danger font-xs" onClick={() => selectedAlbum && handleDeleteAlbum(selectedAlbum.id)}>
+            <button className="pill-btn-danger font-xs" onClick={() => selectedAlbum && handleDeleteAlbum(selectedAlbum)}>
               <Trash2 size={14} /> Delete Album
             </button>
             <div className="flex-row-gap-xs">
@@ -467,31 +504,75 @@ export const Gallery: React.FC = () => {
           <div className="form-card">
             <div className="form-card-header margin-bottom-sm">
               <Upload size={16} className="text-success" />
-              <span className="form-card-title margin-left-xs">Photo Upload & Previews</span>
+              <span className="form-card-title margin-left-xs">Dynamic Multi-Photo Upload</span>
             </div>
 
-            <div className="upload-dropzone margin-bottom-md">
+            {/* INTERACTIVE FILE DROPZONE */}
+            <label htmlFor="file-upload-input" className="upload-dropzone margin-bottom-md cursor-pointer">
               <Upload size={28} className="text-emerald" />
               <div className="font-xs font-weight-700 text-dark">Click or Drag photos to upload</div>
-              <p className="font-xs color-subtle">JPG, PNG, WEBP files supported.</p>
+              <p className="font-xs color-subtle">JPG, PNG, WEBP files supported (Select multiple files at once)</p>
+              <input
+                id="file-upload-input"
+                type="file"
+                multiple
+                accept="image/*"
+                className="display-none"
+                onChange={handleFilesSelected}
+              />
+            </label>
+
+            <div className="flex-between align-items-center margin-bottom-xs">
+              <span className="form-label">Uploaded Photos ({uploadedImageUrls.length}) — Click thumbnail to set as Cover:</span>
+              <button
+                type="button"
+                className="pill-btn-ghost font-xs"
+                onClick={() => setUploadedImageUrls((prev) => [...prev, 'https://images.unsplash.com/photo-1542810634-71277d95dcbb?auto=format&fit=crop&q=80&w=800'])}
+              >
+                + Add Sample Photo
+              </button>
             </div>
 
-            <div className="form-label margin-bottom-xs">Uploaded Previews (Click to select Cover Image):</div>
-            <div className="gallery-photo-grid">
+            {/* COMPACT THUMBNAIL GRID */}
+            <div className="upload-thumbnail-grid">
               {uploadedImageUrls.map((url, idx) => (
                 <div
                   key={idx}
-                  className={`photo-preview-chip cursor-pointer ${coverIndex === idx ? 'cover-selected' : ''}`}
+                  className={`compact-photo-chip ${coverIndex === idx ? 'cover-selected' : ''}`}
                   onClick={() => setCoverIndex(idx)}
+                  title="Click to set as Cover Image"
                 >
                   <img src={url} alt={`preview ${idx}`} />
-                  {coverIndex === idx && <span className="cover-badge">Cover</span>}
+                  {coverIndex === idx && <span className="chip-cover-pill">Cover</span>}
+                  <button
+                    type="button"
+                    className="chip-remove-btn"
+                    onClick={(e) => handleRemoveUploadedPhoto(idx, e)}
+                    title="Remove photo"
+                  >
+                    ✕
+                  </button>
                 </div>
               ))}
             </div>
           </div>
         </form>
       </SidePanel>
+
+      {/* CONFIRMation POPUP MODAL FOR DELETING ALBUM */}
+      <ConfirmModal
+        isOpen={Boolean(albumToDelete)}
+        onClose={() => setAlbumToDelete(null)}
+        onConfirm={handleConfirmDeleteAlbum}
+        title="Delete Gallery Album?"
+        message={
+          <>
+            Are you sure you want to delete album <strong>"{albumToDelete?.title}"</strong> and all uploaded event photos? This action cannot be undone.
+          </>
+        }
+        confirmText="Delete Album"
+        isLoading={isDeleting}
+      />
     </div>
   );
 };
