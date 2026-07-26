@@ -2455,18 +2455,29 @@ img, svg, video, canvas {
 /* ════════════════════════════════════════════════════════════════
    LUCA WORLD PAGE HEADER & CTA ACTION BUTTON ALIGNMENT
    ════════════════════════════════════════════════════════════════ */
-.page-header, .canvas-header-bar {
+.page-header, .canvas-header-bar, .form-header-bar {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  margin-bottom: 24px !important;
+  margin-bottom: 28px !important;
   gap: 16px !important;
+  flex-wrap: nowrap !important;
 }
 
-.page-header-actions, .header-cta-group, .actions-group {
+.page-header-actions, .header-cta-group, .actions-group, .canvas-header-bar > .flex-row-gap-xs {
   display: flex !important;
   align-items: center !important;
   gap: 10px !important;
+  flex-shrink: 0 !important;
+}
+
+.form-label, .form-group label {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: #64748b !important;
+  margin-bottom: 6px !important;
 }
 
 
