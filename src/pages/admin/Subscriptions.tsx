@@ -753,8 +753,8 @@ export const Subscriptions: React.FC = () => {
                         <span className="year-badge">{y.year}</span>
                       </td>
                       <td className="bold-text text-primary">{formatCurrency(y.default_fee)}</td>
-                      <td>
-                        {y.start_date} to {y.end_date}
+                      <td className="white-space-nowrap font-xs font-weight-600 color-main">
+                        {y.start_date ? new Date(y.start_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : `Jan ${y.year}`} – {y.end_date ? new Date(y.end_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : `Dec ${y.year}`}
                       </td>
                       <td>
                         <span className={`status-pill ${y.status === 'active' ? 'paid' : 'unpaid'}`}>

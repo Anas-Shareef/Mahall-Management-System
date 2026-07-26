@@ -921,31 +921,6 @@ export const Members: React.FC = () => {
         .meta-label { font-size: 12px; color: #6b7280; font-weight: 600; }
         .meta-value { font-size: 13px; font-weight: 700; color: #111827; }
 
-        /* MODAL DIALOGS */
-        .modal-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(17, 24, 39, 0.55);
-          backdrop-filter: blur(4px);
-          z-index: 300;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 16px;
-          box-sizing: border-box;
-        }
-
-        .modal-dialog-card {
-          width: 100%;
-          max-width: 560px;
-          background: #ffffff;
-          border-radius: var(--radius-xl);
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-          overflow: hidden;
-          border: 1px solid var(--border-color);
-          box-sizing: border-box;
-        }
-
         .modal-header {
           padding: 18px 20px;
           display: flex;

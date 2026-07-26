@@ -4,9 +4,11 @@ import type { GalleryAlbum, GalleryImage, SubscriptionYear } from '../../service
 import { 
   Image as ImageIcon, Plus, Search, Calendar, 
   Trash2, CheckCircle, AlertCircle, 
-  X, Loader2, Upload 
+  Loader2, Upload 
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
+import { Modal } from '../../components/Modal';
+import { SidePanel } from '../../components/SidePanel';
 
 export const Gallery: React.FC = () => {
   // Data States
@@ -268,65 +270,81 @@ export const Gallery: React.FC = () => {
         </div>
       )}
 
-      {/* ALBUM DETAIL LIGHTBOX */}
-      {selectedAlbum && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card glass-card animate-fade-in" style={{ maxWidth: '800px' }}>
-            <div className="modal-header">
-              <div>
-                <h3>{selectedAlbum.title}</h3>
-                <p className="font-xs text-muted">{selectedAlbum.event_date} • {selectedAlbum.venue}</p>
-              </div>
-              <button className="modal-close-btn" onClick={() => setSelectedAlbum(null)}><X size={18} /></button>
-            </div>
+      {/* ALBUM DETAIL LIGHTBOX MODAL */}
+      <Modal
+        isOpen={Boolean(selectedAlbum)}
+        onClose={() => setSelectedAlbum(null)}
+        title={selectedAlbum?.title || ''}
+        subtitle={`${selectedAlbum?.event_date} • ${selectedAlbum?.venue || 'Mahall Central'}`}
+        icon={<ImageIcon size={20} />}
+        size="lg"
+        footer={
+          <div className="flex-between width-100">
+            <button className="pill-btn-danger font-xs" onClick={() => selectedAlbum && handleDeleteAlbum(selectedAlbum.id)}>
+              <Trash2 size={14} /> Delete Album
+            </button>
+            <button className="pill-btn-ghost font-xs" onClick={() => setSelectedAlbum(null)}>
+              Close
+            </button>
+          </div>
+        }
+      >
+        {selectedAlbum && (
+          <div className="flex-col gap-md">
+            <p className="font-sm color-subtle">{selectedAlbum.description || 'Programme event gallery photographs'}</p>
 
-            <div className="modal-body-scroll">
-              <p className="font-sm margin-bottom">{selectedAlbum.description || 'Programme event gallery photographs'}</p>
-
-              <div className="gallery-photo-grid">
-                {albumImages.length === 0 ? (
-                  <p className="font-xs text-muted">No images loaded yet.</p>
-                ) : (
-                  albumImages.map((img) => (
-                    <div key={img.id} className="photo-thumb-box">
-                      <img src={img.image_url} alt={img.caption || 'Gallery photo'} />
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              <button className="pill-btn-secondary" onClick={() => setSelectedAlbum(null)}>Close</button>
-              <button className="pill-btn-danger" onClick={() => handleDeleteAlbum(selectedAlbum.id)}>Delete Album</button>
+            <div className="gallery-photo-grid">
+              {albumImages.length === 0 ? (
+                <div className="notif-empty full-width">No images loaded in this album yet.</div>
+              ) : (
+                albumImages.map((img) => (
+                  <div key={img.id} className="photo-preview-chip shadow-sm">
+                    <img src={img.image_url} alt={img.caption || 'Gallery photo'} />
+                  </div>
+                ))
+              )}
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
-      {/* ADD ALBUM MODAL */}
-      {isAlbumModalOpen && (
-        <div className="global-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setIsAlbumModalOpen(false); }}>
-          <div className="global-modal-card modal-size-md animate-fade-in">
-            <div className="global-modal-header">
-              <div className="modal-title-group">
-                <div className="modal-header-icon-box">
-                  <ImageIcon size={20} />
-                </div>
-                <div>
-                  <h3 className="modal-title-text">Add Gallery Album</h3>
-                  <p className="modal-subtitle-text">Upload photos and organize community event albums.</p>
-                </div>
-              </div>
-              <button type="button" className="modal-close-icon-btn" onClick={() => setIsAlbumModalOpen(false)}>
-                <X size={18} />
-              </button>
+      {/* ADD / EDIT ALBUM RIGHT SIDE PANEL */}
+      <SidePanel
+        isOpen={isAlbumModalOpen}
+        onClose={() => setIsAlbumModalOpen(false)}
+        title={modalMode === 'edit' ? 'Edit Gallery Album' : 'Create Gallery Album'}
+        subtitle="Upload photos and organize community event albums."
+        icon={<ImageIcon size={20} />}
+        size="lg"
+        footer={
+          <>
+            <button type="button" className="pill-btn-ghost" onClick={() => setIsAlbumModalOpen(false)}>
+              Cancel
+            </button>
+            <button type="submit" form="album-side-panel-form" className="pill-btn-primary" disabled={isSaving}>
+              {isSaving ? 'Saving...' : modalMode === 'edit' ? 'Update Album' : 'Save Album'}
+            </button>
+          </>
+        }
+      >
+        <form id="album-side-panel-form" onSubmit={handleSaveAlbum} className="flex-col gap-md">
+          <div className="form-card">
+            <div className="form-card-header margin-bottom-sm">
+              <ImageIcon size={16} className="text-primary" />
+              <span className="form-card-title margin-left-xs">Album Information</span>
             </div>
 
-            <form onSubmit={handleSaveAlbum} className="global-modal-body flex-col gap-md">
+            <div className="flex-col gap-sm">
               <div className="form-group">
                 <label className="form-label">Album Title *</label>
-                <input type="text" className="form-control" required placeholder="e.g. Rabeeh Programme 2026" value={title} onChange={(e) => setTitle(e.target.value)} />
+                <input
+                  type="text"
+                  className="form-control"
+                  required
+                  placeholder="e.g. Rabeeh Programme 2026"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
               </div>
 
               <div className="form-grid-2col">
@@ -348,43 +366,44 @@ export const Gallery: React.FC = () => {
 
               <div className="form-group">
                 <label className="form-label">Venue</label>
-                <input type="text" className="form-control" value={venue} onChange={(e) => setVenue(e.target.value)} />
+                <input type="text" className="form-control" value={venue} onChange={(e) => setVenue(e.target.value)} placeholder="e.g. Mahall Auditorium" />
               </div>
 
               <div className="form-group">
                 <label className="form-label">Description</label>
-                <textarea className="form-control" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
+                <textarea className="form-control" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Album highlights..." />
               </div>
-
-              {/* Multi-Image Drag & Drop Simulation */}
-              <div className="form-group">
-                <label className="form-label">Images (Previews & Cover Selection)</label>
-                <div className="upload-dropzone margin-y text-center padding border-dashed">
-                  <Upload size={24} className="text-emerald" />
-                  <p className="font-xs">JPG, PNG, WEBP files supported.</p>
-                </div>
-                <div className="flex-row-gap">
-                  {uploadedImageUrls.map((url, idx) => (
-                    <div
-                      key={idx}
-                      className={`photo-preview-chip ${coverIndex === idx ? 'cover-selected' : ''}`}
-                      onClick={() => setCoverIndex(idx)}
-                    >
-                      <img src={url} alt={`preview ${idx}`} />
-                      {coverIndex === idx && <span className="cover-badge">Cover</span>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="global-modal-footer">
-                <button type="button" className="pill-btn-ghost" onClick={() => setIsAlbumModalOpen(false)}>Cancel</button>
-                <button type="submit" className="pill-btn-primary" disabled={isSaving}>Save Album</button>
-              </div>
-            </form>
+            </div>
           </div>
-        </div>
-      )}
+
+          <div className="form-card">
+            <div className="form-card-header margin-bottom-sm">
+              <Upload size={16} className="text-success" />
+              <span className="form-card-title margin-left-xs">Photo Upload & Previews</span>
+            </div>
+
+            <div className="upload-dropzone margin-bottom-md">
+              <Upload size={28} className="text-emerald" />
+              <div className="font-xs font-weight-700 text-dark">Click or Drag photos to upload</div>
+              <p className="font-xs color-subtle">JPG, PNG, WEBP files supported.</p>
+            </div>
+
+            <div className="form-label margin-bottom-xs">Uploaded Previews (Click to select Cover Image):</div>
+            <div className="gallery-photo-grid">
+              {uploadedImageUrls.map((url, idx) => (
+                <div
+                  key={idx}
+                  className={`photo-preview-chip cursor-pointer ${coverIndex === idx ? 'cover-selected' : ''}`}
+                  onClick={() => setCoverIndex(idx)}
+                >
+                  <img src={url} alt={`preview ${idx}`} />
+                  {coverIndex === idx && <span className="cover-badge">Cover</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </form>
+      </SidePanel>
     </div>
   );
 };

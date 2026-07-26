@@ -10,6 +10,7 @@ import {
   Sparkles, Loader2, Layers 
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
+import { SidePanel } from '../../components/SidePanel';
 
 export const Reports: React.FC = () => {
   const { t } = useTranslation();
@@ -1013,46 +1014,43 @@ export const Reports: React.FC = () => {
       {/* ════════════════════════════════════════════════
           MODAL: ROW DETAIL SUMMARY PANEL
       ════════════════════════════════════════════════ */}
-      {selectedRowDetail && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card animate-scale-up">
-            <div className="modal-header">
-              <div>
-                <h4>Report Row Detail Breakdown</h4>
-                <p className="modal-subtitle">Comprehensive metrics for selected record</p>
+      {/* REPORT ROW DETAIL BREAKDOWN RIGHT SIDE PANEL */}
+      <SidePanel
+        isOpen={Boolean(selectedRowDetail)}
+        onClose={() => setSelectedRowDetail(null)}
+        title="Report Row Breakdown"
+        subtitle="Detailed record attributes and financial metrics."
+        icon={<Sparkles size={20} />}
+        size="lg"
+        footer={
+          <button className="pill-btn-ghost font-xs" onClick={() => setSelectedRowDetail(null)}>
+            Close Breakdown
+          </button>
+        }
+      >
+        {selectedRowDetail && (
+          <div className="flex-col gap-md">
+            <div className="form-card">
+              <div className="form-card-header margin-bottom-sm">
+                <Sparkles size={16} className="text-primary" />
+                <span className="form-card-title margin-left-xs">Record Attributes</span>
               </div>
-              <button className="modal-close-btn" onClick={() => setSelectedRowDetail(null)}>
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="modal-form">
-              <div className="details-meta-section">
+              <div className="form-grid-2col font-xs">
                 {Object.entries(selectedRowDetail).map(([key, val]) => (
-                  <div key={key} className="meta-item">
-                    <span className="meta-label">{key.replace(/([A-Z])/g, ' $1')}</span>
-                    <span className="meta-value bold-text">
-                      {typeof val === 'number' && key.toLowerCase().includes('due') || key.toLowerCase().includes('paid') || key.toLowerCase().includes('balance') || key.toLowerCase().includes('amount') || key.toLowerCase().includes('arrears')
+                  <div key={key} className="margin-bottom-xs">
+                    <div className="detail-item-label">{key.replace(/([A-Z])/g, ' $1').toUpperCase()}</div>
+                    <div className="font-weight-700 font-sm text-dark word-break-all">
+                      {typeof val === 'number' && (key.toLowerCase().includes('due') || key.toLowerCase().includes('paid') || key.toLowerCase().includes('balance') || key.toLowerCase().includes('amount') || key.toLowerCase().includes('arrears'))
                         ? formatCurrency(val as number)
-                        : String(val)}
-                    </span>
+                        : String(val || 'N/A')}
+                    </div>
                   </div>
                 ))}
               </div>
-
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  className="btn-cancel"
-                  onClick={() => setSelectedRowDetail(null)}
-                >
-                  Close
-                </button>
-              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </SidePanel>
 
       {/* STYLES */}
       <style>{`

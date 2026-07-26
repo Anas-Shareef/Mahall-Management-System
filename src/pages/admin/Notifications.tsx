@@ -7,6 +7,8 @@ import {
   Plus, Edit2, Trash2, Search, Filter, Bell, X, AlertCircle, 
   CheckCircle, Download, Loader2, Globe 
 } from 'lucide-react';
+import { SidePanel } from '../../components/SidePanel';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 export const Notifications: React.FC = () => {
   const { t, language } = useTranslation();
@@ -528,30 +530,32 @@ export const Notifications: React.FC = () => {
           )}
         </div>
 
-        {/* SELECTED NOTIFICATION PREVIEW SIDE PANEL */}
-        {selectedNotifDetails && (
-          <div className="details-panel-card glass-card">
-            <div className="panel-header">
-              <div className="panel-title-wrapper">
-                <div className="panel-icon-box">
-                  <Bell size={20} color="#00966b" />
-                </div>
-                <div>
-                  <h4>Notification Preview</h4>
-                  <p>{new Date(selectedNotifDetails.created_at).toLocaleDateString()}</p>
-                </div>
-              </div>
+        {/* SELECTED NOTIFICATION PREVIEW RIGHT SIDE PANEL */}
+        <SidePanel
+          isOpen={Boolean(selectedNotifDetails)}
+          onClose={() => setSelectedNotifDetails(null)}
+          title="Notification Broadcast Preview"
+          subtitle={selectedNotifDetails ? new Date(selectedNotifDetails.created_at).toLocaleDateString() : ''}
+          icon={<Bell size={20} />}
+          size="lg"
+          quickActions={
+            selectedNotifDetails && (
               <button
-                className="panel-close-btn"
-                onClick={() => setSelectedNotifDetails(null)}
-                aria-label="Close notification preview panel"
+                type="button"
+                className="pill-btn-primary font-xs"
+                onClick={() => {
+                  const notif = selectedNotifDetails;
+                  setSelectedNotifDetails(null);
+                  openEditModal(notif);
+                }}
               >
-                <X size={18} />
+                <Edit2 size={13} /> Edit Announcement
               </button>
-            </div>
-
-            <div className="panel-body">
-              {/* BILINGUAL PREVIEW SWITCHER */}
+            )
+          }
+        >
+          {selectedNotifDetails && (
+            <div className="flex-col gap-md">
               <div className="preview-lang-tabs">
                 <button
                   type="button"
@@ -569,320 +573,272 @@ export const Notifications: React.FC = () => {
                 </button>
               </div>
 
-              <div className="details-meta-section">
-                <div className="meta-item-stacked">
-                  <span className="meta-label">Title ({previewLang.toUpperCase()})</span>
-                  <h4 className="meta-title">
+              <div className="form-card">
+                <div className="meta-item-stacked margin-bottom-sm">
+                  <span className="detail-item-label">Title ({previewLang.toUpperCase()})</span>
+                  <h4 className="font-weight-800 font-md text-dark">
                     {previewLang === 'ml'
                       ? selectedNotifDetails.title_ml || selectedNotifDetails.title_en
                       : selectedNotifDetails.title_en || selectedNotifDetails.title_ml}
                   </h4>
                 </div>
 
-                <div className="meta-item-stacked">
-                  <span className="meta-label">Message Content ({previewLang.toUpperCase()})</span>
-                  <p className="meta-content">
+                <div className="meta-item-stacked margin-bottom-sm">
+                  <span className="detail-item-label">Message Content ({previewLang.toUpperCase()})</span>
+                  <p className="font-sm color-main line-height-md white-space-pre-wrap">
                     {previewLang === 'ml'
                       ? selectedNotifDetails.message_ml || selectedNotifDetails.message_en
                       : selectedNotifDetails.message_en || selectedNotifDetails.message_ml}
                   </p>
                 </div>
 
-                <div className="meta-item">
-                  <span className="meta-label">Classification</span>
-                  <span className={`type-pill ${selectedNotifDetails.type}`}>
+                <div className="flex-between align-items-center margin-top-xs">
+                  <span className="detail-item-label">Classification</span>
+                  <span className={`status-pill ${selectedNotifDetails.type}`}>
                     {selectedNotifDetails.type.replace('_', ' ').toUpperCase()}
                   </span>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </SidePanel>
       </div>
 
-      {/* RECORD / EDIT NOTIFICATION MODAL DIALOG */}
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card animate-scale-up">
-            <div className="modal-header">
-              <div>
-                <h4>{modalMode === 'add' ? 'Send Notification' : 'Edit Notification'}</h4>
-                <p className="modal-subtitle">
-                  {modalMode === 'add'
-                    ? 'Broadcast announcements or subscription reminders to members.'
-                    : 'Update notification title or bilingual message content.'}
-                </p>
-              </div>
-              <button
-                className="modal-close-btn"
-                onClick={() => setIsModalOpen(false)}
-                aria-label="Close Notification dialog"
-              >
-                <X size={20} />
-              </button>
+      {/* RECORD / EDIT NOTIFICATION RIGHT SIDE PANEL */}
+      <SidePanel
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={modalMode === 'add' ? 'Send Community Notification' : 'Edit Notification'}
+        subtitle={modalMode === 'add' ? 'Broadcast announcements or subscription reminders to members.' : 'Update notification title or bilingual message content.'}
+        icon={<Bell size={20} />}
+        size="lg"
+        footer={
+          <>
+            <button
+              type="button"
+              className="pill-btn-ghost"
+              onClick={() => setIsModalOpen(false)}
+              disabled={isSaving}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="notif-side-panel-form"
+              className="pill-btn-primary"
+              disabled={isSaving}
+            >
+              {isSaving ? 'Sending...' : modalMode === 'add' ? 'Send Notification' : 'Update Notification'}
+            </button>
+          </>
+        }
+      >
+        <form id="notif-side-panel-form" onSubmit={handleSaveNotification} className="flex-col gap-md">
+          {formError && (
+            <div className="form-alert error">
+              <AlertCircle size={16} />
+              <span>{formError}</span>
             </div>
+          )}
 
-            <form onSubmit={handleSaveNotification} className="modal-form">
-              {formError && (
-                <div className="form-alert error">
-                  <AlertCircle size={16} />
-                  <span>{formError}</span>
-                </div>
-              )}
-
-              {/* BILINGUAL LANGUAGE TABS */}
-              <div className="form-lang-tabs-wrapper">
-                <div className="form-lang-tabs">
-                  <button
-                    type="button"
-                    className={`form-lang-tab ${activeFormLang === 'en' ? 'active' : ''}`}
-                    onClick={() => setActiveFormLang('en')}
-                  >
-                    <Globe size={14} />
-                    <span>English Content</span>
-                    <span className={`completion-badge ${titleEn.trim() && msgEn.trim() ? 'complete' : 'pending'}`}>
-                      {titleEn.trim() && msgEn.trim() ? '✓ Complete' : '○ Optional'}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`form-lang-tab ${activeFormLang === 'ml' ? 'active' : ''}`}
-                    onClick={() => setActiveFormLang('ml')}
-                  >
-                    <Globe size={14} />
-                    <span>മലയാളം ഉള്ളടക്കം</span>
-                    <span className={`completion-badge ${titleMl.trim() && msgMl.trim() ? 'complete' : 'pending'}`}>
-                      {titleMl.trim() && msgMl.trim() ? '✓ Complete' : '○ Optional'}
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              {/* ENGLISH FORM FIELDS */}
-              {activeFormLang === 'en' && (
-                <div className="lang-fields-container animate-fade-in">
-                  <div className="form-group">
-                    <label htmlFor="title-en-input">{t('notifications.titleEnLabel')} *</label>
-                    <input
-                      id="title-en-input"
-                      type="text"
-                      placeholder="e.g. Monthly Subscription Fee Reminder"
-                      value={titleEn}
-                      className={fieldErrors.title ? 'input-error' : ''}
-                      onChange={(e) => {
-                        setTitleEn(e.target.value);
-                        if (fieldErrors.title) setFieldErrors({ ...fieldErrors, title: '' });
-                      }}
-                    />
-                    {fieldErrors.title && (
-                      <span className="field-error-text">⚠ {fieldErrors.title}</span>
-                    )}
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="msg-en-input">{t('notifications.messageEnLabel')} *</label>
-                    <textarea
-                      id="msg-en-input"
-                      rows={4}
-                      placeholder="Enter the notification announcement message in English..."
-                      value={msgEn}
-                      className={fieldErrors.message ? 'input-error' : ''}
-                      onChange={(e) => {
-                        setMsgEn(e.target.value);
-                        if (fieldErrors.message) setFieldErrors({ ...fieldErrors, message: '' });
-                      }}
-                    />
-                    {fieldErrors.message && (
-                      <span className="field-error-text">⚠ {fieldErrors.message}</span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* MALAYALAM FORM FIELDS */}
-              {activeFormLang === 'ml' && (
-                <div className="lang-fields-container animate-fade-in">
-                  <div className="form-group">
-                    <label htmlFor="title-ml-input">{t('notifications.titleMlLabel')} *</label>
-                    <input
-                      id="title-ml-input"
-                      type="text"
-                      placeholder="ഉദാ: മാസത്തിലെ സബ്സ്ക്രിപ്ഷൻ ഓർമ്മപ്പെടുത്തൽ"
-                      value={titleMl}
-                      className={fieldErrors.title ? 'input-error' : ''}
-                      onChange={(e) => {
-                        setTitleMl(e.target.value);
-                        if (fieldErrors.title) setFieldErrors({ ...fieldErrors, title: '' });
-                      }}
-                    />
-                    {fieldErrors.title && (
-                      <span className="field-error-text">⚠ {fieldErrors.title}</span>
-                    )}
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="msg-ml-input">{t('notifications.messageMlLabel')} *</label>
-                    <textarea
-                      id="msg-ml-input"
-                      rows={4}
-                      placeholder="വിവരങ്ങൾ മലയാളത്തിൽ ഇവിടെ രേഖപ്പെടുത്തുക..."
-                      value={msgMl}
-                      className={fieldErrors.message ? 'input-error' : ''}
-                      onChange={(e) => {
-                        setMsgMl(e.target.value);
-                        if (fieldErrors.message) setFieldErrors({ ...fieldErrors, message: '' });
-                      }}
-                    />
-                    {fieldErrors.message && (
-                      <span className="field-error-text">⚠ {fieldErrors.message}</span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {modalMode === 'add' && (
-                <>
-                  <div className="form-section-title margin-top-sm">Audience & Target Selection</div>
-
-                  <div className="form-row-grid">
-                    <div className="form-group">
-                      <label htmlFor="target-audience-select">{t('notifications.targetAudience')}</label>
-                      <select
-                        id="target-audience-select"
-                        value={targetType}
-                        onChange={(e) => setTargetType(e.target.value as any)}
-                      >
-                        <option value="all">{t('notifications.targetAll')}</option>
-                        <option value="pending">{t('notifications.targetPending')}</option>
-                        <option value="arrears">{t('notifications.targetArrears')}</option>
-                        <option value="household">{t('notifications.targetHousehold')}</option>
-                        <option value="member">{t('notifications.targetMember')}</option>
-                      </select>
-                    </div>
-
-                    <div className="form-group">
-                      <label htmlFor="notif-type-select">Announcement Classification</label>
-                      <select
-                        id="notif-type-select"
-                        value={notifType}
-                        onChange={(e) => setNotifType(e.target.value as any)}
-                      >
-                        <option value="announcement">General Announcement</option>
-                        <option value="payment_reminder">Payment Reminder</option>
-                        <option value="arrears_reminder">Arrears Reminder</option>
-                        <option value="payment_recorded">Payment Recorded Receipt</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {targetType === 'household' && (
-                    <div className="form-group">
-                      <label htmlFor="target-house-select">Select Target Household</label>
-                      <select
-                        id="target-house-select"
-                        value={selectedTargetId}
-                        onChange={(e) => setSelectedTargetId(e.target.value)}
-                      >
-                        {households.map((h) => (
-                          <option key={h.id} value={h.id}>
-                            House No. H-{h.house_number} ({h.house_owner_name})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {targetType === 'member' && (
-                    <div className="form-group">
-                      <label htmlFor="target-member-select">Select Target Member</label>
-                      <select
-                        id="target-member-select"
-                        value={selectedTargetId}
-                        onChange={(e) => setSelectedTargetId(e.target.value)}
-                      >
-                        {members.map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {m.name} ({m.relationship})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </>
-              )}
-
-              <div className="modal-actions">
+          {/* BILINGUAL LANGUAGE TABS */}
+          <div className="form-card">
+            <div className="form-lang-tabs-wrapper margin-bottom-sm">
+              <div className="form-lang-tabs">
                 <button
                   type="button"
-                  className="btn-cancel"
-                  onClick={() => setIsModalOpen(false)}
-                  disabled={isSaving}
+                  className={`form-lang-tab ${activeFormLang === 'en' ? 'active' : ''}`}
+                  onClick={() => setActiveFormLang('en')}
                 >
-                  Cancel
+                  <Globe size={14} />
+                  <span>English Content</span>
+                  <span className={`completion-badge ${titleEn.trim() && msgEn.trim() ? 'complete' : 'pending'}`}>
+                    {titleEn.trim() && msgEn.trim() ? '✓ Complete' : '○ Optional'}
+                  </span>
                 </button>
-                <button type="submit" className="primary-btn submit-pill-btn" disabled={isSaving}>
-                  {isSaving ? (
-                    <>
-                      <Loader2 size={16} className="spinner-icon" />
-                      <span>Sending Notification...</span>
-                    </>
-                  ) : (
-                    <span>{modalMode === 'add' ? 'Send Notification' : 'Update Notification'}</span>
-                  )}
+                <button
+                  type="button"
+                  className={`form-lang-tab ${activeFormLang === 'ml' ? 'active' : ''}`}
+                  onClick={() => setActiveFormLang('ml')}
+                >
+                  <Globe size={14} />
+                  <span>മലയാളം ഉള്ളടക്കം</span>
+                  <span className={`completion-badge ${titleMl.trim() && msgMl.trim() ? 'complete' : 'pending'}`}>
+                    {titleMl.trim() && msgMl.trim() ? '✓ Complete' : '○ Optional'}
+                  </span>
                 </button>
               </div>
-            </form>
+            </div>
+
+            {/* ENGLISH FORM FIELDS */}
+            {activeFormLang === 'en' && (
+              <div className="lang-fields-container animate-fade-in flex-col gap-sm">
+                <div className="form-group">
+                  <label className="form-label">{t('notifications.titleEnLabel')} *</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Monthly Subscription Fee Reminder"
+                    value={titleEn}
+                    className={`form-control ${fieldErrors.title ? 'is-invalid' : ''}`}
+                    onChange={(e) => {
+                      setTitleEn(e.target.value);
+                      if (fieldErrors.title) setFieldErrors({ ...fieldErrors, title: '' });
+                    }}
+                  />
+                  {fieldErrors.title && <span className="field-error-text">⚠ {fieldErrors.title}</span>}
+                </div>
+
+                <div className="form-group">
+                  <div className="flex-between align-items-center margin-bottom-xs">
+                    <label className="form-label">{t('notifications.messageEnLabel')} *</label>
+                    <span className="font-xs color-subtle font-weight-600">{msgEn.length} / 500 chars</span>
+                  </div>
+                  <textarea
+                    rows={4}
+                    maxLength={500}
+                    placeholder="Enter the notification announcement message in English..."
+                    value={msgEn}
+                    className={`form-control ${fieldErrors.message ? 'is-invalid' : ''}`}
+                    onChange={(e) => {
+                      setMsgEn(e.target.value);
+                      if (fieldErrors.message) setFieldErrors({ ...fieldErrors, message: '' });
+                    }}
+                  />
+                  {fieldErrors.message && <span className="field-error-text">⚠ {fieldErrors.message}</span>}
+                </div>
+              </div>
+            )}
+
+            {/* MALAYALAM FORM FIELDS */}
+            {activeFormLang === 'ml' && (
+              <div className="lang-fields-container animate-fade-in flex-col gap-sm">
+                <div className="form-group">
+                  <label className="form-label">{t('notifications.titleMlLabel')} *</label>
+                  <input
+                    type="text"
+                    placeholder="ഉദാ: മാസത്തിലെ സബ്സ്ക്രിപ്ഷൻ ഓർമ്മപ്പെടുത്തൽ"
+                    value={titleMl}
+                    className={`form-control ${fieldErrors.title ? 'is-invalid' : ''}`}
+                    onChange={(e) => {
+                      setTitleMl(e.target.value);
+                      if (fieldErrors.title) setFieldErrors({ ...fieldErrors, title: '' });
+                    }}
+                  />
+                  {fieldErrors.title && <span className="field-error-text">⚠ {fieldErrors.title}</span>}
+                </div>
+
+                <div className="form-group">
+                  <div className="flex-between align-items-center margin-bottom-xs">
+                    <label className="form-label">{t('notifications.messageMlLabel')} *</label>
+                    <span className="font-xs color-subtle font-weight-600">{msgMl.length} / 500 chars</span>
+                  </div>
+                  <textarea
+                    rows={4}
+                    maxLength={500}
+                    placeholder="വിവരങ്ങൾ മലയാളത്തിൽ ഇവിടെ രേഖപ്പെടുത്തുക..."
+                    value={msgMl}
+                    className={`form-control ${fieldErrors.message ? 'is-invalid' : ''}`}
+                    onChange={(e) => {
+                      setMsgMl(e.target.value);
+                      if (fieldErrors.message) setFieldErrors({ ...fieldErrors, message: '' });
+                    }}
+                  />
+                  {fieldErrors.message && <span className="field-error-text">⚠ {fieldErrors.message}</span>}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+
+          {modalMode === 'add' && (
+            <div className="form-card">
+              <div className="form-card-header margin-bottom-sm">
+                <Bell size={16} className="text-primary" />
+                <span className="form-card-title margin-left-xs">Audience & Classification</span>
+              </div>
+
+              <div className="form-grid-2col font-xs">
+                <div className="form-group">
+                  <label className="form-label">{t('notifications.targetAudience')}</label>
+                  <select
+                    className="form-control"
+                    value={targetType}
+                    onChange={(e) => setTargetType(e.target.value as any)}
+                  >
+                    <option value="all">{t('notifications.targetAll')}</option>
+                    <option value="pending">{t('notifications.targetPending')}</option>
+                    <option value="arrears">{t('notifications.targetArrears')}</option>
+                    <option value="household">{t('notifications.targetHousehold')}</option>
+                    <option value="member">{t('notifications.targetMember')}</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Classification</label>
+                  <select
+                    className="form-control"
+                    value={notifType}
+                    onChange={(e) => setNotifType(e.target.value as any)}
+                  >
+                    <option value="announcement">General Announcement</option>
+                    <option value="payment_reminder">Payment Reminder</option>
+                    <option value="arrears_reminder">Arrears Reminder</option>
+                    <option value="payment_recorded">Payment Recorded Receipt</option>
+                  </select>
+                </div>
+              </div>
+
+              {targetType === 'household' && (
+                <div className="form-group margin-top-sm">
+                  <label className="form-label">Select Target Household</label>
+                  <select
+                    className="form-control"
+                    value={selectedTargetId}
+                    onChange={(e) => setSelectedTargetId(e.target.value)}
+                  >
+                    {households.map((h) => (
+                      <option key={h.id} value={h.id}>
+                        House No. H-{h.house_number} ({h.house_owner_name})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {targetType === 'member' && (
+                <div className="form-group margin-top-sm">
+                  <label className="form-label">Select Target Member</label>
+                  <select
+                    className="form-control"
+                    value={selectedTargetId}
+                    onChange={(e) => setSelectedTargetId(e.target.value)}
+                  >
+                    {members.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name} ({m.relationship})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
+        </form>
+      </SidePanel>
 
       {/* DELETE CONFIRMATION MODAL */}
-      {isDeleteModalOpen && notifToDelete && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card delete-card animate-scale-up">
-            <div className="delete-card-body">
-              <div className="delete-header">
-                <div className="delete-badge-icon">
-                  <Trash2 size={22} color="#dc2626" />
-                </div>
-                <div>
-                  <h4>Delete Notification?</h4>
-                  <p className="delete-subtitle">
-                    Are you sure you want to delete notification broadcast{' '}
-                    <strong>"{notifToDelete.title_en || notifToDelete.title_ml}"</strong>? This action cannot be undone.
-                  </p>
-                </div>
-              </div>
-
-              <div className="delete-actions">
-                <button
-                  type="button"
-                  className="btn-cancel"
-                  onClick={() => setIsDeleteModalOpen(false)}
-                  disabled={isDeleting}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="delete-danger-btn"
-                  onClick={handleConfirmDelete}
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? (
-                    <>
-                      <Loader2 size={16} className="spinner-icon" />
-                      <span>Deleting...</span>
-                    </>
-                  ) : (
-                    <span>Delete Notification</span>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={Boolean(isDeleteModalOpen && notifToDelete)}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Notification Broadcast?"
+        message={
+          <>
+            Are you sure you want to delete notification broadcast <strong>"{notifToDelete?.title_en || notifToDelete?.title_ml}"</strong>? This action cannot be undone.
+          </>
+        }
+        confirmText="Delete Notification"
+        isLoading={isDeleting}
+      />
 
       {/* STYLES */}
       <style>{`
