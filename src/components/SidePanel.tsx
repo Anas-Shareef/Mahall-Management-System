@@ -83,16 +83,16 @@ export const SidePanel: React.FC<SidePanelProps> = ({
       <div className={`global-side-panel-container ${getSizeClass()} ${className}`}>
         {/* STICKY HEADER */}
         <div className="side-panel-header">
-          <div className="modal-title-group">
+          <div className="side-panel-header-main">
             {icon && <div className="modal-header-icon-box">{icon}</div>}
-            <div>
+            <div className="side-panel-header-titles">
               <h3 className="modal-title-text">{title}</h3>
               {subtitle && <p className="modal-subtitle-text">{subtitle}</p>}
             </div>
           </div>
 
-          <div className="flex-row-gap-xs align-items-center">
-            {quickActions}
+          <div className="side-panel-header-actions">
+            {quickActions && <div className="side-panel-quick-actions">{quickActions}</div>}
             {showCloseButton && (
               <button
                 type="button"

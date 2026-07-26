@@ -112,18 +112,26 @@ export const DonationForm: React.FC = () => {
 
     setIsSaving(true);
     try {
+      const selectedMem = members.find((m) => m.id === donorMemberId);
+      const resolvedDonorName = 
+        donorType === 'anonymous' 
+          ? 'Anonymous Donor' 
+          : donorType === 'member' 
+            ? (selectedMem?.name || donorName.trim() || 'Community Member') 
+            : (donorName.trim() || 'External Donor');
+
       const payload = {
         donation_type: donationType,
-        campaign_id: donationType === 'campaign' ? campaignId : null,
+        campaign_id: donationType === 'campaign' ? (campaignId || null) : null,
         donor_type: donorType,
-        donor_member_id: donorType === 'member' ? donorMemberId : null,
-        donor_name: donorType === 'anonymous' ? 'Anonymous Donor' : donorName.trim(),
-        donor_phone: donorType === 'anonymous' ? null : (donorPhone.trim() || null),
-        donor_email: donorType === 'anonymous' ? null : (donorEmail.trim() || null),
+        donor_member_id: donorType === 'member' ? (donorMemberId || null) : null,
+        donor_name: resolvedDonorName,
+        donor_phone: donorType === 'anonymous' ? null : (donorPhone.trim() || selectedMem?.phone || null),
+        donor_email: donorType === 'anonymous' ? null : (donorEmail.trim() || selectedMem?.email || null),
         amount: Number(amount),
         payment_method: paymentMethod,
         donation_date: donationDate,
-        receipt_number: receiptNumber.trim() || null,
+        receipt_number: receiptNumber.trim() || `REC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
         reference_number: referenceNumber.trim() || null,
         notes: notes.trim() || null,
         recorded_by: null,
@@ -264,7 +272,20 @@ export const DonationForm: React.FC = () => {
               {donorType === 'member' && (
                 <div className="form-group">
                   <label className="form-label">Select Registered Member *</label>
-                  <select className={`form-control ${fieldErrors.donorMemberId ? 'is-invalid' : ''}`} value={donorMemberId} onChange={(e) => setDonorMemberId(e.target.value)}>
+                  <select 
+                    className={`form-control ${fieldErrors.donorMemberId ? 'is-invalid' : ''}`} 
+                    value={donorMemberId} 
+                    onChange={(e) => {
+                      const memId = e.target.value;
+                      setDonorMemberId(memId);
+                      const m = members.find((item) => item.id === memId);
+                      if (m) {
+                        setDonorName(m.name);
+                        setDonorPhone(m.phone || '');
+                        setDonorEmail(m.email || '');
+                      }
+                    }}
+                  >
                     <option value="">-- Choose Member --</option>
                     {members.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.phone || 'No phone'})</option>)}
                   </select>

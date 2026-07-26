@@ -8,6 +8,7 @@ import {
   CheckCircle, Phone, Mail, Home, Smartphone, UserCheck 
 } from 'lucide-react';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { SidePanel } from '../../components/SidePanel';
 
 export const Members: React.FC = () => {
   const { t } = useTranslation();
@@ -409,61 +410,96 @@ export const Members: React.FC = () => {
         </div>
 
         {/* SELECTED MEMBER DETAILS SIDE PANEL */}
-        {selectedMemberDetails && (
-          <div className="details-panel-card glass-card">
-            <div className="panel-header">
-              <div className="panel-title-wrapper">
-                <div className="panel-icon-box">
-                  <UserCheck size={20} color="#00966b" />
-                </div>
-                <div>
-                  <h4>{selectedMemberDetails.name}</h4>
-                  <p>{selectedMemberDetails.relationship}</p>
-                </div>
-              </div>
+        <SidePanel
+          isOpen={Boolean(selectedMemberDetails)}
+          onClose={() => setSelectedMemberDetails(null)}
+          title={selectedMemberDetails?.name}
+          subtitle={`Relationship: ${selectedMemberDetails?.relationship || 'Head of Household'}`}
+          icon={<UserCheck size={20} />}
+          size="lg"
+          quickActions={
+            selectedMemberDetails && (
               <button
-                className="panel-close-btn"
-                onClick={() => setSelectedMemberDetails(null)}
-                aria-label="Close member details panel"
+                type="button"
+                className="pill-btn-primary font-xs"
+                onClick={() => {
+                  setSelectedMemberDetails(null);
+                  navigate(`/admin/members/${selectedMemberDetails.id}/edit`);
+                }}
               >
-                <X size={18} />
+                <Edit2 size={13} /> Edit Member
               </button>
-            </div>
+            )
+          }
+        >
+          {selectedMemberDetails && (
+            <div className="flex-col gap-md">
+              {/* PRIMARY DETAILS CARD */}
+              <div className="form-card">
+                <div className="form-card-header margin-bottom-sm">
+                  <UserCheck size={16} className="text-primary" />
+                  <span className="form-card-title margin-left-xs">Member Information</span>
+                </div>
+                <div className="form-grid-2col font-xs">
+                  <div>
+                    <div className="detail-item-label">Full Name</div>
+                    <div className="font-weight-700 font-sm text-dark">{selectedMemberDetails.name}</div>
+                  </div>
+                  <div>
+                    <div className="detail-item-label">Relationship to Household</div>
+                    <div className="font-weight-600">{selectedMemberDetails.relationship || 'Head of Household'}</div>
+                  </div>
+                  <div>
+                    <div className="detail-item-label">Assigned Household</div>
+                    <div className="font-weight-600 text-dark">
+                      {households.find((h) => h.id === selectedMemberDetails.household_id)
+                        ? `House H-${households.find((h) => h.id === selectedMemberDetails.household_id)?.house_number}`
+                        : 'Unassigned Household'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="detail-item-label">Membership Status</div>
+                    <span className={`status-pill ${selectedMemberDetails.status !== 'inactive' ? 'active' : 'inactive'}`}>
+                      <span className="dot"></span>
+                      {selectedMemberDetails.status !== 'inactive' ? 'Active Member' : 'Inactive'}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-            <div className="panel-body">
-              <div className="details-meta-section">
-                <div className="meta-item">
-                  <span className="meta-label">Phone</span>
-                  <span className="meta-value">{selectedMemberDetails.phone || 'N/A'}</span>
+              {/* CONTACT & PORTAL ACCESS CARD */}
+              <div className="form-card">
+                <div className="form-card-header margin-bottom-sm">
+                  <Phone size={16} className="text-primary" />
+                  <span className="form-card-title margin-left-xs">Contact & Portal Credentials</span>
                 </div>
-                <div className="meta-item">
-                  <span className="meta-label">Email</span>
-                  <span className="meta-value font-sm">{selectedMemberDetails.email || 'N/A'}</span>
-                </div>
-                <div className="meta-item">
-                  <span className="meta-label">Household</span>
-                  <span className="meta-value">
-                    {households.find((h) => h.id === selectedMemberDetails.household_id)
-                      ? `House H-${households.find((h) => h.id === selectedMemberDetails.household_id)?.house_number}`
-                      : 'N/A'}
-                  </span>
-                </div>
-                <div className="meta-item">
-                  <span className="meta-label">Portal Access</span>
-                  <span className="meta-value">
-                    {selectedMemberDetails.user_id ? 'Enabled' : 'Disabled'}
-                  </span>
-                </div>
-                <div className="meta-item">
-                  <span className="meta-label">Subscription</span>
-                  <span className="meta-value">
-                    {selectedMemberDetails.is_subscription_accountable !== false ? 'Accountable (ON)' : 'Non-Accountable (OFF)'}
-                  </span>
+                <div className="form-grid-2col font-xs">
+                  <div>
+                    <div className="detail-item-label">Phone Number</div>
+                    <div className="font-weight-700 text-dark">{selectedMemberDetails.phone || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <div className="detail-item-label">Email Address</div>
+                    <div className="font-weight-600">{selectedMemberDetails.email || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <div className="detail-item-label">Mobile Portal Access</div>
+                    <span className={`login-status-pill ${selectedMemberDetails.user_id ? 'enabled' : 'disabled'}`}>
+                      <Smartphone size={12} />
+                      {selectedMemberDetails.user_id ? 'Portal Login Enabled' : 'Portal Disabled'}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="detail-item-label">Subscription Accountability</div>
+                    <div className="font-weight-600">
+                      {selectedMemberDetails.is_subscription_accountable !== false ? '🟢 Accountable (ON)' : '⚪ Non-Accountable (OFF)'}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </SidePanel>
       </div>
 
 

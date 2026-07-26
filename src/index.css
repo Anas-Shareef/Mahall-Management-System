@@ -2715,7 +2715,7 @@ img, svg, video, canvas {
   z-index: 2 !important;
 }
 
-.search-box input, .input-with-icon input {
+.search-box input, .input-with-icon input, .input-with-icon .form-control {
   padding-left: 42px !important;
   width: 100% !important;
   box-sizing: border-box !important;
@@ -2848,15 +2848,41 @@ img, svg, video, canvas {
 
 .side-panel-header {
   display: flex !important;
-  align-items: center !important;
+  align-items: flex-start !important;
   justify-content: space-between !important;
-  padding: 20px 24px !important;
+  padding: 18px 24px !important;
   border-bottom: 1px solid #f1f5f9 !important;
   background: #ffffff !important;
+  gap: 16px !important;
   flex-shrink: 0 !important;
   position: sticky !important;
   top: 0 !important;
   z-index: 10 !important;
+}
+
+.side-panel-header-main {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.side-panel-header-titles {
+  min-width: 0 !important;
+}
+
+.side-panel-header-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-shrink: 0 !important;
+}
+
+.side-panel-quick-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
 }
 
 .side-panel-body {
@@ -2878,6 +2904,36 @@ img, svg, video, canvas {
   position: sticky !important;
   bottom: 0 !important;
   z-index: 10 !important;
+}
+
+/* RESPONSIVE CANVAS & PAGE HEADER BAR STACKING */
+.canvas-header-bar, .page-header-actions {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  margin-bottom: 24px !important;
+  width: 100% !important;
+}
+
+@media (max-width: 768px) {
+  .canvas-header-bar, .page-header-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 14px !important;
+  }
+  .canvas-header-bar > div:last-child,
+  .page-header-actions > div:last-child {
+    display: flex !important;
+    width: 100% !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+  }
+  .canvas-header-bar > div:last-child button,
+  .page-header-actions > div:last-child button {
+    flex: 1 !important;
+    justify-content: center !important;
+  }
 }
 
 
