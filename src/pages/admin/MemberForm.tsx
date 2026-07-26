@@ -4,8 +4,9 @@ import { db } from '../../services/db';
 import type { Household } from '../../services/db';
 import { 
   User, Phone, Mail, CheckCircle, AlertCircle, 
-  ArrowLeft, Save, Loader2 
+  ArrowLeft, Save, Loader2, Home, ShieldCheck 
 } from 'lucide-react';
+import { FormCard } from '../../components/FormCard';
 
 export const MemberForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -124,7 +125,7 @@ export const MemberForm: React.FC = () => {
   }
 
   return (
-    <div className="member-form-page animate-fade-in padding-md">
+    <div className="member-form-page animate-fade-in">
       {/* Toast Notification */}
       {toastMessage && (
         <div className={`toast-notification ${toastMessage.type}`}>
@@ -134,14 +135,14 @@ export const MemberForm: React.FC = () => {
       )}
 
       {/* HEADER BAR & BREADCRUMBS */}
-      <div className="flex-between margin-bottom-lg flex-wrap gap-md align-items-center">
+      <div className="canvas-header-bar">
         <div>
           <div className="flex-row-gap-xs font-xs color-subtle margin-bottom-xs">
             <Link to="/admin/dashboard" className="color-subtle hover-primary">Dashboard</Link>
             <span>/</span>
             <Link to="/admin/members" className="color-subtle hover-primary">Members</Link>
             <span>/</span>
-            <span className="text-dark font-weight-600">{isEditMode ? 'Edit Member' : 'Register New Member'}</span>
+            <span className="text-dark font-weight-600">{isEditMode ? 'Edit Member' : 'Register Member'}</span>
           </div>
           <h2 className="font-weight-800 text-dark">
             {isEditMode ? `Edit Member: ${name}` : 'Register New Member'}
@@ -160,7 +161,7 @@ export const MemberForm: React.FC = () => {
             onClick={() => navigate('/admin/members')}
           >
             <ArrowLeft size={16} />
-            <span>Back to Members</span>
+            <span>Back</span>
           </button>
           <button 
             type="submit" 
@@ -174,148 +175,149 @@ export const MemberForm: React.FC = () => {
         </div>
       </div>
 
-      <form id="member-form" onSubmit={handleSubmit} className="flex-col gap-lg max-width-1100 margin-auto">
-        {/* SECTION 1: PERSONAL INFORMATION */}
-        <div className="form-section-card shadow-sm">
-          <div className="form-section-header">
-            <User size={18} className="text-primary" />
-            <span className="form-section-title">Personal Information & Household Assignment</span>
-          </div>
+      <form id="member-form" onSubmit={handleSubmit}>
+        <div className="form-grid-layout-2col">
+          {/* MAIN COLUMN (LEFT - 8 COLS) */}
+          <div className="form-main-column">
+            {/* CARD 1: GENERAL INFORMATION */}
+            <FormCard
+              title="General Information"
+              subtitle="Personal identity and family role within the household."
+              icon={User}
+            >
+              <div className="form-grid-2col">
+                <div className="form-group">
+                  <label className="form-label">Full Name *</label>
+                  <input
+                    type="text"
+                    className={`form-control ${fieldErrors.name ? 'is-invalid' : ''}`}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter full name as per official records"
+                  />
+                  {fieldErrors.name && <span className="field-error-text">{fieldErrors.name}</span>}
+                </div>
 
-          <div className="form-grid-2col padding-md">
-            <div className="form-group">
-              <label className="form-label">Full Name *</label>
-              <input
-                type="text"
-                className={`form-control ${fieldErrors.name ? 'is-invalid' : ''}`}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Full Name as per official records"
-              />
-              {fieldErrors.name && <span className="field-error-text">{fieldErrors.name}</span>}
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Assigned Household *</label>
-              <select
-                className={`form-control ${fieldErrors.householdId ? 'is-invalid' : ''}`}
-                value={householdId}
-                onChange={(e) => setHouseholdId(e.target.value)}
-              >
-                <option value="">-- Choose Household --</option>
-                {households.map((h) => (
-                  <option key={h.id} value={h.id}>
-                    House #{h.house_number} ({h.house_owner_name})
-                  </option>
-                ))}
-              </select>
-              {fieldErrors.householdId && <span className="field-error-text">{fieldErrors.householdId}</span>}
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Family Relationship</label>
-              <select
-                className="form-control"
-                value={relationship}
-                onChange={(e) => setRelationship(e.target.value)}
-              >
-                <option value="Head of Family">Head of Family</option>
-                <option value="Spouse">Spouse</option>
-                <option value="Son">Son</option>
-                <option value="Daughter">Daughter</option>
-                <option value="Father">Father</option>
-                <option value="Mother">Mother</option>
-                <option value="Brother">Brother</option>
-                <option value="Sister">Sister</option>
-                <option value="Other Relative">Other Relative</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Membership Status</label>
-              <select
-                className="form-control"
-                value={status}
-                onChange={(e) => setStatus(e.target.value as any)}
-              >
-                <option value="active">Active Member</option>
-                <option value="inactive">Inactive / Deceased / Transferred</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* SECTION 2: CONTACT & SUBSCRIPTION SETTINGS */}
-        <div className="form-section-card shadow-sm">
-          <div className="form-section-header">
-            <Phone size={18} className="text-primary" />
-            <span className="form-section-title">Contact Information & Subscription Accountability</span>
-          </div>
-
-          <div className="form-grid-2col padding-md">
-            <div className="form-group">
-              <label className="form-label">Phone Number</label>
-              <div className="input-with-icon">
-                <Phone size={16} className="input-icon" />
-                <input
-                  type="text"
-                  className={`form-control ${fieldErrors.phone ? 'is-invalid' : ''}`}
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+91 Mobile Number"
-                />
+                <div className="form-group">
+                  <label className="form-label">Family Relationship</label>
+                  <select
+                    className="form-control"
+                    value={relationship}
+                    onChange={(e) => setRelationship(e.target.value)}
+                  >
+                    <option value="Head of Family">Head of Family</option>
+                    <option value="Spouse">Spouse</option>
+                    <option value="Son">Son</option>
+                    <option value="Daughter">Daughter</option>
+                    <option value="Father">Father</option>
+                    <option value="Mother">Mother</option>
+                    <option value="Brother">Brother</option>
+                    <option value="Sister">Sister</option>
+                    <option value="Other Relative">Other Relative</option>
+                  </select>
+                </div>
               </div>
-              {fieldErrors.phone && <span className="field-error-text">{fieldErrors.phone}</span>}
-            </div>
+            </FormCard>
 
-            <div className="form-group">
-              <label className="form-label">Email Address</label>
-              <div className="input-with-icon">
-                <Mail size={16} className="input-icon" />
-                <input
-                  type="email"
-                  className={`form-control ${fieldErrors.email ? 'is-invalid' : ''}`}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="email@example.com"
-                />
+            {/* CARD 2: CONTACT INFORMATION */}
+            <FormCard
+              title="Contact Information"
+              subtitle="Mobile number and email for communication and portal login."
+              icon={Phone}
+            >
+              <div className="form-grid-2col">
+                <div className="form-group">
+                  <label className="form-label">Phone Number</label>
+                  <div className="input-with-icon">
+                    <Phone size={16} className="input-icon" />
+                    <input
+                      type="text"
+                      className={`form-control ${fieldErrors.phone ? 'is-invalid' : ''}`}
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+91 9876543210"
+                    />
+                  </div>
+                  {fieldErrors.phone && <span className="field-error-text">{fieldErrors.phone}</span>}
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Email Address</label>
+                  <div className="input-with-icon">
+                    <Mail size={16} className="input-icon" />
+                    <input
+                      type="email"
+                      className={`form-control ${fieldErrors.email ? 'is-invalid' : ''}`}
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="member@example.com"
+                    />
+                  </div>
+                  {fieldErrors.email && <span className="field-error-text">{fieldErrors.email}</span>}
+                </div>
               </div>
-              {fieldErrors.email && <span className="field-error-text">{fieldErrors.email}</span>}
-            </div>
-
-            <div className="form-group full-width">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={isSubscriptionAccountable}
-                  onChange={(e) => setIsSubscriptionAccountable(e.target.checked)}
-                />
-                <span>Accountable for Annual Subscription Ledger Fee</span>
-              </label>
-              <span className="form-help-text margin-top-xs">
-                When checked, annual subscription fee ledgers will be automatically calculated for this member.
-              </span>
-            </div>
+            </FormCard>
           </div>
-        </div>
 
-        {/* FORM FOOTER CTAS */}
-        <div className="flex-between margin-top-md pt-md border-top">
-          <button 
-            type="button" 
-            className="pill-btn-ghost" 
-            onClick={() => navigate('/admin/members')}
-          >
-            Cancel
-          </button>
-          <button 
-            type="submit" 
-            className="pill-btn-primary" 
-            disabled={isSaving}
-          >
-            {isSaving ? <Loader2 size={16} className="spinner" /> : <Save size={16} />}
-            <span>{isSaving ? 'Saving Profile...' : isEditMode ? 'Update Profile' : 'Register Member'}</span>
-          </button>
+          {/* SIDE COLUMN (RIGHT - 4 COLS) */}
+          <div className="form-side-column">
+            {/* CARD 3: HOUSEHOLD ASSIGNMENT */}
+            <FormCard
+              title="Household Assignment"
+              subtitle="Link this member to a registered household."
+              icon={Home}
+            >
+              <div className="form-group">
+                <label className="form-label">Assigned Household *</label>
+                <select
+                  className={`form-control ${fieldErrors.householdId ? 'is-invalid' : ''}`}
+                  value={householdId}
+                  onChange={(e) => setHouseholdId(e.target.value)}
+                >
+                  <option value="">-- Choose Household --</option>
+                  {households.map((h) => (
+                    <option key={h.id} value={h.id}>
+                      House #{h.house_number} ({h.house_owner_name})
+                    </option>
+                  ))}
+                </select>
+                {fieldErrors.householdId && <span className="field-error-text">{fieldErrors.householdId}</span>}
+              </div>
+            </FormCard>
+
+            {/* CARD 4: MEMBERSHIP & STATUS */}
+            <FormCard
+              title="Membership & Status"
+              subtitle="Configure activity status and subscription ledger accountability."
+              icon={ShieldCheck}
+            >
+              <div className="form-group">
+                <label className="form-label">Membership Status</label>
+                <select
+                  className="form-control"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as any)}
+                >
+                  <option value="active">Active Member</option>
+                  <option value="inactive">Inactive / Deceased / Transferred</option>
+                </select>
+              </div>
+
+              <div className="form-group margin-top-sm">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={isSubscriptionAccountable}
+                    onChange={(e) => setIsSubscriptionAccountable(e.target.checked)}
+                  />
+                  <span>Accountable for Annual Subscription Ledger Fee</span>
+                </label>
+                <span className="form-help-text margin-top-xs">
+                  When checked, annual subscription fee ledgers will be automatically calculated for this member.
+                </span>
+              </div>
+            </FormCard>
+          </div>
         </div>
       </form>
     </div>

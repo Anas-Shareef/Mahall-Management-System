@@ -4,8 +4,9 @@ import { db } from '../../services/db';
 import type { Member } from '../../services/db';
 import { 
   Home, Phone, MapPin, Building2, CheckCircle, AlertCircle, 
-  ArrowLeft, Save, Loader2, Users, Plus 
+  ArrowLeft, Save, Loader2, Users, ShieldCheck 
 } from 'lucide-react';
+import { FormCard } from '../../components/FormCard';
 
 export const HouseholdForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -53,17 +54,17 @@ export const HouseholdForm: React.FC = () => {
         setArea(current.area || '');
         setStatus(current.status || 'active');
 
-        // Fetch linked family members
+        // Fetch linked members
         const allMembers = await db.members.get();
         const family = allMembers.filter((m) => m.household_id === householdId);
         setLinkedMembers(family);
       } else {
-        showToast('error', 'Household not found');
+        showToast('error', 'Household record not found');
         setTimeout(() => navigate('/admin/households'), 1500);
       }
     } catch (err) {
-      console.error('Error fetching household details:', err);
-      showToast('error', 'Failed to load household details');
+      console.error('Error loading household details:', err);
+      showToast('error', 'Failed to load household data');
     } finally {
       setLoading(false);
     }
@@ -71,10 +72,10 @@ export const HouseholdForm: React.FC = () => {
 
   const validate = () => {
     const errors: { [key: string]: string } = {};
-    if (!houseNumber.trim()) errors.houseNumber = 'House / Household number is required';
-    if (!ownerName.trim()) errors.ownerName = 'House owner name is required';
+    if (!houseNumber.trim()) errors.houseNumber = 'House Number or ID is required';
+    if (!ownerName.trim()) errors.ownerName = 'House owner or family head name is required';
     if (ownerPhone.trim() && !/^\+?[0-9\s-]{8,15}$/.test(ownerPhone.trim())) {
-      errors.ownerPhone = 'Please enter a valid phone number';
+      errors.ownerPhone = 'Please enter a valid mobile number';
     }
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
@@ -97,7 +98,7 @@ export const HouseholdForm: React.FC = () => {
 
       if (isEditMode && id) {
         await db.households.update(id, payload);
-        showToast('success', 'Household updated successfully');
+        showToast('success', 'Household details updated successfully');
       } else {
         await db.households.create(payload);
         showToast('success', 'New Household created successfully');
@@ -105,7 +106,7 @@ export const HouseholdForm: React.FC = () => {
       setTimeout(() => navigate('/admin/households'), 1000);
     } catch (err) {
       console.error('Error saving household:', err);
-      showToast('error', 'Failed to save household record. Check database setup.');
+      showToast('error', 'Failed to save household details');
     } finally {
       setIsSaving(false);
     }
@@ -121,7 +122,7 @@ export const HouseholdForm: React.FC = () => {
   }
 
   return (
-    <div className="household-form-page animate-fade-in padding-md">
+    <div className="household-form-page animate-fade-in">
       {/* Toast Notification */}
       {toastMessage && (
         <div className={`toast-notification ${toastMessage.type}`}>
@@ -131,14 +132,14 @@ export const HouseholdForm: React.FC = () => {
       )}
 
       {/* HEADER BAR & BREADCRUMBS */}
-      <div className="flex-between margin-bottom-lg flex-wrap gap-md align-items-center">
+      <div className="canvas-header-bar">
         <div>
           <div className="flex-row-gap-xs font-xs color-subtle margin-bottom-xs">
             <Link to="/admin/dashboard" className="color-subtle hover-primary">Dashboard</Link>
             <span>/</span>
             <Link to="/admin/households" className="color-subtle hover-primary">Households</Link>
             <span>/</span>
-            <span className="text-dark font-weight-600">{isEditMode ? 'Edit Household' : 'Add New Household'}</span>
+            <span className="text-dark font-weight-600">{isEditMode ? 'Edit Household' : 'Add Household'}</span>
           </div>
           <h2 className="font-weight-800 text-dark">
             {isEditMode ? `Edit Household #${houseNumber}` : 'Register New Household'}
@@ -157,7 +158,7 @@ export const HouseholdForm: React.FC = () => {
             onClick={() => navigate('/admin/households')}
           >
             <ArrowLeft size={16} />
-            <span>Back to Households</span>
+            <span>Back</span>
           </button>
           <button 
             type="submit" 
@@ -166,178 +167,158 @@ export const HouseholdForm: React.FC = () => {
             disabled={isSaving}
           >
             {isSaving ? <Loader2 size={16} className="spinner" /> : <Save size={16} />}
-            <span>{isSaving ? 'Saving Changes...' : isEditMode ? 'Update Household' : 'Create Household'}</span>
+            <span>{isSaving ? 'Saving...' : isEditMode ? 'Update Household' : 'Create Household'}</span>
           </button>
         </div>
       </div>
 
-      <form id="household-form" onSubmit={handleSubmit} className="flex-col gap-lg max-width-1100 margin-auto">
-        {/* SECTION 1: PRIMARY HOUSEHOLD IDENTIFICATION */}
-        <div className="form-section-card shadow-sm">
-          <div className="form-section-header">
-            <Home size={18} className="text-primary" />
-            <span className="form-section-title">Household Identification & Head Info</span>
-          </div>
-
-          <div className="form-grid-2col padding-md">
-            <div className="form-group">
-              <label className="form-label">House Number / ID *</label>
-              <input
-                type="text"
-                className={`form-control ${fieldErrors.houseNumber ? 'is-invalid' : ''}`}
-                value={houseNumber}
-                onChange={(e) => setHouseNumber(e.target.value)}
-                placeholder="e.g. H-104 / 45-B"
-              />
-              {fieldErrors.houseNumber && <span className="field-error-text">{fieldErrors.houseNumber}</span>}
-              <span className="form-help-text">Unique identification code or number assigned to this house.</span>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Head of Family / Owner Name *</label>
-              <input
-                type="text"
-                className={`form-control ${fieldErrors.ownerName ? 'is-invalid' : ''}`}
-                value={ownerName}
-                onChange={(e) => setOwnerName(e.target.value)}
-                placeholder="Full name of house owner or family head"
-              />
-              {fieldErrors.ownerName && <span className="field-error-text">{fieldErrors.ownerName}</span>}
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Primary Contact Phone</label>
-              <div className="input-with-icon">
-                <Phone size={16} className="input-icon" />
-                <input
-                  type="text"
-                  className={`form-control ${fieldErrors.ownerPhone ? 'is-invalid' : ''}`}
-                  value={ownerPhone}
-                  onChange={(e) => setOwnerPhone(e.target.value)}
-                  placeholder="+91 Mobile number"
-                />
-              </div>
-              {fieldErrors.ownerPhone && <span className="field-error-text">{fieldErrors.ownerPhone}</span>}
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Account Status</label>
-              <select
-                className="form-control"
-                value={status}
-                onChange={(e) => setStatus(e.target.value as any)}
-              >
-                <option value="active">Active Household</option>
-                <option value="inactive">Inactive / Relocated</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* SECTION 2: LOCATION & ADDRESS */}
-        <div className="form-section-card shadow-sm">
-          <div className="form-section-header">
-            <MapPin size={18} className="text-primary" />
-            <span className="form-section-title">Location & Ward Address</span>
-          </div>
-
-          <div className="form-grid-2col padding-md">
-            <div className="form-group">
-              <label className="form-label">Ward / Sub-Area Name</label>
-              <div className="input-with-icon">
-                <Building2 size={16} className="input-icon" />
-                <input
-                  type="text"
-                  className="form-control"
-                  value={area}
-                  onChange={(e) => setArea(e.target.value)}
-                  placeholder="e.g. Ward 3 / North Street"
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Complete Street Address</label>
-              <textarea
-                className="form-control"
-                rows={3}
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Door number, landmark, locality..."
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* SECTION 3: LINKED FAMILY MEMBERS (WHEN EDITING) */}
-        {isEditMode && (
-          <div className="form-section-card shadow-sm">
-            <div className="form-section-header flex-between">
-              <div className="flex-row-gap-xs">
-                <Users size={18} className="text-primary" />
-                <span className="form-section-title">Registered Family Members ({linkedMembers.length})</span>
-              </div>
-              <button 
-                type="button" 
-                className="pill-btn-ghost font-xs"
-                onClick={() => navigate('/admin/members/new')}
-              >
-                <Plus size={14} /> Add New Member
-              </button>
-            </div>
-
-            <div className="padding-md">
-              {linkedMembers.length === 0 ? (
-                <div className="empty-state-card py-md">
-                  <Users size={32} className="color-subtle margin-bottom-xs" />
-                  <p className="font-sm color-subtle">No individual members currently linked to this household.</p>
+      <form id="household-form" onSubmit={handleSubmit}>
+        <div className="form-grid-layout-2col">
+          {/* MAIN COLUMN (LEFT - 8 COLS) */}
+          <div className="form-main-column">
+            {/* CARD 1: HOUSEHOLD IDENTIFICATION */}
+            <FormCard
+              title="Household Identification & Head Info"
+              subtitle="Unique house code and primary owner / family head contact."
+              icon={Home}
+            >
+              <div className="form-grid-2col">
+                <div className="form-group">
+                  <label className="form-label">House Number / ID *</label>
+                  <input
+                    type="text"
+                    className={`form-control ${fieldErrors.houseNumber ? 'is-invalid' : ''}`}
+                    value={houseNumber}
+                    onChange={(e) => setHouseNumber(e.target.value)}
+                    placeholder="e.g. H-104 / 45-B"
+                  />
+                  {fieldErrors.houseNumber && <span className="field-error-text">{fieldErrors.houseNumber}</span>}
                 </div>
-              ) : (
-                <div className="member-search-cards-list">
-                  {linkedMembers.map((m) => (
-                    <div key={m.id} className="member-select-card">
-                      <div className="flex-row-gap-sm">
-                        <div className="donor-avatar-circle sm avatar-member">
-                          {m.name.charAt(0).toUpperCase()}
+
+                <div className="form-group">
+                  <label className="form-label">Head of Family / Owner Name *</label>
+                  <input
+                    type="text"
+                    className={`form-control ${fieldErrors.ownerName ? 'is-invalid' : ''}`}
+                    value={ownerName}
+                    onChange={(e) => setOwnerName(e.target.value)}
+                    placeholder="Full name of family head"
+                  />
+                  {fieldErrors.ownerName && <span className="field-error-text">{fieldErrors.ownerName}</span>}
+                </div>
+
+                <div className="form-group full-width">
+                  <label className="form-label">Primary Contact Phone</label>
+                  <div className="input-with-icon">
+                    <Phone size={16} className="input-icon" />
+                    <input
+                      type="text"
+                      className={`form-control ${fieldErrors.ownerPhone ? 'is-invalid' : ''}`}
+                      value={ownerPhone}
+                      onChange={(e) => setOwnerPhone(e.target.value)}
+                      placeholder="+91 Mobile number"
+                    />
+                  </div>
+                  {fieldErrors.ownerPhone && <span className="field-error-text">{fieldErrors.ownerPhone}</span>}
+                </div>
+              </div>
+            </FormCard>
+
+            {/* CARD 2: LOCATION & ADDRESS */}
+            <FormCard
+              title="Location & Ward Address"
+              subtitle="Physical door address and assigned Mahallu ward area."
+              icon={MapPin}
+            >
+              <div className="form-grid-2col">
+                <div className="form-group">
+                  <label className="form-label">Ward / Sub-Area Name</label>
+                  <div className="input-with-icon">
+                    <Building2 size={16} className="input-icon" />
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={area}
+                      onChange={(e) => setArea(e.target.value)}
+                      placeholder="e.g. Ward 3 / North Street"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Complete Street Address</label>
+                  <textarea
+                    className="form-control"
+                    rows={3}
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Door number, landmark, locality..."
+                  />
+                </div>
+              </div>
+            </FormCard>
+
+            {/* CARD 3: LINKED FAMILY MEMBERS (WHEN EDITING) */}
+            {isEditMode && (
+              <FormCard
+                title={`Registered Family Members (${linkedMembers.length})`}
+                subtitle="Members linked to this household ledger."
+                icon={Users}
+              >
+                {linkedMembers.length === 0 ? (
+                  <div className="empty-state-card py-md text-center">
+                    <p className="font-sm color-subtle">No individual members currently linked to this household.</p>
+                  </div>
+                ) : (
+                  <div className="member-search-cards-list">
+                    {linkedMembers.map((m) => (
+                      <div key={m.id} className="member-select-card margin-bottom-xs">
+                        <div className="flex-row-gap-sm">
+                          <div className="donor-avatar-circle sm avatar-member">
+                            {m.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-weight-700 font-sm text-dark">{m.name}</div>
+                            <span className="font-xs color-subtle">
+                              Relation: {m.relationship} • Phone: {m.phone || 'N/A'}
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <div className="font-weight-700 font-sm text-dark">{m.name}</div>
-                          <span className="font-xs color-subtle">
-                            Relation: {m.relationship} • Phone: {m.phone || 'N/A'}
-                          </span>
-                        </div>
+                        <Link 
+                          to={`/admin/members/${m.id}/edit`} 
+                          className="pill-btn-ghost font-xs hover-primary"
+                        >
+                          Edit Profile
+                        </Link>
                       </div>
-                      <Link 
-                        to={`/admin/members/${m.id}/edit`} 
-                        className="pill-btn-ghost font-xs hover-primary"
-                      >
-                        Edit Profile
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    ))}
+                  </div>
+                )}
+              </FormCard>
+            )}
           </div>
-        )}
 
-        {/* FORM FOOTER CTAS */}
-        <div className="flex-between margin-top-md pt-md border-top">
-          <button 
-            type="button" 
-            className="pill-btn-ghost" 
-            onClick={() => navigate('/admin/households')}
-          >
-            Cancel
-          </button>
-          <button 
-            type="submit" 
-            className="pill-btn-primary" 
-            disabled={isSaving}
-          >
-            {isSaving ? <Loader2 size={16} className="spinner" /> : <Save size={16} />}
-            <span>{isSaving ? 'Saving Changes...' : isEditMode ? 'Update Household' : 'Create Household'}</span>
-          </button>
+          {/* SIDE COLUMN (RIGHT - 4 COLS) */}
+          <div className="form-side-column">
+            {/* CARD 4: HOUSEHOLD STATUS */}
+            <FormCard
+              title="Household Status"
+              subtitle="Active or relocated status."
+              icon={ShieldCheck}
+            >
+              <div className="form-group">
+                <label className="form-label">Account Status</label>
+                <select
+                  className="form-control"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as any)}
+                >
+                  <option value="active">Active Household</option>
+                  <option value="inactive">Inactive / Relocated</option>
+                </select>
+              </div>
+            </FormCard>
+          </div>
         </div>
       </form>
     </div>

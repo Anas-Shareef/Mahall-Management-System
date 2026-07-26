@@ -2480,6 +2480,102 @@ img, svg, video, canvas {
   margin-bottom: 6px !important;
 }
 
+/* ════════════════════════════════════════════════════════════════
+   LUCA ADMIN CARD-BASED FORM SYSTEM & 12-COLUMN SPLIT GRID
+   ════════════════════════════════════════════════════════════════ */
+.form-grid-layout-2col {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 28px;
+  align-items: start;
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .form-grid-layout-2col {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+.form-main-column, .form-side-column {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  width: 100%;
+}
+
+.form-card {
+  background: #ffffff !important;
+  border-radius: 20px !important;
+  border: 1px solid #e2e8f0 !important;
+  padding: 28px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 20px !important;
+}
+
+.form-card-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding-bottom: 16px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  margin-bottom: 4px !important;
+}
+
+.form-card-icon-badge {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 12px !important;
+  background: #ecfdf5 !important;
+  color: #00966b !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.form-card-title {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  margin: 0 !important;
+}
+
+.form-card-subtitle {
+  font-size: 12px !important;
+  color: #64748b !important;
+  margin-top: 2px !important;
+}
+
+.form-control, .form-group input[type="text"], .form-group input[type="email"], .form-group input[type="number"], .form-group input[type="date"], .form-group select, .form-group textarea {
+  height: 50px !important;
+  border-radius: 14px !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #f8fafc !important;
+  padding: 0 16px !important;
+  font-size: 14px !important;
+  color: #0f172a !important;
+  font-weight: 500 !important;
+  transition: all 0.15s ease !important;
+  box-sizing: border-box !important;
+}
+
+.form-group textarea {
+  height: auto !important;
+  min-height: 100px !important;
+  padding: 14px 16px !important;
+}
+
+.form-control:focus, .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  outline: none !important;
+  border-color: #00966b !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(0, 150, 107, 0.15) !important;
+}
+
 
 
 

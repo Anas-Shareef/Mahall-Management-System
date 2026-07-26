@@ -3,8 +3,8 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { db } from '../../services/db';
 import type { Member, Household } from '../../services/db';
 import { 
-  User, Calendar, CheckCircle, AlertCircle, 
-  ArrowLeft, Save, Loader2, Search, Award
+  User, CheckCircle, AlertCircle, 
+  ArrowLeft, Save, Loader2, Calendar, Search, Award
 } from 'lucide-react';
 
 export const DeathForm: React.FC = () => {
@@ -189,15 +189,14 @@ export const DeathForm: React.FC = () => {
         </div>
       )}
 
-      {/* HEADER BAR & BREADCRUMBS */}
-      <div className="flex-between margin-bottom-lg flex-wrap gap-md align-items-center">
+      <div className="canvas-header-bar">
         <div>
           <div className="flex-row-gap-xs font-xs color-subtle margin-bottom-xs">
             <Link to="/admin/dashboard" className="color-subtle hover-primary">Dashboard</Link>
             <span>/</span>
             <Link to="/admin/deaths" className="color-subtle hover-primary">Death Records</Link>
             <span>/</span>
-            <span className="text-dark font-weight-600">{isEditMode ? 'Edit Record' : 'Record Deceased Member'}</span>
+            <span className="text-dark font-weight-600">{isEditMode ? 'Edit Record' : 'Record Death'}</span>
           </div>
           <h2 className="font-weight-800 text-dark">
             {isEditMode ? `Edit Death Record: ${deceasedName}` : 'Record Deceased Member'}
@@ -214,7 +213,7 @@ export const DeathForm: React.FC = () => {
             onClick={() => navigate('/admin/deaths')}
           >
             <ArrowLeft size={16} />
-            <span>Back to Death Records</span>
+            <span>Back</span>
           </button>
           <button 
             type="submit" 
@@ -223,7 +222,7 @@ export const DeathForm: React.FC = () => {
             disabled={isSaving}
           >
             {isSaving ? <Loader2 size={16} className="spinner" /> : <Save size={16} />}
-            <span>{isSaving ? 'Saving Record...' : isEditMode ? 'Update Record' : 'Save Record'}</span>
+            <span>{isSaving ? 'Saving...' : isEditMode ? 'Update Record' : 'Save Record'}</span>
           </button>
         </div>
       </div>
