@@ -293,11 +293,15 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                       to={link.to}
                       className={({ isActive }) => `sidebar-pill-link ${isActive ? 'active' : ''}`}
                     >
-                      <div className="link-left">
-                        <Icon size={18} className="link-icon" />
-                        <span className="link-text">{link.label}</span>
-                      </div>
-                      <ChevronDown size={14} className="link-chevron" />
+                      {({ isActive }) => (
+                        <>
+                          <div className="link-left">
+                            <Icon size={18} className="link-icon" />
+                            <span className="link-text">{link.label}</span>
+                          </div>
+                          {isActive && <span className="nav-active-dot" />}
+                        </>
+                      )}
                     </NavLink>
                   );
                 })}
@@ -312,11 +316,15 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                   to={link.to}
                   className={({ isActive }) => `sidebar-pill-link ${isActive ? 'active' : ''}`}
                 >
-                  <div className="link-left">
-                    <Icon size={18} className="link-icon" />
-                    <span className="link-text">{link.label}</span>
-                  </div>
-                  <ChevronDown size={14} className="link-chevron" />
+                  {({ isActive }) => (
+                    <>
+                      <div className="link-left">
+                        <Icon size={18} className="link-icon" />
+                        <span className="link-text">{link.label}</span>
+                      </div>
+                      {isActive && <span className="nav-active-dot" />}
+                    </>
+                  )}
                 </NavLink>
               );
             })
@@ -778,9 +786,9 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 11px 16px;
-          border-radius: var(--radius-pill);
-          color: #4b5563;
+          padding: 10px 14px;
+          border-radius: 14px;
+          color: #475569;
           font-weight: 600;
           font-size: 13.5px;
           transition: var(--transition-all);
@@ -788,18 +796,25 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
         }
 
         .sidebar-pill-link .link-left { display: flex; align-items: center; gap: 12px; }
-        .sidebar-pill-link .link-icon { color: #6b7280; transition: var(--transition-all); }
-        .sidebar-pill-link .link-chevron { color: #9ca3af; transition: var(--transition-all); }
+        .sidebar-pill-link .link-icon { color: #64748b; transition: var(--transition-all); }
 
-        .sidebar-pill-link:hover { background: #f3f4f6; color: #111827; }
+        .sidebar-pill-link:hover { background: #f8fafc; color: #0f172a; }
 
         .sidebar-pill-link.active {
-          background: var(--primary);
-          color: #ffffff;
-          box-shadow: 0 8px 18px -2px rgba(0, 150, 107, 0.4);
+          background: #ecfdf5;
+          color: #00966b;
+          font-weight: 700;
         }
-        .sidebar-pill-link.active .link-icon { color: #ffffff; }
-        .sidebar-pill-link.active .link-chevron { color: rgba(255, 255, 255, 0.7); }
+        .sidebar-pill-link.active .link-icon { color: #00966b; }
+
+        .nav-active-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #00966b;
+          margin-right: 4px;
+          box-shadow: 0 0 0 2px rgba(0, 150, 107, 0.2);
+        }
 
         /* Promo Section */
         .sidebar-promo-section { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
@@ -866,7 +881,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
           min-width: 0;
           width: calc(100% - 250px);
           max-width: 100%;
-          padding: 16px 20px 24px;
+          padding: 24px 32px 32px;
           box-sizing: border-box;
         }
 
@@ -875,7 +890,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: 16px;
+          margin-bottom: 28px;
           gap: 12px;
           box-sizing: border-box;
         }

@@ -2452,6 +2452,23 @@ img, svg, video, canvas {
   background-color: #f8fafc !important;
 }
 
+/* ════════════════════════════════════════════════════════════════
+   LUCA WORLD PAGE HEADER & CTA ACTION BUTTON ALIGNMENT
+   ════════════════════════════════════════════════════════════════ */
+.page-header, .canvas-header-bar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 24px !important;
+  gap: 16px !important;
+}
+
+.page-header-actions, .header-cta-group, .actions-group {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
 
 
 
