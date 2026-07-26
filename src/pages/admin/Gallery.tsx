@@ -306,23 +306,33 @@ export const Gallery: React.FC = () => {
 
       {/* ADD ALBUM MODAL */}
       {isAlbumModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card glass-card animate-fade-in">
-            <div className="modal-header">
-              <h3>+ Add Gallery Album</h3>
-              <button className="modal-close-btn" onClick={() => setIsAlbumModalOpen(false)}><X size={18} /></button>
+        <div className="global-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setIsAlbumModalOpen(false); }}>
+          <div className="global-modal-card modal-size-md animate-fade-in">
+            <div className="global-modal-header">
+              <div className="modal-title-group">
+                <div className="modal-header-icon-box">
+                  <ImageIcon size={20} />
+                </div>
+                <div>
+                  <h3 className="modal-title-text">Add Gallery Album</h3>
+                  <p className="modal-subtitle-text">Upload photos and organize community event albums.</p>
+                </div>
+              </div>
+              <button type="button" className="modal-close-icon-btn" onClick={() => setIsAlbumModalOpen(false)}>
+                <X size={18} />
+              </button>
             </div>
 
-            <form onSubmit={handleSaveAlbum} className="modal-body-scroll">
+            <form onSubmit={handleSaveAlbum} className="global-modal-body flex-col gap-md">
               <div className="form-group">
-                <label>Album Title *</label>
-                <input type="text" required placeholder="e.g. Rabeeh Programme 2026" value={title} onChange={(e) => setTitle(e.target.value)} />
+                <label className="form-label">Album Title *</label>
+                <input type="text" className="form-control" required placeholder="e.g. Rabeeh Programme 2026" value={title} onChange={(e) => setTitle(e.target.value)} />
               </div>
 
-              <div className="form-row-grid">
+              <div className="form-grid-2col">
                 <div className="form-group">
-                  <label>Programme Type</label>
-                  <select value={programmeType} onChange={(e) => setProgrammeType(e.target.value)}>
+                  <label className="form-label">Programme Type</label>
+                  <select className="form-control" value={programmeType} onChange={(e) => setProgrammeType(e.target.value)}>
                     <option value="Religious Programme">Religious Programme</option>
                     <option value="Educational Programme">Educational Programme</option>
                     <option value="Community Programme">Community Programme</option>
@@ -331,24 +341,24 @@ export const Gallery: React.FC = () => {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Event Date *</label>
-                  <input type="date" required value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
+                  <label className="form-label">Event Date *</label>
+                  <input type="date" className="form-control" required value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
                 </div>
               </div>
 
               <div className="form-group">
-                <label>Venue</label>
-                <input type="text" value={venue} onChange={(e) => setVenue(e.target.value)} />
+                <label className="form-label">Venue</label>
+                <input type="text" className="form-control" value={venue} onChange={(e) => setVenue(e.target.value)} />
               </div>
 
               <div className="form-group">
-                <label>Description</label>
-                <textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
+                <label className="form-label">Description</label>
+                <textarea className="form-control" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
               </div>
 
               {/* Multi-Image Drag & Drop Simulation */}
               <div className="form-group">
-                <label>Images (Previews & Cover Selection)</label>
+                <label className="form-label">Images (Previews & Cover Selection)</label>
                 <div className="upload-dropzone margin-y text-center padding border-dashed">
                   <Upload size={24} className="text-emerald" />
                   <p className="font-xs">JPG, PNG, WEBP files supported.</p>
@@ -367,8 +377,8 @@ export const Gallery: React.FC = () => {
                 </div>
               </div>
 
-              <div className="modal-footer">
-                <button type="button" className="pill-btn-secondary" onClick={() => setIsAlbumModalOpen(false)}>Cancel</button>
+              <div className="global-modal-footer">
+                <button type="button" className="pill-btn-ghost" onClick={() => setIsAlbumModalOpen(false)}>Cancel</button>
                 <button type="submit" className="pill-btn-primary" disabled={isSaving}>Save Album</button>
               </div>
             </form>

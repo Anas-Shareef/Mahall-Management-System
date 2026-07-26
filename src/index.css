@@ -2576,6 +2576,202 @@ img, svg, video, canvas {
   box-shadow: 0 0 0 3px rgba(0, 150, 107, 0.15) !important;
 }
 
+/* ════════════════════════════════════════════════════════════════
+   GLOBAL ENTERPRISE MODAL BACKDROP & RESPONSIVE CONTAINER CARDS
+   ════════════════════════════════════════════════════════════════ */
+.global-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 9999 !important;
+  background: rgba(15, 23, 42, 0.65) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px !important;
+  box-sizing: border-box !important;
+  overflow-y: auto !important;
+}
+
+.global-modal-card {
+  background: #ffffff !important;
+  border-radius: 20px !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  width: 100% !important;
+  max-height: calc(100vh - 40px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  margin: auto !important;
+  box-sizing: border-box !important;
+}
+
+.modal-size-sm { max-width: min(440px, calc(100vw - 32px)) !important; }
+.modal-size-md { max-width: min(560px, calc(100vw - 32px)) !important; }
+.modal-size-lg { max-width: min(680px, calc(100vw - 32px)) !important; }
+.modal-size-xl { max-width: min(840px, calc(100vw - 32px)) !important; }
+.modal-size-full { max-width: min(1100px, calc(100vw - 32px)) !important; }
+
+.global-modal-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 20px 24px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  background: #ffffff !important;
+  flex-shrink: 0 !important;
+}
+
+.modal-title-group {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.modal-header-icon-box {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 12px !important;
+  background: #ecfdf5 !important;
+  color: #00966b !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.modal-title-text {
+  font-size: 17px !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  margin: 0 !important;
+}
+
+.modal-subtitle-text {
+  font-size: 12px !important;
+  color: #64748b !important;
+  margin-top: 2px !important;
+}
+
+.modal-close-icon-btn {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 10px !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #f8fafc !important;
+  color: #64748b !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.modal-close-icon-btn:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+.global-modal-body {
+  padding: 24px !important;
+  overflow-y: auto !important;
+  flex: 1 !important;
+  box-sizing: border-box !important;
+}
+
+.global-modal-footer {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  padding: 16px 24px !important;
+  border-top: 1px solid #f1f5f9 !important;
+  background: #ffffff !important;
+  flex-shrink: 0 !important;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   SEARCH BOX & INPUT ICON POSITIONING FIX
+   ════════════════════════════════════════════════════════════════ */
+.search-box, .input-with-icon {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+
+.search-box .search-icon, .input-with-icon .input-icon {
+  position: absolute !important;
+  left: 14px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  color: #94a3b8 !important;
+  pointer-events: none !important;
+  z-index: 2 !important;
+}
+
+.search-box input, .input-with-icon input {
+  padding-left: 42px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   MODERN TABS NAVIGATION BAR & PILL BUTTONS
+   ════════════════════════════════════════════════════════════════ */
+.subtabs-navigation-bar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  padding: 14px 20px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  background: #fafafa !important;
+  border-top-left-radius: 16px !important;
+  border-top-right-radius: 16px !important;
+  flex-wrap: wrap !important;
+}
+
+.subtabs-group {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: #f1f5f9 !important;
+  padding: 4px !important;
+  border-radius: 12px !important;
+}
+
+.subtab-btn {
+  padding: 8px 16px !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #64748b !important;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.subtab-btn:hover {
+  color: #0f172a !important;
+}
+
+.subtab-btn.active {
+  color: #00966b !important;
+  background: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
 
 
 

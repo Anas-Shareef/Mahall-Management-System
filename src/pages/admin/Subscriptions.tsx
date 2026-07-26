@@ -1366,8 +1366,8 @@ export const Subscriptions: React.FC = () => {
         .empty-small-text { font-size: 12px; color: #9ca3af; font-style: italic; }
 
         /* MODALS & OVERLAYS */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(17, 24, 39, 0.55); backdrop-filter: blur(4px); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; }
-        .modal-dialog-card { width: 100%; max-width: 560px; background: #ffffff; border-radius: var(--radius-xl); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2); overflow: hidden; border: 1px solid var(--border-color); box-sizing: border-box; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; overflow-y: auto; }
+        .modal-dialog-card { width: 100%; max-width: min(540px, calc(100vw - 32px)) !important; background: #ffffff; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow: hidden; border: 1px solid #e2e8f0; box-sizing: border-box; margin: auto; }
         .modal-header { padding: 18px 20px; display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 1px solid #e5e7eb; background: #f9fafb; }
         .modal-header h4 { font-size: 17px; font-weight: 800; color: #111827; }
         .modal-subtitle { font-size: 12px; color: #6b7280; margin-top: 2px; }

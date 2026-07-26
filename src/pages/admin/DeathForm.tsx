@@ -101,10 +101,17 @@ export const DeathForm: React.FC = () => {
   });
 
   const handleSelectMember = (m: Member) => {
-    setMemberId(m.id);
-    setDeceasedName(m.name);
-    const house = households.find((h) => h.id === m.household_id);
-    if (house && house.area) setWardOrArea(house.area);
+    if (memberId === m.id) {
+      // Toggle Unselect!
+      setMemberId('');
+      setDeceasedName('');
+    } else {
+      // Select!
+      setMemberId(m.id);
+      setDeceasedName(m.name);
+      const house = households.find((h) => h.id === m.household_id);
+      if (house && house.area) setWardOrArea(house.area);
+    }
   };
 
   const validate = () => {
@@ -245,7 +252,38 @@ export const DeathForm: React.FC = () => {
 
             {isLinkedMember && (
               <div className="form-group full-width">
-                <label className="form-label">Search & Select Member Database *</label>
+                <div className="flex-between margin-bottom-xs align-items-center">
+                  <label className="form-label margin-bottom-0">Search & Select Member Database *</label>
+                  {memberId && (
+                    <button
+                      type="button"
+                      className="pill-btn-ghost font-xs text-danger"
+                      onClick={() => { setMemberId(''); setDeceasedName(''); }}
+                    >
+                      ✕ Unselect Member
+                    </button>
+                  )}
+                </div>
+
+                <div className="margin-bottom-xs">
+                  <select
+                    className="form-control"
+                    value={memberId}
+                    onChange={(e) => {
+                      const selected = members.find((m) => m.id === e.target.value);
+                      if (selected) handleSelectMember(selected);
+                      else { setMemberId(''); setDeceasedName(''); }
+                    }}
+                  >
+                    <option value="">-- Select Member from Dropdown --</option>
+                    {members.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name} ({m.relationship || 'Member'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="search-box margin-bottom-xs">
                   <Search size={16} className="search-icon" />
                   <input
@@ -279,7 +317,7 @@ export const DeathForm: React.FC = () => {
                           </div>
                         </div>
                         <button type="button" className={`pill-btn-ghost font-xs ${isSel ? 'bg-success text-white' : ''}`}>
-                          {isSel ? 'Selected ✓' : 'Select'}
+                          {isSel ? 'Selected ✓ (Click to Unselect)' : 'Select'}
                         </button>
                       </div>
                     );

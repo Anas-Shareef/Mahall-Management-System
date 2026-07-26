@@ -417,25 +417,28 @@ export const Donations: React.FC = () => {
       {/* 3. UNIFIED WORKSPACE MAIN CONTAINER */}
       <div className="workspace-unified-card animate-fade-in">
         {/* SUB-TABS NAVIGATION BAR */}
-        <div className="subtabs-navigation-bar flex-between p-xs border-bottom-light">
-          <div className="subtabs-group flex-row-gap-xs">
+        <div className="subtabs-navigation-bar">
+          <div className="subtabs-group">
             <button
               className={`subtab-btn ${activeTab === 'all' ? 'active' : ''}`}
               onClick={() => { setActiveTab('all'); setCurrentPage(1); }}
             >
-              All Donations ({donations.length})
+              <span>All Contributions</span>
+              <span className="badge-pill font-xs">({donations.length})</span>
             </button>
             <button
               className={`subtab-btn ${activeTab === 'general' ? 'active' : ''}`}
               onClick={() => { setActiveTab('general'); setCurrentPage(1); }}
             >
-              General Fund
+              <span>General Fund</span>
+              <span className="badge-pill font-xs">({donations.filter(d => d.donation_type === 'general').length})</span>
             </button>
             <button
               className={`subtab-btn ${activeTab === 'campaigns' ? 'active' : ''}`}
               onClick={() => { setActiveTab('campaigns'); setCurrentPage(1); }}
             >
-              Campaign Fund
+              <span>Campaign Funds</span>
+              <span className="badge-pill font-xs">({donations.filter(d => d.donation_type === 'campaign').length})</span>
             </button>
           </div>
         </div>
