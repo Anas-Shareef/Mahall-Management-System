@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { X } from 'lucide-react';
 
 export interface ModalProps {
@@ -70,7 +71,7 @@ export const Modal: React.FC<ModalProps> = ({
     }
   };
 
-  return (
+  const modalJSX = (
     <div
       className="global-modal-overlay animate-fade-in"
       onClick={handleOverlayClick}
@@ -114,6 +115,8 @@ export const Modal: React.FC<ModalProps> = ({
       </div>
     </div>
   );
+
+  return ReactDOM.createPortal(modalJSX, document.body);
 };
 
 export default Modal;

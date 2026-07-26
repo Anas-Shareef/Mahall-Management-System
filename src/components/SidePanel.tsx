@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { X } from 'lucide-react';
 
 export interface SidePanelProps {
@@ -72,7 +73,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     }
   };
 
-  return (
+  const panelJSX = (
     <div
       className="global-side-panel-overlay"
       onClick={handleOverlayClick}
@@ -113,6 +114,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
       </div>
     </div>
   );
+
+  return ReactDOM.createPortal(panelJSX, document.body);
 };
 
 export default SidePanel;

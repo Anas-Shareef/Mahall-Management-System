@@ -5,10 +5,11 @@ import type { MarriageRecord, Household, SubscriptionYear } from '../../services
 import { 
   Heart, Plus, Search, 
   Trash2, Edit2, Eye, CheckCircle, AlertCircle, 
-  X, Loader2 
+  Loader2 
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { SidePanel } from '../../components/SidePanel';
 
 export const Marriages: React.FC = () => {
   const navigate = useNavigate();
@@ -226,7 +227,8 @@ export const Marriages: React.FC = () => {
       )}
 
       {/* Marriage Table Directory */}
-      <div className="glass-card main-table-card">
+      {/* Marriage Table Directory */}
+      <div className="table-container-card shadow-sm">
         {loading ? (
           <div className="loading-spinner-box"><Loader2 size={24} className="spinner" /></div>
         ) : filteredMarriages.length === 0 ? (
@@ -234,7 +236,7 @@ export const Marriages: React.FC = () => {
         ) : (
           <>
             <div className="table-responsive desktop-view-only">
-              <table className="lessa-table">
+              <table className="subscriptions-table">
                 <thead>
                   <tr>
                     <th style={{ width: '40px' }}>
@@ -268,12 +270,12 @@ export const Marriages: React.FC = () => {
                       <td>{m.nikah_date}</td>
                       <td>{m.nikah_venue || 'N/A'}</td>
                       <td>{m.groom_house_number || 'N/A'}</td>
-                      <td><span className={`badge-pill ${m.status === 'completed' ? 'success' : 'error'}`}>{m.status}</span></td>
+                      <td><span className={`status-pill ${m.status === 'completed' ? 'paid' : 'unpaid'}`}>{m.status}</span></td>
                       <td style={{ textAlign: 'right' }}>
-                        <div className="actions-button-wrapper">
-                          <button className="action-btn view" onClick={() => { setSelectedMarriage(m); setIsDetailsOpen(true); }}><Eye size={15} /></button>
-                          <button className="action-btn edit" onClick={(e) => openEditModal(m, e)}><Edit2 size={15} /></button>
-                          <button className="action-btn delete" onClick={(e) => handleDelete(m.id, e)}><Trash2 size={15} /></button>
+                        <div className="flex-row-gap-xs justify-content-end">
+                          <button className="modal-close-icon-btn" title="View Details" onClick={() => { setSelectedMarriage(m); setIsDetailsOpen(true); }}><Eye size={15} /></button>
+                          <button className="modal-close-icon-btn" title="Edit Record" onClick={(e) => openEditModal(m, e)}><Edit2 size={15} /></button>
+                          <button className="modal-close-icon-btn" title="Delete Record" onClick={(e) => handleDelete(m.id, e)}><Trash2 size={15} /></button>
                         </div>
                       </td>
                     </tr>
@@ -288,7 +290,7 @@ export const Marriages: React.FC = () => {
                 <div key={m.id} className="mobile-notif-card">
                   <div className="card-head">
                     <h4 className="notif-title">{m.groom_name} & {m.bride_name}</h4>
-                    <span className="badge-pill success">{m.status}</span>
+                    <span className="status-pill paid">{m.status}</span>
                   </div>
                   <div className="card-body font-xs">
                     <p><strong>Nikah Date:</strong> {m.nikah_date}</p>
@@ -296,8 +298,8 @@ export const Marriages: React.FC = () => {
                     <p><strong>Groom House:</strong> {m.groom_house_number || 'N/A'}</p>
                   </div>
                   <div className="card-footer">
-                    <button className="pill-btn-secondary" onClick={() => openEditModal(m)}><Edit2 size={14} /> Edit</button>
-                    <button className="pill-btn-danger" onClick={() => handleDelete(m.id)}><Trash2 size={14} /> Delete</button>
+                    <button className="pill-btn-secondary font-xs" onClick={() => openEditModal(m)}><Edit2 size={14} /> Edit</button>
+                    <button className="pill-btn-danger font-xs" onClick={() => handleDelete(m.id)}><Trash2 size={14} /> Delete</button>
                   </div>
                 </div>
               ))}
@@ -306,45 +308,85 @@ export const Marriages: React.FC = () => {
         )}
       </div>
 
-
-
-      {/* DETAILS VIEW MODAL */}
-      {isDetailsOpen && selectedMarriage && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card glass-card animate-fade-in">
-            <div className="modal-header">
-              <h3>{selectedMarriage.groom_name} & {selectedMarriage.bride_name}</h3>
-              <button className="modal-close-btn" onClick={() => setIsDetailsOpen(false)}><X size={18} /></button>
+      {/* DETAILS VIEW SIDE PANEL */}
+      <SidePanel
+        isOpen={Boolean(isDetailsOpen && selectedMarriage)}
+        onClose={() => setIsDetailsOpen(false)}
+        title={selectedMarriage ? `${selectedMarriage.groom_name} & ${selectedMarriage.bride_name}` : ''}
+        subtitle="Nikah Community Record Details"
+        icon={<Heart size={20} />}
+        size="lg"
+        quickActions={
+          selectedMarriage && (
+            <button className="pill-btn-primary font-xs" onClick={() => { setIsDetailsOpen(false); openEditModal(selectedMarriage); }}>
+              <Edit2 size={14} /> Edit Record
+            </button>
+          )
+        }
+      >
+        {selectedMarriage && (
+          <div className="flex-col gap-md">
+            <div className="form-card">
+              <div className="form-card-header margin-bottom-sm">
+                <Heart size={16} className="text-primary" />
+                <span className="form-card-title margin-left-xs">Couples Information</span>
+              </div>
+              <div className="form-grid-2col font-xs">
+                <div>
+                  <div className="detail-item-label">Groom Name</div>
+                  <div className="font-weight-700 font-sm text-dark">{selectedMarriage.groom_name}</div>
+                  <div className="color-subtle font-xs">{selectedMarriage.groom_phone || 'No Phone Number'}</div>
+                </div>
+                <div>
+                  <div className="detail-item-label">Bride Name</div>
+                  <div className="font-weight-700 font-sm text-dark">{selectedMarriage.bride_name}</div>
+                  <div className="color-subtle font-xs">{selectedMarriage.bride_type === 'member' ? 'Registered Member' : 'External Bride'}</div>
+                </div>
+              </div>
             </div>
-            <div className="modal-body-scroll font-sm">
-              <p><strong>Groom:</strong> {selectedMarriage.groom_name} ({selectedMarriage.groom_phone || 'No phone'})</p>
-              <p><strong>Bride:</strong> {selectedMarriage.bride_name} ({selectedMarriage.bride_type === 'member' ? 'Member' : 'External'})</p>
-              <p><strong>Nikah Date & Time:</strong> {selectedMarriage.nikah_date} {selectedMarriage.nikah_time || ''}</p>
-              <p><strong>Venue:</strong> {selectedMarriage.nikah_venue || 'N/A'}</p>
-              <p><strong>Officiant:</strong> {selectedMarriage.conducted_by || 'N/A'}</p>
-              <p><strong>Wali:</strong> {selectedMarriage.wali_name || 'N/A'} ({selectedMarriage.wali_relationship || 'Father'})</p>
-              <p><strong>Mahr:</strong> {selectedMarriage.mahr_type} - {selectedMarriage.mahr_description || 'N/A'}</p>
+
+            <div className="form-card">
+              <div className="form-card-header margin-bottom-sm">
+                <Heart size={16} className="text-success" />
+                <span className="form-card-title margin-left-xs">Nikah Ceremony & Officiant</span>
+              </div>
+              <div className="form-grid-2col font-xs">
+                <div>
+                  <div className="detail-item-label">Nikah Date & Time</div>
+                  <div className="font-weight-700 text-dark">{selectedMarriage.nikah_date} {selectedMarriage.nikah_time || ''}</div>
+                </div>
+                <div>
+                  <div className="detail-item-label">Venue</div>
+                  <div className="font-weight-600">{selectedMarriage.nikah_venue || 'N/A'}</div>
+                </div>
+                <div>
+                  <div className="detail-item-label">Officiant (Conducted By)</div>
+                  <div className="font-weight-600">{selectedMarriage.conducted_by || 'N/A'}</div>
+                </div>
+                <div>
+                  <div className="detail-item-label">Wali (Guardian)</div>
+                  <div className="font-weight-600">{selectedMarriage.wali_name || 'N/A'} ({selectedMarriage.wali_relationship || 'Father'})</div>
+                </div>
+              </div>
             </div>
-            <div className="modal-footer">
-              <button className="pill-btn-secondary" onClick={() => setIsDetailsOpen(false)}>Close</button>
+
+            <div className="form-card bg-emerald-soft">
+              <div className="detail-item-label">Mahr Specification</div>
+              <div className="font-weight-700 text-success font-sm">{selectedMarriage.mahr_type} — {selectedMarriage.mahr_description || 'Standard Mahr'}</div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </SidePanel>
 
-      {/* BULK DELETE MODAL */}
-      {isBulkDeleteModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card glass-card">
-            <h3>Confirm Bulk Delete</h3>
-            <p>Are you sure you want to delete {selectedIds.length} selected marriage records?</p>
-            <div className="modal-footer">
-              <button className="pill-btn-secondary" onClick={() => setIsBulkDeleteModalOpen(false)}>Cancel</button>
-              <button className="pill-btn-danger" onClick={handleBulkDelete}>Delete Records</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* BULK DELETE CONFIRM MODAL */}
+      <ConfirmModal
+        isOpen={isBulkDeleteModalOpen}
+        onClose={() => setIsBulkDeleteModalOpen(false)}
+        onConfirm={handleBulkDelete}
+        title="Delete Selected Marriages?"
+        message={`Are you sure you want to permanently delete ${selectedIds.length} selected marriage records from Supabase?`}
+        confirmText="Delete Records"
+      />
       {/* CONFIRMATION DELETE MODAL */}
       <ConfirmModal
         isOpen={Boolean(deleteTargetId)}

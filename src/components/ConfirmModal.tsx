@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { AlertTriangle, Trash2, Info } from 'lucide-react';
 
 export interface ConfirmModalProps {
@@ -50,7 +51,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     return <Info size={24} className="confirm-icon-info" />;
   };
 
-  return (
+  const confirmJSX = (
     <div
       className="global-confirm-overlay"
       onClick={(e) => e.target === e.currentTarget && onClose()}
@@ -89,6 +90,8 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
       </div>
     </div>
   );
+
+  return ReactDOM.createPortal(confirmJSX, document.body);
 };
 
 export default ConfirmModal;

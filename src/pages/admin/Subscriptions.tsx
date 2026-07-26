@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { SidePanel } from '../../components/SidePanel';
+import { Modal } from '../../components/Modal';
 
 export const Subscriptions: React.FC = () => {
   const { t } = useTranslation();
@@ -946,217 +947,215 @@ export const Subscriptions: React.FC = () => {
       {/* ════════════════════════════════════════════════
           MODAL: ADD ARREAR ADJUSTMENT
       ════════════════════════════════════════════════ */}
-      {isArrearModalOpen && ledgerMember && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card animate-scale-up">
-            <div className="modal-header">
-              <div>
-                <h4>Add Arrear Adjustment</h4>
-                <p className="modal-subtitle">Log auditable prior arrears adjustment for {ledgerMember.name}</p>
-              </div>
-              <button className="modal-close-btn" onClick={() => setIsArrearModalOpen(false)}>
-                <X size={18} />
-              </button>
+      {/* MODAL: ADD ARREAR ADJUSTMENT */}
+      <Modal
+        isOpen={Boolean(isArrearModalOpen && ledgerMember)}
+        onClose={() => setIsArrearModalOpen(false)}
+        title="Add Arrear Adjustment"
+        subtitle={ledgerMember ? `Log auditable prior arrears adjustment for ${ledgerMember.name}` : ''}
+        icon={<Plus size={20} />}
+        size="md"
+        footer={
+          <>
+            <button
+              type="button"
+              className="pill-btn-ghost"
+              onClick={() => setIsArrearModalOpen(false)}
+              disabled={isSavingArrear}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="arrear-modal-form"
+              className="pill-btn-primary"
+              disabled={isSavingArrear}
+            >
+              {isSavingArrear ? 'Saving...' : 'Add Arrear Adjustment'}
+            </button>
+          </>
+        }
+      >
+        {ledgerMember && (
+          <form id="arrear-modal-form" onSubmit={handleSaveArrearAdjustment} className="flex-col gap-md">
+            <div className="form-group">
+              <label className="form-label">Target Subscription Year *</label>
+              <select className="form-control" value={arrearYearId} onChange={(e) => setArrearYearId(e.target.value)}>
+                {years.map((y) => (
+                  <option key={y.id} value={y.id}>
+                    Year {y.year}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <form onSubmit={handleSaveArrearAdjustment} className="modal-form">
-              <div className="form-group">
-                <label>Target Subscription Year</label>
-                <select value={arrearYearId} onChange={(e) => setArrearYearId(e.target.value)}>
-                  {years.map((y) => (
-                    <option key={y.id} value={y.id}>
-                      Year {y.year}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Arrear Adjustment Amount (₹) *</label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  placeholder="e.g. 500"
-                  value={arrearAmount || ''}
-                  onChange={(e) => setArrearAmount(Number(e.target.value))}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Reason / Audit Note *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Rollover unpaid dues from previous year"
-                  value={arrearReason}
-                  onChange={(e) => setArrearReason(e.target.value)}
-                />
-              </div>
-
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  className="btn-cancel"
-                  onClick={() => setIsArrearModalOpen(false)}
-                  disabled={isSavingArrear}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="primary-btn submit-pill-btn" disabled={isSavingArrear}>
-                  {isSavingArrear ? 'Saving...' : 'Add Arrear Adjustment'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ════════════════════════════════════════════════
-          MODAL: CONFIGURE SUBSCRIPTION YEAR
-      ════════════════════════════════════════════════ */}
-      {isYearModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card animate-scale-up">
-            <div className="modal-header">
-              <div>
-                <h4>Configure Subscription Year</h4>
-                <p className="modal-subtitle">Define annual rate once for database-driven obligations.</p>
-              </div>
-              <button className="modal-close-btn" onClick={() => setIsYearModalOpen(false)}>
-                <X size={18} />
-              </button>
+            <div className="form-group">
+              <label className="form-label">Arrear Adjustment Amount (₹) *</label>
+              <input
+                type="number"
+                className="form-control font-weight-700 text-dark"
+                required
+                min="1"
+                placeholder="e.g. 500"
+                value={arrearAmount || ''}
+                onChange={(e) => setArrearAmount(Number(e.target.value))}
+              />
             </div>
 
-            <form onSubmit={handleSaveYear} className="modal-form">
-              {yearError && (
-                <div className="form-alert error">
-                  <AlertCircle size={16} />
-                  <span>{yearError}</span>
-                </div>
-              )}
+            <div className="form-group">
+              <label className="form-label">Reason / Audit Note *</label>
+              <input
+                type="text"
+                className="form-control"
+                required
+                placeholder="e.g. Rollover unpaid dues from previous year"
+                value={arrearReason}
+                onChange={(e) => setArrearReason(e.target.value)}
+              />
+            </div>
+          </form>
+        )}
+      </Modal>
 
-              <div className="form-group">
-                <label>Subscription Year *</label>
-                <input
-                  type="number"
-                  required
-                  min="2000"
-                  max="2100"
-                  value={yearVal}
-                  onChange={(e) => setYearVal(Number(e.target.value))}
-                />
-              </div>
+      {/* MODAL: CONFIGURE SUBSCRIPTION YEAR */}
+      <Modal
+        isOpen={isYearModalOpen}
+        onClose={() => setIsYearModalOpen(false)}
+        title="Configure Subscription Year"
+        subtitle="Define annual rate once for database-driven obligations."
+        icon={<Calendar size={20} />}
+        size="md"
+        footer={
+          <>
+            <button
+              type="button"
+              className="pill-btn-ghost"
+              onClick={() => setIsYearModalOpen(false)}
+              disabled={isSavingYear}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="year-modal-form"
+              className="pill-btn-primary"
+              disabled={isSavingYear}
+            >
+              {isSavingYear ? 'Configuring...' : 'Configure Year'}
+            </button>
+          </>
+        }
+      >
+        <form id="year-modal-form" onSubmit={handleSaveYear} className="flex-col gap-md">
+          {yearError && (
+            <div className="form-alert error">
+              <AlertCircle size={16} />
+              <span>{yearError}</span>
+            </div>
+          )}
 
-              <div className="form-group">
-                <label>Annual Subscription Rate (₹) *</label>
-                <input
-                  type="number"
-                  required
-                  min="0"
-                  value={defaultFee}
-                  onChange={(e) => setDefaultFee(Number(e.target.value))}
-                />
-              </div>
-
-              <div className="form-row-grid">
-                <div className="form-group">
-                  <label>Start Date</label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>End Date</label>
-                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Status</label>
-                <select
-                  value={yearStatus}
-                  onChange={(e) => setYearStatus(e.target.value as any)}
-                >
-                  <option value="active">Active</option>
-                  <option value="inactive">Draft / Closed</option>
-                </select>
-              </div>
-
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  className="btn-cancel"
-                  onClick={() => setIsYearModalOpen(false)}
-                  disabled={isSavingYear}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="primary-btn submit-pill-btn" disabled={isSavingYear}>
-                  {isSavingYear ? 'Configuring...' : 'Configure Year'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ════════════════════════════════════════════════
-          MODAL: GENERATION RESULT SUMMARY
-      ════════════════════════════════════════════════ */}
-      {genResult && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card animate-scale-up">
-            <div className="modal-header">
-              <div>
-                <h4>Subscription Ledger Generated</h4>
-                <p className="modal-subtitle">Summary of obligation trigger execution</p>
-              </div>
-              <button className="modal-close-btn" onClick={() => setGenResult(null)}>
-                <X size={18} />
-              </button>
+          <div className="form-grid-2col">
+            <div className="form-group">
+              <label className="form-label">Subscription Year *</label>
+              <input
+                type="number"
+                className="form-control font-weight-700"
+                required
+                min="2000"
+                max="2100"
+                value={yearVal}
+                onChange={(e) => setYearVal(Number(e.target.value))}
+              />
             </div>
 
-            <div className="gen-result-body">
-              <div className="gen-result-icon">
-                <Sparkles size={32} color="#00966b" />
-              </div>
-
-              <div className="gen-stats-list">
-                <div className="gen-stat-row">
-                  <span>Target Year:</span>
-                  <strong>{genResult.yearName}</strong>
-                </div>
-                <div className="gen-stat-row">
-                  <span>Annual Rate:</span>
-                  <strong>₹{genResult.fee}</strong>
-                </div>
-                <div className="gen-stat-row">
-                  <span>Accountable Members:</span>
-                  <strong>{genResult.accountableCount}</strong>
-                </div>
-                <div className="gen-stat-row text-success">
-                  <span>New Records Created:</span>
-                  <strong>{genResult.createdCount}</strong>
-                </div>
-                <div className="gen-stat-row text-muted">
-                  <span>Already Existing:</span>
-                  <strong>{genResult.existingCount}</strong>
-                </div>
-              </div>
-
-              <button
-                className="add-btn primary-btn full-width"
-                onClick={() => setGenResult(null)}
-              >
-                <span>Done</span>
-              </button>
+            <div className="form-group">
+              <label className="form-label">Annual Subscription Rate (₹) *</label>
+              <input
+                type="number"
+                className="form-control font-weight-700 text-success"
+                required
+                min="0"
+                value={defaultFee}
+                onChange={(e) => setDefaultFee(Number(e.target.value))}
+              />
             </div>
           </div>
-        </div>
-      )}
+
+          <div className="form-grid-2col">
+            <div className="form-group">
+              <label className="form-label">Start Date</label>
+              <input
+                type="date"
+                className="form-control"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">End Date</label>
+              <input type="date" className="form-control" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Status</label>
+            <select
+              className="form-control"
+              value={yearStatus}
+              onChange={(e) => setYearStatus(e.target.value as any)}
+            >
+              <option value="active">Active</option>
+              <option value="inactive">Draft / Closed</option>
+            </select>
+          </div>
+        </form>
+      </Modal>
+
+      {/* MODAL: GENERATION RESULT SUMMARY */}
+      <Modal
+        isOpen={Boolean(genResult)}
+        onClose={() => setGenResult(null)}
+        title="Subscription Ledger Generated"
+        subtitle="Summary of obligation trigger execution"
+        icon={<Sparkles size={20} />}
+        size="md"
+        footer={
+          <button className="pill-btn-primary full-width" onClick={() => setGenResult(null)}>
+            Done
+          </button>
+        }
+      >
+        {genResult && (
+          <div className="gen-result-body">
+            <div className="gen-result-icon">
+              <Sparkles size={32} color="#00966b" />
+            </div>
+
+            <div className="gen-stats-list">
+              <div className="gen-stat-row">
+                <span>Target Year:</span>
+                <strong>{genResult.yearName}</strong>
+              </div>
+              <div className="gen-stat-row">
+                <span>Annual Rate:</span>
+                <strong>₹{genResult.fee}</strong>
+              </div>
+              <div className="gen-stat-row">
+                <span>Accountable Members:</span>
+                <strong>{genResult.accountableCount}</strong>
+              </div>
+              <div className="gen-stat-row text-success">
+                <span>New Records Created:</span>
+                <strong>{genResult.createdCount}</strong>
+              </div>
+              <div className="gen-stat-row text-muted">
+                <span>Already Existing:</span>
+                <strong>{genResult.existingCount}</strong>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* STYLES */}
       <style>{`
