@@ -131,23 +131,16 @@ export const HouseholdForm: React.FC = () => {
         </div>
       )}
 
-      {/* HEADER BAR & BREADCRUMBS */}
+      {/* HEADER BAR */}
       <div className="canvas-header-bar">
         <div>
-          <div className="flex-row-gap-xs font-xs color-subtle margin-bottom-xs">
-            <Link to="/admin/dashboard" className="color-subtle hover-primary">Dashboard</Link>
-            <span>/</span>
-            <Link to="/admin/households" className="color-subtle hover-primary">Households</Link>
-            <span>/</span>
-            <span className="text-dark font-weight-600">{isEditMode ? 'Edit Household' : 'Add Household'}</span>
-          </div>
           <h2 className="font-weight-800 text-dark">
-            {isEditMode ? `Edit Household #${houseNumber}` : 'Register New Household'}
+            {isEditMode ? 'Edit Household' : 'Register New Household'}
           </h2>
           <p className="font-sm color-subtle margin-top-xs">
             {isEditMode 
-              ? 'Update family head details, address, ward area, and review linked family members.'
-              : 'Enter household identification, family head name, phone, address, and ward assignment.'}
+              ? 'Update family head, address, and ward area details.'
+              : 'Enter household identification, family head name, and address.'}
           </p>
         </div>
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { db } from '../../services/db';
 import type { Member, Household } from '../../services/db';
 import { 
@@ -224,21 +224,14 @@ export const MarriageForm: React.FC = () => {
         </div>
       )}
 
-      {/* HEADER BAR & BREADCRUMBS */}
-      <div className="flex-between margin-bottom-lg flex-wrap gap-md align-items-center">
+      {/* HEADER BAR */}
+      <div className="canvas-header-bar">
         <div>
-          <div className="flex-row-gap-xs font-xs color-subtle margin-bottom-xs">
-            <Link to="/admin/dashboard" className="color-subtle hover-primary">Dashboard</Link>
-            <span>/</span>
-            <Link to="/admin/marriages" className="color-subtle hover-primary">Marriage Registry</Link>
-            <span>/</span>
-            <span className="text-dark font-weight-600">{isEditMode ? 'Edit Record' : 'Register New Marriage'}</span>
-          </div>
           <h2 className="font-weight-800 text-dark">
-            {isEditMode ? `Edit Marriage Record` : 'Register Nikah & Marriage'}
+            {isEditMode ? 'Edit Marriage Record' : 'Register New Marriage'}
           </h2>
           <p className="font-sm color-subtle margin-top-xs">
-            Register official Nikah records with complete Groom, Bride, Wali, Witness, and Mahr details.
+            Capture Nikah registration details, bride and groom info, and witnesses.
           </p>
         </div>
 

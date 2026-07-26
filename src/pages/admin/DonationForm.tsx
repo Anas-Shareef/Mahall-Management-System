@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { db } from '../../services/db';
 import type { DonationCampaign, Member } from '../../services/db';
 import { 
@@ -167,16 +167,12 @@ export const DonationForm: React.FC = () => {
 
       <div className="canvas-header-bar">
         <div>
-          <div className="flex-row-gap-xs font-xs color-subtle margin-bottom-xs">
-            <Link to="/admin/dashboard" className="color-subtle hover-primary">Dashboard</Link>
-            <span>/</span>
-            <Link to="/admin/donations" className="color-subtle hover-primary">Donations</Link>
-            <span>/</span>
-            <span className="text-dark font-weight-600">{isEditMode ? 'Edit Donation' : 'Record Donation'}</span>
-          </div>
           <h2 className="font-weight-800 text-dark">
-            {isEditMode ? `Edit Donation Record` : 'Record Community Contribution'}
+            {isEditMode ? 'Edit Donation' : 'Record Donation'}
           </h2>
+          <p className="font-sm color-subtle margin-top-xs">
+            Record general or campaign donations with complete donor attribution.
+          </p>
         </div>
 
         <div className="flex-row-gap-xs">

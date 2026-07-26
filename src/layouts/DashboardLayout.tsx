@@ -238,6 +238,8 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     segments.forEach((seg) => {
       currentPath += `/${seg}`;
       if (seg === 'admin' || seg === 'member') return; // Skip role prefix
+      // Skip raw UUIDs/IDs from top navbar breadcrumbs
+      if (seg.length > 12 || /^[0-9a-fA-F-]{10,}$/.test(seg)) return;
 
       let label = seg.charAt(0).toUpperCase() + seg.slice(1);
       if (seg === 'households') label = t('nav.households');
@@ -254,7 +256,6 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
       else if (seg === 'dashboard') label = t('nav.dashboard');
       else if (seg === 'new') label = 'Add New';
       else if (seg === 'edit') label = 'Edit';
-      else if (seg.length > 12) label = `#${seg.slice(0, 5)}...`;
 
       crumbs.push({ label, path: currentPath });
     });

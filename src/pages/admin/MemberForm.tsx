@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { db } from '../../services/db';
 import type { Household } from '../../services/db';
 import { 
@@ -134,23 +134,16 @@ export const MemberForm: React.FC = () => {
         </div>
       )}
 
-      {/* HEADER BAR & BREADCRUMBS */}
+      {/* HEADER BAR */}
       <div className="canvas-header-bar">
         <div>
-          <div className="flex-row-gap-xs font-xs color-subtle margin-bottom-xs">
-            <Link to="/admin/dashboard" className="color-subtle hover-primary">Dashboard</Link>
-            <span>/</span>
-            <Link to="/admin/members" className="color-subtle hover-primary">Members</Link>
-            <span>/</span>
-            <span className="text-dark font-weight-600">{isEditMode ? 'Edit Member' : 'Register Member'}</span>
-          </div>
           <h2 className="font-weight-800 text-dark">
-            {isEditMode ? `Edit Member: ${name}` : 'Register New Member'}
+            {isEditMode ? 'Edit Member' : 'Register New Member'}
           </h2>
           <p className="font-sm color-subtle margin-top-xs">
             {isEditMode 
-              ? 'Update member personal details, household relationship, and subscription fee status.'
-              : 'Link new individual member to a household, configure contact info and membership status.'}
+              ? 'Update member personal details, household relationship, and fee status.'
+              : 'Add member to household and configure membership details.'}
           </p>
         </div>
 
