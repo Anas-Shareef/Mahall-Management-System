@@ -3099,6 +3099,36 @@ img, svg, video, canvas {
   }
 }
 
+/* PAGINATION CONTROLS */
+.pagination-num-btn {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 10px !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+  color: #475569 !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+}
+
+.pagination-num-btn:hover {
+  background: #ecfdf5 !important;
+  color: #00966b !important;
+  border-color: #a7f3d0 !important;
+}
+
+.pagination-num-btn.active {
+  background: #00966b !important;
+  color: #ffffff !important;
+  border-color: #00966b !important;
+  box-shadow: 0 4px 10px rgba(0, 150, 107, 0.3) !important;
+}
+
 .subtabs-group {
   display: flex !important;
   align-items: center !important;

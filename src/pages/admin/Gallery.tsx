@@ -4,7 +4,8 @@ import type { GalleryAlbum, GalleryImage, SubscriptionYear } from '../../service
 import { 
   Image as ImageIcon, Plus, Search, Calendar, 
   Trash2, CheckCircle, AlertCircle, 
-  Loader2, Upload, Download, Eye, MapPin 
+  Loader2, Upload, Download, Eye, MapPin,
+  ChevronLeft, ChevronRight 
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { Modal } from '../../components/Modal';
@@ -39,12 +40,12 @@ export const Gallery: React.FC = () => {
   const [description, setDescription] = useState('');
   const [visibility, setVisibility] = useState<'published' | 'draft'>('published');
   const [relatedCampaignId, setRelatedCampaignId] = useState('');
-  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([
-    'https://images.unsplash.com/photo-1542810634-71277d95dcbb?auto=format&fit=crop&q=80&w=800',
-    'https://images.unsplash.com/photo-1564769625905-50e93615e769?auto=format&fit=crop&q=80&w=800',
-    'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&q=80&w=800',
-  ]);
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
   const [coverIndex, setCoverIndex] = useState(0);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   const [isSaving, setIsSaving] = useState(false);
   const [albumToDelete, setAlbumToDelete] = useState<GalleryAlbum | null>(null);
@@ -95,6 +96,17 @@ export const Gallery: React.FC = () => {
     });
   }, [albums, searchQuery, selectedYearId, selectedType, years]);
 
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedYearId, selectedType]);
+
+  const totalPages = Math.ceil(filteredAlbums.length / itemsPerPage) || 1;
+  const paginatedAlbums = useMemo(() => {
+    const startIdx = (currentPage - 1) * itemsPerPage;
+    return filteredAlbums.slice(startIdx, startIdx + itemsPerPage);
+  }, [filteredAlbums, currentPage, itemsPerPage]);
+
   const openAlbumDetail = async (album: GalleryAlbum) => {
     setSelectedAlbum(album);
     try {
@@ -115,11 +127,7 @@ export const Gallery: React.FC = () => {
     setDescription('');
     setVisibility('published');
     setRelatedCampaignId('');
-    setUploadedImageUrls([
-      'https://images.unsplash.com/photo-1542810634-71277d95dcbb?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1564769625905-50e93615e769?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&q=80&w=800',
-    ]);
+    setUploadedImageUrls([]);
     setCoverIndex(0);
     setIsAlbumModalOpen(true);
   };
@@ -256,11 +264,8 @@ export const Gallery: React.FC = () => {
       )}
 
       {/* Header Bar */}
-      <div className="canvas-header-bar margin-bottom">
+      <div className="canvas-header-bar margin-bottom-lg">
         <div className="canvas-title-group">
-          <div className="canvas-title-icon-box">
-            <ImageIcon size={20} color="#ffffff" />
-          </div>
           <div>
             <h2 className="canvas-page-title">Gallery & Programme Archives</h2>
             <p className="summary-card-sub">Manage Mahall programmes, events, and community photographs.</p>
@@ -276,7 +281,7 @@ export const Gallery: React.FC = () => {
       </div>
 
       {/* Filter Toolbar */}
-      <div className="glass-card filter-bar margin-bottom">
+      <div className="glass-card filter-bar margin-bottom-lg">
         <div className="search-box">
           <Search size={18} className="search-icon" />
           <input
@@ -307,85 +312,127 @@ export const Gallery: React.FC = () => {
       ) : filteredAlbums.length === 0 ? (
         <div className="glass-card notif-empty">No gallery albums found matching filters.</div>
       ) : (
-        <div className="gallery-albums-grid">
-          {filteredAlbums.map((album, idx) => (
-            <div
-              key={album.id}
-              className="gallery-album-card scroll-animate-card"
-              style={{ animationDelay: `${idx * 60}ms` }}
-              onClick={() => openAlbumDetail(album)}
-            >
-              <div className="album-card-media">
-                <img
-                  src={album.cover_image || 'https://images.unsplash.com/photo-1542810634-71277d95dcbb?auto=format&fit=crop&q=80&w=800'}
-                  alt={album.title}
-                  loading="lazy"
-                />
-                <div className="album-card-scrim" />
-                <div className="album-card-top-badges">
-                  <span className="album-type-chip">{album.programme_type || 'Programme'}</span>
-                  <span className="album-count-chip">
-                    <ImageIcon size={12} />
-                    <span>Album</span>
-                  </span>
+        <>
+          <div className="gallery-albums-grid">
+            {paginatedAlbums.map((album, idx) => (
+              <div
+                key={album.id}
+                className="gallery-album-card scroll-animate-card"
+                style={{ animationDelay: `${idx * 60}ms` }}
+                onClick={() => openAlbumDetail(album)}
+              >
+                <div className="album-card-media">
+                  <img
+                    src={album.cover_image || 'https://images.unsplash.com/photo-1542810634-71277d95dcbb?auto=format&fit=crop&q=80&w=800'}
+                    alt={album.title}
+                    loading="lazy"
+                  />
+                  <div className="album-card-scrim" />
+                  <div className="album-card-top-badges">
+                    <span className="album-type-chip">{album.programme_type || 'Programme'}</span>
+                    <span className="album-count-chip">
+                      <ImageIcon size={12} />
+                      <span>Album</span>
+                    </span>
+                  </div>
+                </div>
+
+                <div className="album-card-content">
+                  <h3 className="album-card-title" title={album.title}>
+                    {album.title}
+                  </h3>
+
+                  <div className="album-card-meta">
+                    <div className="album-meta-item">
+                      <Calendar size={13} className="text-emerald" />
+                      <span>{album.event_date}</span>
+                    </div>
+                    {album.venue && (
+                      <div className="album-meta-item">
+                        <MapPin size={13} className="text-emerald" />
+                        <span>{album.venue}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {album.description && (
+                    <p className="album-card-description">{album.description}</p>
+                  )}
+
+                  <div className="album-card-actions">
+                    <button
+                      type="button"
+                      className="album-btn-download"
+                      onClick={(e) => handleDownloadAlbum(album, e)}
+                      title="Download high-resolution photos"
+                    >
+                      <Download size={14} />
+                      <span>Download</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="album-btn-view"
+                      onClick={() => openAlbumDetail(album)}
+                    >
+                      <Eye size={14} />
+                      <span>View Album</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="album-btn-delete"
+                      onClick={(e) => handleDeleteAlbum(album, e)}
+                      title="Delete album"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
                 </div>
               </div>
+            ))}
+          </div>
 
-              <div className="album-card-content">
-                <h3 className="album-card-title" title={album.title}>
-                  {album.title}
-                </h3>
+          {/* GALLERY PAGINATION BAR */}
+          {filteredAlbums.length > itemsPerPage && (
+            <div className="glass-card padding-md margin-top-lg flex-between align-items-center flex-wrap gap-md">
+              <span className="font-xs color-subtle font-weight-700">
+                Showing {(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredAlbums.length)} of {filteredAlbums.length} albums
+              </span>
 
-                <div className="album-card-meta">
-                  <div className="album-meta-item">
-                    <Calendar size={13} className="text-emerald" />
-                    <span>{album.event_date}</span>
-                  </div>
-                  {album.venue && (
-                    <div className="album-meta-item">
-                      <MapPin size={13} className="text-emerald" />
-                      <span>{album.venue}</span>
-                    </div>
-                  )}
-                </div>
+              <div className="flex-row-gap-xs align-items-center">
+                <button
+                  type="button"
+                  className="pill-btn-ghost font-xs"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                >
+                  <ChevronLeft size={15} /> Prev
+                </button>
 
-                {album.description && (
-                  <p className="album-card-description">{album.description}</p>
-                )}
-
-                <div className="album-card-actions">
+                {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((pg) => (
                   <button
+                    key={pg}
                     type="button"
-                    className="album-btn-download"
-                    onClick={(e) => handleDownloadAlbum(album, e)}
-                    title="Download high-resolution photos"
+                    className={`pagination-num-btn ${currentPage === pg ? 'active' : ''}`}
+                    onClick={() => setCurrentPage(pg)}
                   >
-                    <Download size={14} />
-                    <span>Download</span>
+                    {pg}
                   </button>
+                ))}
 
-                  <button
-                    type="button"
-                    className="album-btn-view"
-                    onClick={() => openAlbumDetail(album)}
-                  >
-                    <Eye size={14} />
-                    <span>View Album</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="album-btn-delete"
-                    onClick={(e) => handleDeleteAlbum(album, e)}
-                    title="Delete album"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="pill-btn-ghost font-xs"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                >
+                  Next <ChevronRight size={15} />
+                </button>
               </div>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
 
       {/* ALBUM DETAIL LIGHTBOX MODAL */}

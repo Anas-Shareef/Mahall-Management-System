@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -22,6 +22,7 @@ import {
   ChevronDown,
   ChevronRight,
   Globe,
+  Edit2,
   HeartHandshake,
   UserX,
   Heart,
@@ -41,6 +42,20 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+
+  // Dynamic Admin Profile Name State
+  const [adminName, setAdminName] = useState<string>(() => {
+    return localStorage.getItem('admin_display_name') || user?.name || 'Muhammed Anas';
+  });
+  const [isEditingAdminName, setIsEditingAdminName] = useState(false);
+  const [tempAdminName, setTempAdminName] = useState(adminName);
+
+  const activeDisplayName = adminName || user?.name || 'Admin User';
+  const userInitials = useMemo(() => {
+    const parts = activeDisplayName.trim().split(' ');
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return activeDisplayName.slice(0, 2).toUpperCase();
+  }, [activeDisplayName]);
 
   // Global Command Spotlight Search State
   const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
@@ -225,10 +240,6 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     { to: '/member/settings', label: t('nav.settings'), icon: Settings },
   ];
 
-  // Get user initials
-  const userInitials = user?.name
-    ? user.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
-    : 'VH';
   // Dynamic Breadcrumb Generator for Top Navbar
   const getBreadcrumbs = () => {
     const segments = location.pathname.split('/').filter(Boolean);
@@ -498,8 +509,58 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
               {isProfileOpen && (
                 <div className="profile-popover-card animate-fade-in">
                   <div className="profile-pop-header">
-                    <h4>{user?.name}</h4>
-                    <p>{user?.role === 'admin' ? t('auth.adminLogin') : t('auth.memberLogin')}</p>
+                    {isEditingAdminName ? (
+                      <div className="flex-col gap-xs width-100">
+                        <input
+                          type="text"
+                          className="form-control font-xs"
+                          value={tempAdminName}
+                          onChange={(e) => setTempAdminName(e.target.value)}
+                          placeholder="Enter Admin Name..."
+                          autoFocus
+                        />
+                        <div className="flex-row-gap-xs margin-top-xs">
+                          <button
+                            type="button"
+                            className="pill-btn-primary font-xs"
+                            onClick={() => {
+                              if (tempAdminName.trim()) {
+                                setAdminName(tempAdminName.trim());
+                                localStorage.setItem('admin_display_name', tempAdminName.trim());
+                                setIsEditingAdminName(false);
+                              }
+                            }}
+                          >
+                            Save Name
+                          </button>
+                          <button
+                            type="button"
+                            className="pill-btn-ghost font-xs"
+                            onClick={() => setIsEditingAdminName(false)}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex-between align-items-center width-100">
+                        <div>
+                          <h4>{activeDisplayName}</h4>
+                          <p>{user?.role === 'admin' ? t('auth.adminLogin') : t('auth.memberLogin')}</p>
+                        </div>
+                        <button
+                          type="button"
+                          className="pill-btn-ghost font-xs padding-xs"
+                          onClick={() => {
+                            setTempAdminName(activeDisplayName);
+                            setIsEditingAdminName(true);
+                          }}
+                          title="Edit Admin Display Name"
+                        >
+                          <Edit2 size={13} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div className="pop-divider"></div>
                   
