@@ -11,6 +11,7 @@ import {
   Layers, Sparkles, UserCheck, DollarSign, Eye
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
+import { SidePanel } from '../../components/SidePanel';
 
 export const Subscriptions: React.FC = () => {
   const { t } = useTranslation();
@@ -777,181 +778,170 @@ export const Subscriptions: React.FC = () => {
         </div>
       )}
 
-      {/* ════════════════════════════════════════════════
-          MODAL: MEMBER SUBSCRIPTION LEDGER DRAWER
-      ════════════════════════════════════════════════ */}
-      {isLedgerModalOpen && ledgerMember && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card ledger-drawer-card animate-scale-up">
-            <div className="modal-header">
+      {/* MEMBER SUBSCRIPTION LEDGER RIGHT SIDE PANEL */}
+      <SidePanel
+        isOpen={Boolean(isLedgerModalOpen && ledgerMember)}
+        onClose={() => setIsLedgerModalOpen(false)}
+        title={ledgerMember ? `${ledgerMember.name} — Subscription Ledger` : ''}
+        subtitle={
+          ledgerMember && households.find((h) => h.id === ledgerMember.household_id)
+            ? `House H-${households.find((h) => h.id === ledgerMember.household_id)?.house_number} (${households.find((h) => h.id === ledgerMember.household_id)?.house_owner_name})`
+            : 'Registered Member'
+        }
+        icon={<UserCheck size={20} />}
+        size="lg"
+      >
+        {ledgerMember && (
+          <div className="flex-col gap-md">
+            {/* ACCOUNTABILITY TOGGLE */}
+            <div className="accountability-toggle-card">
               <div>
-                <h4>{ledgerMember.name} — Subscription Ledger</h4>
-                <p className="modal-subtitle">
-                  {households.find((h) => h.id === ledgerMember.household_id)
-                    ? `House H-${households.find((h) => h.id === ledgerMember.household_id)?.house_number} (${households.find((h) => h.id === ledgerMember.household_id)?.house_owner_name})`
-                    : 'Registered Member'}
+                <span className="toggle-title">Subscription Accountability</span>
+                <p className="toggle-desc">
+                  Is this member eligible to receive future annual subscription obligations?
                 </p>
               </div>
-              <button
-                className="modal-close-btn"
-                onClick={() => setIsLedgerModalOpen(false)}
-                aria-label="Close Member Ledger"
-              >
-                <X size={20} />
-              </button>
+
+              <div className="toggle-btn-group">
+                <button
+                  className={`accountable-btn ${
+                    ledgerMember.is_subscription_accountable !== false ? 'active-on' : ''
+                  }`}
+                  onClick={() => handleToggleAccountability(ledgerMember, true)}
+                >
+                  ON (Accountable)
+                </button>
+                <button
+                  className={`accountable-btn ${
+                    ledgerMember.is_subscription_accountable === false ? 'active-off' : ''
+                  }`}
+                  onClick={() => handleToggleAccountability(ledgerMember, false)}
+                >
+                  OFF
+                </button>
+              </div>
             </div>
 
-            <div className="modal-body-scrollable">
-              {/* ACCOUNTABILITY TOGGLE */}
-              <div className="accountability-toggle-card">
-                <div>
-                  <span className="toggle-title">Subscription Accountability</span>
-                  <p className="toggle-desc">
-                    Is this member eligible to receive future annual subscription obligations?
-                  </p>
-                </div>
-
-                <div className="toggle-btn-group">
-                  <button
-                    className={`accountable-btn ${
-                      ledgerMember.is_subscription_accountable !== false ? 'active-on' : ''
-                    }`}
-                    onClick={() => handleToggleAccountability(ledgerMember, true)}
-                  >
-                    ON (Accountable)
-                  </button>
-                  <button
-                    className={`accountable-btn ${
-                      ledgerMember.is_subscription_accountable === false ? 'active-off' : ''
-                    }`}
-                    onClick={() => handleToggleAccountability(ledgerMember, false)}
-                  >
-                    OFF
-                  </button>
-                </div>
+            {/* YEAR-BY-YEAR OBLIGATIONS BREAKDOWN */}
+            <div className="drawer-section">
+              <div className="drawer-section-head">
+                <h5>Yearly Subscription History</h5>
               </div>
 
-              {/* YEAR-BY-YEAR OBLIGATIONS BREAKDOWN */}
-              <div className="drawer-section">
-                <div className="drawer-section-head">
-                  <h5>Yearly Subscription History</h5>
-                </div>
-
-                <div className="table-responsive">
-                  <table className="mini-ledger-table">
-                    <thead>
-                      <tr>
-                        <th>Year</th>
-                        <th>Annual Rate</th>
-                        <th>Previous Arrears</th>
-                        <th>Total Due</th>
-                        <th>Paid</th>
-                        <th>Balance</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {subscriptions
-                        .filter((s) => s.member_id === ledgerMember.id)
-                        .map((s) => {
-                          const yObj = years.find((y) => y.id === s.subscription_year_id);
-                          return (
-                            <tr key={s.id}>
-                              <td className="bold-text">{yObj?.year || 'N/A'}</td>
-                              <td>{formatCurrency(s.annual_fee)}</td>
-                              <td>{formatCurrency(s.previous_arrears)}</td>
-                              <td className="bold-text">{formatCurrency(s.total_due)}</td>
-                              <td className="text-success">{formatCurrency(s.total_paid)}</td>
-                              <td className={`balance-td ${s.balance > 0 ? 'outstanding' : 'paid'}`}>
-                                {formatCurrency(s.balance)}
-                              </td>
-                              <td>
-                                <span className={`status-pill ${s.status}`}>
-                                  {s.status.replace('_', ' ').toUpperCase()}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* ARREAR ADJUSTMENTS AUDIT TRAIL */}
-              <div className="drawer-section">
-                <div className="drawer-section-head flex-between">
-                  <h5>Auditable Arrear Adjustments</h5>
-                  <button
-                    className="add-btn secondary-btn compact-btn"
-                    onClick={() => {
-                      setArrearYearId(years[0]?.id || '');
-                      setArrearAmount(0);
-                      setArrearReason('');
-                      setIsArrearModalOpen(true);
-                    }}
-                  >
-                    <Plus size={14} />
-                    <span>+ Add Arrear Adjustment</span>
-                  </button>
-                </div>
-
-                <div className="arrears-history-list">
-                  {arrearsList.filter((a) => a.member_id === ledgerMember.id).length === 0 ? (
-                    <div className="empty-small-text">No manual arrear adjustments logged.</div>
-                  ) : (
-                    arrearsList
-                      .filter((a) => a.member_id === ledgerMember.id)
-                      .map((arr) => {
-                        const yObj = years.find((y) => y.id === arr.subscription_year_id);
+              <div className="table-responsive">
+                <table className="mini-ledger-table">
+                  <thead>
+                    <tr>
+                      <th>Year</th>
+                      <th>Annual Rate</th>
+                      <th>Previous Arrears</th>
+                      <th>Total Due</th>
+                      <th>Paid</th>
+                      <th>Balance</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {subscriptions
+                      .filter((s) => s.member_id === ledgerMember.id)
+                      .map((s) => {
+                        const yObj = years.find((y) => y.id === s.subscription_year_id);
                         return (
-                          <div key={arr.id} className="arrear-item-box">
-                            <div>
-                              <span className="arr-amount">+{formatCurrency(arr.amount)}</span>
-                              <span className="arr-reason">{arr.reason}</span>
-                            </div>
-                            <span className="arr-date">
-                              Year {yObj?.year} • {new Date(arr.created_at).toLocaleDateString()}
-                            </span>
-                          </div>
+                          <tr key={s.id}>
+                            <td className="bold-text">{yObj?.year || 'N/A'}</td>
+                            <td>{formatCurrency(s.annual_fee)}</td>
+                            <td>{formatCurrency(s.previous_arrears)}</td>
+                            <td className="bold-text">{formatCurrency(s.total_due)}</td>
+                            <td className="text-success">{formatCurrency(s.total_paid)}</td>
+                            <td className={`balance-td ${s.balance > 0 ? 'outstanding' : 'paid'}`}>
+                              {formatCurrency(s.balance)}
+                            </td>
+                            <td>
+                              <span className={`status-pill ${s.status}`}>
+                                {s.status.replace('_', ' ').toUpperCase()}
+                              </span>
+                            </td>
+                          </tr>
                         );
-                      })
-                  )}
-                </div>
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* ARREAR ADJUSTMENTS AUDIT TRAIL */}
+            <div className="drawer-section">
+              <div className="drawer-section-head flex-between">
+                <h5>Auditable Arrear Adjustments</h5>
+                <button
+                  className="add-btn secondary-btn compact-btn"
+                  onClick={() => {
+                    setArrearYearId(years[0]?.id || '');
+                    setArrearAmount(0);
+                    setArrearReason('');
+                    setIsArrearModalOpen(true);
+                  }}
+                >
+                  <Plus size={14} />
+                  <span>+ Add Arrear Adjustment</span>
+                </button>
               </div>
 
-              {/* LINKED PAYMENT TRANSACTIONS */}
-              <div className="drawer-section">
-                <div className="drawer-section-head">
-                  <h5>Payment History Receipts</h5>
-                </div>
-
-                <div className="arrears-history-list">
-                  {payments.filter((p) => p.member_id === ledgerMember.id).length === 0 ? (
-                    <div className="empty-small-text">No payment receipts logged for this member yet.</div>
-                  ) : (
-                    payments
-                      .filter((p) => p.member_id === ledgerMember.id)
-                      .map((pay) => (
-                        <div key={pay.id} className="arrear-item-box payment-box">
+              <div className="arrears-history-list">
+                {arrearsList.filter((a) => a.member_id === ledgerMember.id).length === 0 ? (
+                  <div className="empty-small-text">No manual arrear adjustments logged.</div>
+                ) : (
+                  arrearsList
+                    .filter((a) => a.member_id === ledgerMember.id)
+                    .map((arr) => {
+                      const yObj = years.find((y) => y.id === arr.subscription_year_id);
+                      return (
+                        <div key={arr.id} className="arrear-item-box">
                           <div>
-                            <span className="arr-amount text-success">
-                              ✓ {formatCurrency(pay.amount)} ({pay.payment_method.toUpperCase()})
-                            </span>
-                            <span className="arr-reason">
-                              Ref: {pay.reference_number || 'N/A'} {pay.notes ? `• ${pay.notes}` : ''}
-                            </span>
+                            <span className="arr-amount">+{formatCurrency(arr.amount)}</span>
+                            <span className="arr-reason">{arr.reason}</span>
                           </div>
-                          <span className="arr-date">{pay.payment_date}</span>
+                          <span className="arr-date">
+                            Year {yObj?.year} • {new Date(arr.created_at).toLocaleDateString()}
+                          </span>
                         </div>
-                      ))
-                  )}
-                </div>
+                      );
+                    })
+                )}
+              </div>
+            </div>
+
+            {/* LINKED PAYMENT TRANSACTIONS */}
+            <div className="drawer-section">
+              <div className="drawer-section-head">
+                <h5>Payment History Receipts</h5>
+              </div>
+
+              <div className="arrears-history-list">
+                {payments.filter((p) => p.member_id === ledgerMember.id).length === 0 ? (
+                  <div className="empty-small-text">No payment receipts logged for this member yet.</div>
+                ) : (
+                  payments
+                    .filter((p) => p.member_id === ledgerMember.id)
+                    .map((pay) => (
+                      <div key={pay.id} className="arrear-item-box payment-box">
+                        <div>
+                          <span className="arr-amount text-success">
+                            ✓ {formatCurrency(pay.amount)} ({pay.payment_method.toUpperCase()})
+                          </span>
+                          <span className="arr-reason">
+                            Ref: {pay.reference_number || 'N/A'} {pay.notes ? `• ${pay.notes}` : ''}
+                          </span>
+                        </div>
+                        <span className="arr-date">{pay.payment_date}</span>
+                      </div>
+                    ))
+                )}
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </SidePanel>
 
       {/* ════════════════════════════════════════════════
           MODAL: ADD ARREAR ADJUSTMENT

@@ -8,6 +8,7 @@ import {
   CheckCircle, Download, Loader2, Home 
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
+import { SidePanel } from '../../components/SidePanel';
 
 export const Payments: React.FC = () => {
   const { t } = useTranslation();
@@ -620,262 +621,238 @@ export const Payments: React.FC = () => {
             </>
           )}
         </div>
+      </div>
 
-        {/* SELECTED PAYMENT DETAILS SIDE PANEL */}
+      {/* PAYMENT DETAILS SIDE PANEL */}
+      <SidePanel
+        isOpen={Boolean(selectedPaymentDetails)}
+        onClose={() => setSelectedPaymentDetails(null)}
+        title="Payment Receipt Details"
+        subtitle={selectedPaymentDetails ? new Date(selectedPaymentDetails.payment_date).toLocaleDateString() : ''}
+        icon={<Receipt size={20} />}
+        size="md"
+      >
         {selectedPaymentDetails && (
-          <div className="details-panel-card glass-card">
-            <div className="panel-header">
-              <div className="panel-title-wrapper">
-                <div className="panel-icon-box">
-                  <Receipt size={20} color="#00966b" />
-                </div>
-                <div>
-                  <h4>Payment Receipt</h4>
-                  <p>{new Date(selectedPaymentDetails.payment_date).toLocaleDateString()}</p>
-                </div>
+          <div className="details-meta-section flex-col gap-md">
+            <div className="stat-metric-card shadow-sm">
+              <div className="metric-icon-box emerald">
+                <Receipt size={22} />
               </div>
-              <button
-                className="panel-close-btn"
-                onClick={() => setSelectedPaymentDetails(null)}
-                aria-label="Close payment details panel"
-              >
-                <X size={18} />
-              </button>
+              <div className="metric-info">
+                <span className="metric-label">Amount Paid</span>
+                <h3 className="metric-value text-success">{formatCurrency(selectedPaymentDetails.amount)}</h3>
+                <span className="metric-sub">{selectedPaymentDetails.payment_method.toUpperCase()} Transaction</span>
+              </div>
             </div>
 
-            <div className="panel-body">
-              <div className="details-meta-section">
-                <div className="meta-item">
-                  <span className="meta-label">Member</span>
-                  <span className="meta-value">
-                    {members.find((m) => m.id === selectedPaymentDetails.member_id)?.name || 'Unknown'}
-                  </span>
+            <div className="form-card">
+              <div className="meta-item margin-bottom-sm">
+                <span className="form-label">Payer Member</span>
+                <div className="font-weight-700 font-md text-dark">
+                  {members.find((m) => m.id === selectedPaymentDetails.member_id)?.name || 'Unknown Member'}
                 </div>
-                <div className="meta-item">
-                  <span className="meta-label">Amount Paid</span>
-                  <span className="meta-value amount-highlight">
-                    {formatCurrency(selectedPaymentDetails.amount)}
-                  </span>
-                </div>
-                <div className="meta-item">
-                  <span className="meta-label">Method</span>
-                  <span className={`method-badge ${selectedPaymentDetails.payment_method}`}>
-                    {selectedPaymentDetails.payment_method.toUpperCase()}
-                  </span>
-                </div>
-                <div className="meta-item">
-                  <span className="meta-label">Reference No.</span>
-                  <span className="meta-value">{selectedPaymentDetails.reference_number || 'N/A'}</span>
-                </div>
-                <div className="meta-item">
-                  <span className="meta-label">Notes</span>
-                  <span className="meta-value font-sm">{selectedPaymentDetails.notes || 'N/A'}</span>
-                </div>
+              </div>
+              <div className="meta-item margin-bottom-sm">
+                <span className="form-label">Payment Method</span>
+                <span className={`status-pill ${selectedPaymentDetails.payment_method}`}>
+                  {selectedPaymentDetails.payment_method.toUpperCase()}
+                </span>
+              </div>
+              <div className="meta-item margin-bottom-sm">
+                <span className="form-label">Reference Number</span>
+                <div className="font-weight-600 font-sm">{selectedPaymentDetails.reference_number || 'N/A'}</div>
+              </div>
+              <div className="meta-item">
+                <span className="form-label">Remarks / Notes</span>
+                <div className="font-sm color-subtle">{selectedPaymentDetails.notes || 'No special notes attached.'}</div>
               </div>
             </div>
           </div>
         )}
-      </div>
+      </SidePanel>
 
-      {/* RECORD / EDIT PAYMENT MODAL DIALOG */}
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-dialog-card animate-scale-up">
-            <div className="modal-header">
-              <div>
-                <h4>{modalMode === 'add' ? t('payment.recordPayment') : 'Edit Payment Record'}</h4>
-                <p className="modal-subtitle">
-                  {modalMode === 'add'
-                    ? 'Record a new offline or online receipt transaction.'
-                    : 'Update existing payment receipt transaction details.'}
-                </p>
-              </div>
-              <button
-                className="modal-close-btn"
-                onClick={() => setIsModalOpen(false)}
-                aria-label="Close Payment dialog"
+      {/* RECORD / EDIT PAYMENT RIGHT SIDE PANEL */}
+      <SidePanel
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={modalMode === 'add' ? t('payment.recordPayment') : 'Edit Payment Record'}
+        subtitle={modalMode === 'add' ? 'Record a new offline or online receipt transaction.' : 'Update existing payment receipt details.'}
+        icon={<Receipt size={20} />}
+        size="lg"
+        footer={
+          <>
+            <button
+              type="button"
+              className="pill-btn-ghost"
+              onClick={() => setIsModalOpen(false)}
+              disabled={isSaving}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="payment-panel-form"
+              className="pill-btn-primary"
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 size={16} className="spinner" />
+                  <span>Saving Payment...</span>
+                </>
+              ) : (
+                <span>{modalMode === 'add' ? 'Record Payment' : 'Update Record'}</span>
+              )}
+            </button>
+          </>
+        }
+      >
+        <form id="payment-panel-form" onSubmit={handleSavePayment} className="flex-col gap-md">
+          {formError && (
+            <div className="form-alert error">
+              <AlertCircle size={16} />
+              <span>{formError}</span>
+            </div>
+          )}
+
+          <div className="form-grid-2col">
+            <div className="form-group">
+              <label htmlFor="modal-house-select" className="form-label">{t('payment.chooseHousehold')} *</label>
+              <select
+                id="modal-house-select"
+                value={formHouseholdId}
+                className={`form-control ${fieldErrors.household ? 'is-invalid' : ''}`}
+                onChange={(e) => {
+                  setFormHouseholdId(e.target.value);
+                  if (fieldErrors.household) setFieldErrors({ ...fieldErrors, household: '' });
+                }}
               >
-                <X size={20} />
-              </button>
+                <option value="">-- Select Household --</option>
+                {households.map((h) => (
+                  <option key={h.id} value={h.id}>
+                    House No. H-{h.house_number} ({h.house_owner_name})
+                  </option>
+                ))}
+              </select>
+              {fieldErrors.household && <span className="field-error-text">⚠ {fieldErrors.household}</span>}
             </div>
 
-            <form onSubmit={handleSavePayment} className="modal-form">
-              <div className="form-section-title">Payer & Household Selection</div>
-
-              {formError && (
-                <div className="form-alert error">
-                  <AlertCircle size={16} />
-                  <span>{formError}</span>
-                </div>
-              )}
-
-              <div className="form-row-grid">
-                <div className="form-group">
-                  <label htmlFor="modal-house-select">{t('payment.chooseHousehold')} *</label>
-                  <select
-                    id="modal-house-select"
-                    value={formHouseholdId}
-                    className={fieldErrors.household ? 'input-error' : ''}
-                    onChange={(e) => {
-                      setFormHouseholdId(e.target.value);
-                      if (fieldErrors.household) setFieldErrors({ ...fieldErrors, household: '' });
-                    }}
-                  >
-                    <option value="">-- Select Household --</option>
-                    {households.map((h) => (
-                      <option key={h.id} value={h.id}>
-                        House No. H-{h.house_number} ({h.house_owner_name})
-                      </option>
-                    ))}
-                  </select>
-                  {fieldErrors.household && (
-                    <span className="field-error-text">⚠ {fieldErrors.household}</span>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="modal-member-select">{t('payment.chooseMember')} *</label>
-                  <select
-                    id="modal-member-select"
-                    value={formMemberId}
-                    disabled={!formHouseholdId}
-                    className={fieldErrors.member ? 'input-error' : ''}
-                    onChange={(e) => {
-                      setFormMemberId(e.target.value);
-                      if (fieldErrors.member) setFieldErrors({ ...fieldErrors, member: '' });
-                    }}
-                  >
-                    <option value="">-- Select Member --</option>
-                    {members
-                      .filter((m) => m.household_id === formHouseholdId && m.status === 'active')
-                      .map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.name} ({m.relationship})
-                        </option>
-                      ))}
-                  </select>
-                  {fieldErrors.member && (
-                    <span className="field-error-text">⚠ {fieldErrors.member}</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="form-section-title margin-top-sm">Subscription Period & Amount</div>
-
-              <div className="form-row-grid">
-                <div className="form-group">
-                  <label htmlFor="modal-year-select">{t('payment.chooseYear')} *</label>
-                  <select
-                    id="modal-year-select"
-                    value={formYearId}
-                    className={fieldErrors.year ? 'input-error' : ''}
-                    onChange={(e) => {
-                      setFormYearId(e.target.value);
-                      if (fieldErrors.year) setFieldErrors({ ...fieldErrors, year: '' });
-                    }}
-                  >
-                    <option value="">-- Select Year --</option>
-                    {years.map((y) => (
-                      <option key={y.id} value={y.id}>
-                        Year: {y.year} (Default Fee: ₹{y.default_fee})
-                      </option>
-                    ))}
-                  </select>
-                  {fieldErrors.year && (
-                    <span className="field-error-text">⚠ {fieldErrors.year}</span>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="modal-amount-input">{t('payment.amountLabel')} (₹) *</label>
-                  <input
-                    id="modal-amount-input"
-                    type="number"
-                    required
-                    min={1}
-                    value={formAmount}
-                    className={fieldErrors.amount ? 'input-error' : ''}
-                    onChange={(e) => setFormAmount(Number(e.target.value))}
-                  />
-                  {fieldErrors.amount && (
-                    <span className="field-error-text">⚠ {fieldErrors.amount}</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="form-row-grid">
-                <div className="form-group">
-                  <label htmlFor="modal-method-select">{t('payment.paymentMethod')} *</label>
-                  <select
-                    id="modal-method-select"
-                    value={formMethod}
-                    onChange={(e) => setFormMethod(e.target.value as any)}
-                  >
-                    <option value="cash">{t('payment.cash')}</option>
-                    <option value="upi">{t('payment.upi')}</option>
-                    <option value="bank_transfer">{t('payment.bankTransfer')}</option>
-                    <option value="other">{t('payment.other')}</option>
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="modal-date-input">{t('payment.paymentDate')} *</label>
-                  <input
-                    id="modal-date-input"
-                    type="date"
-                    required
-                    value={formDate}
-                    onChange={(e) => setFormDate(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="modal-ref-input">{t('payment.referenceNumber')}</label>
-                <input
-                  id="modal-ref-input"
-                  type="text"
-                  placeholder="e.g. REC-2026-089 or UPI UTR No."
-                  value={formRefNumber}
-                  onChange={(e) => setFormRefNumber(e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="modal-notes-input">{t('payment.notes')}</label>
-                <textarea
-                  id="modal-notes-input"
-                  rows={2}
-                  placeholder="Optional receipt notes..."
-                  value={formNotes}
-                  onChange={(e) => setFormNotes(e.target.value)}
-                />
-              </div>
-
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  className="btn-cancel"
-                  onClick={() => setIsModalOpen(false)}
-                  disabled={isSaving}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="primary-btn submit-pill-btn" disabled={isSaving}>
-                  {isSaving ? (
-                    <>
-                      <Loader2 size={16} className="spinner-icon" />
-                      <span>Saving Payment...</span>
-                    </>
-                  ) : (
-                    <span>{modalMode === 'add' ? 'Save Payment' : 'Update Payment'}</span>
-                  )}
-                </button>
-              </div>
-            </form>
+            <div className="form-group">
+              <label htmlFor="modal-member-select" className="form-label">{t('payment.chooseMember')} *</label>
+              <select
+                id="modal-member-select"
+                value={formMemberId}
+                disabled={!formHouseholdId}
+                className={`form-control ${fieldErrors.member ? 'is-invalid' : ''}`}
+                onChange={(e) => {
+                  setFormMemberId(e.target.value);
+                  if (fieldErrors.member) setFieldErrors({ ...fieldErrors, member: '' });
+                }}
+              >
+                <option value="">-- Select Member --</option>
+                {members
+                  .filter((m) => m.household_id === formHouseholdId && m.status === 'active')
+                  .map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} ({m.relationship})
+                    </option>
+                  ))}
+              </select>
+              {fieldErrors.member && <span className="field-error-text">⚠ {fieldErrors.member}</span>}
+            </div>
           </div>
-        </div>
-      )}
+
+          <div className="form-grid-2col">
+            <div className="form-group">
+              <label htmlFor="modal-year-select" className="form-label">{t('payment.chooseYear')} *</label>
+              <select
+                id="modal-year-select"
+                value={formYearId}
+                className={`form-control ${fieldErrors.year ? 'is-invalid' : ''}`}
+                onChange={(e) => {
+                  setFormYearId(e.target.value);
+                  if (fieldErrors.year) setFieldErrors({ ...fieldErrors, year: '' });
+                }}
+              >
+                <option value="">-- Select Year --</option>
+                {years.map((y) => (
+                  <option key={y.id} value={y.id}>
+                    Year: {y.year} (Default Fee: ₹{y.default_fee})
+                  </option>
+                ))}
+              </select>
+              {fieldErrors.year && <span className="field-error-text">⚠ {fieldErrors.year}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="modal-amount-input" className="form-label">{t('payment.amountLabel')} (₹) *</label>
+              <input
+                id="modal-amount-input"
+                type="number"
+                required
+                min={1}
+                value={formAmount}
+                className={`form-control font-weight-700 text-success ${fieldErrors.amount ? 'is-invalid' : ''}`}
+                onChange={(e) => setFormAmount(Number(e.target.value))}
+              />
+              {fieldErrors.amount && <span className="field-error-text">⚠ {fieldErrors.amount}</span>}
+            </div>
+          </div>
+
+          <div className="form-grid-2col">
+            <div className="form-group">
+              <label htmlFor="modal-method-select" className="form-label">{t('payment.paymentMethod')} *</label>
+              <select
+                id="modal-method-select"
+                className="form-control"
+                value={formMethod}
+                onChange={(e) => setFormMethod(e.target.value as any)}
+              >
+                <option value="cash">{t('payment.cash')}</option>
+                <option value="upi">{t('payment.upi')}</option>
+                <option value="bank_transfer">{t('payment.bankTransfer')}</option>
+                <option value="other">{t('payment.other')}</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="modal-date-input" className="form-label">{t('payment.paymentDate')} *</label>
+              <input
+                id="modal-date-input"
+                type="date"
+                required
+                className="form-control"
+                value={formDate}
+                onChange={(e) => setFormDate(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="modal-ref-input" className="form-label">{t('payment.referenceNumber')}</label>
+            <input
+              id="modal-ref-input"
+              type="text"
+              className="form-control"
+              placeholder="e.g. REC-2026-089 or UPI UTR No."
+              value={formRefNumber}
+              onChange={(e) => setFormRefNumber(e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="modal-notes-input" className="form-label">{t('payment.notes')}</label>
+            <textarea
+              id="modal-notes-input"
+              className="form-control"
+              rows={2}
+              placeholder="Optional receipt notes..."
+              value={formNotes}
+              onChange={(e) => setFormNotes(e.target.value)}
+            />
+          </div>
+        </form>
+      </SidePanel>
 
       {/* DELETE CONFIRMATION MODAL */}
       {isDeleteModalOpen && paymentToDelete && (

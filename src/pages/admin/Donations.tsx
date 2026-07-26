@@ -8,12 +8,13 @@ import {
   Plus, Search, Filter, Calendar, X, AlertCircle, 
   CheckCircle, DollarSign, Eye,
   Download, Edit2, Trash2, User,
-  Printer, RefreshCw, FileText, HeartHandshake,
+  Printer, RefreshCw, HeartHandshake,
   TrendingUp, CalendarDays, Target, Award, QrCode, ChevronLeft, ChevronRight,
   Wallet
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { Modal } from '../../components/Modal';
+import { SidePanel } from '../../components/SidePanel';
 import { ConfirmModal } from '../../components/ConfirmModal';
 
 export const Donations: React.FC = () => {
@@ -900,97 +901,114 @@ export const Donations: React.FC = () => {
         )}
       </Modal>
 
-      {/* 6. RECORD DETAILS DRAWER */}
-      <Modal
-        isOpen={isDetailsDrawerOpen && !!selectedDonationRecord}
+      {/* 6. RECORD DETAILS RIGHT SIDE PANEL */}
+      <SidePanel
+        isOpen={Boolean(isDetailsDrawerOpen && selectedDonationRecord)}
         onClose={() => setIsDetailsDrawerOpen(false)}
         title={selectedDonationRecord?.donor_name || 'Anonymous Donor'}
         subtitle={`Receipt: ${selectedDonationRecord?.receipt_number || `REC-${selectedDonationRecord?.id.substring(0, 6)}`}`}
         icon={<User size={20} />}
-        size="md"
-        footer={
-          <div className="flex-end width-100">
-            <button className="pill-btn-ghost" onClick={() => setIsDetailsDrawerOpen(false)}>
-              Close
-            </button>
-          </div>
+        size="lg"
+        quickActions={
+          selectedDonationRecord && (
+            <div className="flex-row-gap-xs">
+              <button
+                type="button"
+                className="pill-btn-ghost font-xs"
+                onClick={() => {
+                  setIsDetailsDrawerOpen(false);
+                  openEditDrawer(selectedDonationRecord);
+                }}
+              >
+                <Edit2 size={13} /> Edit
+              </button>
+              <button
+                type="button"
+                className="pill-btn-primary font-xs"
+                onClick={() => {
+                  setIsDetailsDrawerOpen(false);
+                  openReceiptModal(selectedDonationRecord);
+                }}
+              >
+                <Award size={13} /> Printable Receipt
+              </button>
+            </div>
+          )
         }
       >
         {selectedDonationRecord && (
-          <>
+          <div className="flex-col gap-md">
             {/* DONOR INFORMATION */}
-            <div className="form-section-card">
-              <div className="form-section-header">
+            <div className="form-card">
+              <div className="form-card-header margin-bottom-sm">
                 <User size={16} className="text-primary" />
-                <span className="form-section-title">Donor Information</span>
+                <span className="form-card-title margin-left-xs">Donor Information</span>
               </div>
-              <div className="form-grid-2col">
+              <div className="form-grid-2col font-xs">
                 <div>
                   <div className="detail-item-label">Donor Name</div>
-                  <div className="detail-item-value">{selectedDonationRecord.donor_name || 'Anonymous Donor'}</div>
+                  <div className="font-weight-700 font-sm text-dark">{selectedDonationRecord.donor_name || 'Anonymous Donor'}</div>
                 </div>
                 <div>
                   <div className="detail-item-label">Donor Identity</div>
-                  <div className="detail-item-value">{selectedDonationRecord.donor_type ? selectedDonationRecord.donor_type.toUpperCase() : 'EXTERNAL'}</div>
+                  <div className="font-weight-600">{selectedDonationRecord.donor_type ? selectedDonationRecord.donor_type.toUpperCase() : 'EXTERNAL'}</div>
                 </div>
                 <div>
                   <div className="detail-item-label">Phone Number</div>
-                  <div className="detail-item-value">{selectedDonationRecord.donor_phone || 'N/A'}</div>
+                  <div className="font-weight-600">{selectedDonationRecord.donor_phone || 'N/A'}</div>
                 </div>
                 <div>
                   <div className="detail-item-label">Email Address</div>
-                  <div className="detail-item-value">{selectedDonationRecord.donor_email || 'N/A'}</div>
+                  <div className="font-weight-600">{selectedDonationRecord.donor_email || 'N/A'}</div>
                 </div>
               </div>
             </div>
 
             {/* DONATION DETAILS */}
-            <div className="form-section-card">
-              <div className="form-section-header">
+            <div className="form-card">
+              <div className="form-card-header margin-bottom-sm">
                 <DollarSign size={16} className="text-success" />
-                <span className="form-section-title">Donation & Payment Details</span>
+                <span className="form-card-title margin-left-xs">Donation & Payment Details</span>
               </div>
-              <div className="form-grid-2col">
+              <div className="form-grid-2col font-xs">
                 <div>
                   <div className="detail-item-label">Donation Amount</div>
-                  <div className="detail-item-value text-success font-weight-800">{formatCurrency(selectedDonationRecord.amount)}</div>
+                  <div className="font-weight-800 font-md text-success">{formatCurrency(selectedDonationRecord.amount)}</div>
                 </div>
                 <div>
                   <div className="detail-item-label">Donation Date</div>
-                  <div className="detail-item-value">{selectedDonationRecord.donation_date}</div>
+                  <div className="font-weight-600 text-dark">{selectedDonationRecord.donation_date}</div>
                 </div>
                 <div>
                   <div className="detail-item-label">Payment Method</div>
-                  <div className="detail-item-value">{selectedDonationRecord.payment_method ? selectedDonationRecord.payment_method.toUpperCase() : 'UPI'}</div>
+                  <div className="font-weight-600">{selectedDonationRecord.payment_method ? selectedDonationRecord.payment_method.toUpperCase() : 'UPI'}</div>
                 </div>
                 <div>
                   <div className="detail-item-label">Category</div>
-                  <div className="detail-item-value">{selectedDonationRecord.donation_type === 'campaign' ? 'Special Campaign' : 'General Donation'}</div>
+                  <div className="font-weight-600">{selectedDonationRecord.donation_type === 'campaign' ? 'Special Campaign' : 'General Donation'}</div>
                 </div>
               </div>
             </div>
 
             {/* RECEIPT ACTION CARD */}
-            <div className="form-section-card bg-primary-light">
-              <div className="form-section-header">
-                <FileText size={16} className="text-primary" />
-                <span className="form-section-title text-primary">Official Receipt</span>
-              </div>
-              <div className="flex-between margin-top-xs">
+            <div className="form-card bg-emerald-soft">
+              <div className="flex-between align-items-center">
                 <div>
-                  <div className="detail-item-label">Receipt Status</div>
-                  <div className="font-weight-700 text-success">🟢 Issued & Certified</div>
+                  <div className="detail-item-label">Official Receipt Status</div>
+                  <div className="font-weight-700 text-success">🟢 Issued & Certified Community Receipt</div>
                 </div>
-                <div className="flex-row-gap-xs">
-                  <button className="pill-btn-primary font-xs" onClick={() => openReceiptModal(selectedDonationRecord)}>
-                    <Award size={13} /> View Receipt
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="pill-btn-primary font-xs"
+                  onClick={() => openReceiptModal(selectedDonationRecord)}
+                >
+                  <Award size={13} /> View Receipt
+                </button>
               </div>
             </div>
-          </>
+          </div>
         )}
-      </Modal>
+      </SidePanel>
 
       {/* MOBILE FILTER DRAWER SHEET */}
       <Modal

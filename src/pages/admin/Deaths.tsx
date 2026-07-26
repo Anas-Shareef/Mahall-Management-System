@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { Modal } from '../../components/Modal';
+import { SidePanel } from '../../components/SidePanel';
 import { ConfirmModal } from '../../components/ConfirmModal';
 
 export const Deaths: React.FC = () => {
@@ -867,99 +868,116 @@ export const Deaths: React.FC = () => {
         )}
       </Modal>
 
-      {/* 6. RECORD DETAILS DRAWER */}
-      <Modal
-        isOpen={isDetailsOpen && !!selectedDeathRecord}
+      {/* 6. RECORD DETAILS RIGHT SIDE PANEL */}
+      <SidePanel
+        isOpen={Boolean(isDetailsOpen && selectedDeathRecord)}
         onClose={() => setIsDetailsOpen(false)}
         title={selectedDeathRecord?.deceased_name || 'Deceased Record Details'}
         subtitle={`Member ID: ${selectedDeathRecord?.member_id || 'External Non-Member'}`}
         icon={<User size={20} />}
-        size="md"
-        footer={
-          <div className="flex-end width-100">
-            <button className="pill-btn-ghost" onClick={() => setIsDetailsOpen(false)}>
-              Close
-            </button>
-          </div>
+        size="lg"
+        quickActions={
+          selectedDeathRecord && (
+            <div className="flex-row-gap-xs">
+              <button
+                type="button"
+                className="pill-btn-ghost font-xs"
+                onClick={() => {
+                  setIsDetailsOpen(false);
+                  openEditDrawer(selectedDeathRecord);
+                }}
+              >
+                <Edit2 size={13} /> Edit
+              </button>
+              <button
+                type="button"
+                className="pill-btn-primary font-xs"
+                onClick={() => {
+                  setIsDetailsOpen(false);
+                  openCertificateModal(selectedDeathRecord);
+                }}
+              >
+                <Award size={13} /> Certificate
+              </button>
+            </div>
+          )
         }
       >
         {selectedDeathRecord && (
-          <>
+          <div className="flex-col gap-md">
             {/* SECTION 1: PERSONAL INFORMATION */}
-            <div className="form-section-card">
-              <div className="form-section-header">
+            <div className="form-card">
+              <div className="form-card-header margin-bottom-sm">
                 <User size={16} className="text-primary" />
-                <span className="form-section-title">Personal Information</span>
+                <span className="form-card-title margin-left-xs">Personal Information</span>
               </div>
               <div className="form-grid-2col font-xs">
                 <div>
                   <div className="detail-item-label">Full Name</div>
-                  <div className="detail-item-value">{selectedDeathRecord.deceased_name}</div>
+                  <div className="font-weight-700 font-sm text-dark">{selectedDeathRecord.deceased_name}</div>
                 </div>
                 <div>
                   <div className="detail-item-label">Relative Name</div>
-                  <div className="detail-item-value">{selectedDeathRecord.father_or_husband_name || 'N/A'}</div>
+                  <div className="font-weight-600">{selectedDeathRecord.father_or_husband_name || 'N/A'}</div>
                 </div>
                 <div>
                   <div className="detail-item-label">Age at Death</div>
-                  <div className="detail-item-value">{selectedDeathRecord.age ? `${selectedDeathRecord.age} years` : 'N/A'}</div>
+                  <div className="font-weight-600">{selectedDeathRecord.age ? `${selectedDeathRecord.age} years` : 'N/A'}</div>
                 </div>
                 <div>
                   <div className="detail-item-label">Gender</div>
-                  <div className="detail-item-value">{selectedDeathRecord.gender ? selectedDeathRecord.gender.toUpperCase() : 'MALE'}</div>
+                  <div className="font-weight-600">{selectedDeathRecord.gender ? selectedDeathRecord.gender.toUpperCase() : 'MALE'}</div>
                 </div>
               </div>
             </div>
 
             {/* SECTION 2: DEATH INFORMATION */}
-            <div className="form-section-card">
-              <div className="form-section-header">
+            <div className="form-card">
+              <div className="form-card-header margin-bottom-sm">
                 <Calendar size={16} className="text-success" />
-                <span className="form-section-title">Death Information</span>
+                <span className="form-card-title margin-left-xs">Death Information</span>
               </div>
               <div className="form-grid-2col font-xs">
                 <div>
                   <div className="detail-item-label">Date of Death</div>
-                  <div className="detail-item-value">{selectedDeathRecord.date_of_death}</div>
+                  <div className="font-weight-700 text-dark">{selectedDeathRecord.date_of_death}</div>
                 </div>
                 <div>
                   <div className="detail-item-label">Place of Death</div>
-                  <div className="detail-item-value">{selectedDeathRecord.place_of_death || 'Hospital'}</div>
+                  <div className="font-weight-600">{selectedDeathRecord.place_of_death || 'Hospital'}</div>
                 </div>
                 <div>
                   <div className="detail-item-label">Cause of Death</div>
-                  <div className="detail-item-value">{selectedDeathRecord.cause_of_death || 'Natural'}</div>
+                  <div className="font-weight-600">{selectedDeathRecord.cause_of_death || 'Natural'}</div>
                 </div>
                 <div>
                   <div className="detail-item-label">Medical Certification</div>
-                  <div className="detail-item-value">
-                    {selectedDeathRecord.medically_certified ? 'Yes (Certified)' : 'Uncertified'}
+                  <div className="font-weight-600 text-success">
+                    {selectedDeathRecord.medically_certified ? 'Certified Doctor Records' : 'Uncertified'}
                   </div>
                 </div>
               </div>
             </div>
 
             {/* SECTION 3: CERTIFICATE CARD */}
-            <div className="form-section-card bg-primary-light">
-              <div className="form-section-header">
-                <FileText size={16} className="text-primary" />
-                <span className="form-section-title text-primary">Death Certificate Section</span>
-              </div>
-              <div className="flex-between margin-top-xs">
+            <div className="form-card bg-emerald-soft">
+              <div className="flex-between align-items-center">
                 <div>
-                  <div className="detail-item-label">Certificate Status</div>
-                  <div className="font-weight-700 text-success">🟢 Certificate Available</div>
+                  <div className="detail-item-label">Certificate Registry Status</div>
+                  <div className="font-weight-700 text-success">🟢 Official Death Certificate Generated</div>
                 </div>
-                <div className="flex-row-gap-xs">
-                  <button className="pill-btn-primary font-xs" onClick={() => openCertificateModal(selectedDeathRecord)}>
-                    <Award size={13} /> View Certificate
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="pill-btn-primary font-xs"
+                  onClick={() => openCertificateModal(selectedDeathRecord)}
+                >
+                  <Award size={13} /> View & Print
+                </button>
               </div>
             </div>
-          </>
+          </div>
         )}
-      </Modal>
+      </SidePanel>
 
       {/* MOBILE FILTER DRAWER SHEET */}
       <Modal
