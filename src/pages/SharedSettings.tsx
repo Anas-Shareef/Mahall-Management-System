@@ -17,15 +17,7 @@ type SettingsSection =
   | 'notifications'
   | 'backup';
 
-interface RolePermission {
-  role: string;
-  finances: boolean;
-  households: boolean;
-  marriages: boolean;
-  deaths: boolean;
-  gallery: boolean;
-  settings: boolean;
-}
+
 
 export const SharedSettings: React.FC = () => {
   const { user, updateUserProfile } = useAuth();
@@ -103,7 +95,6 @@ export const SharedSettings: React.FC = () => {
     setRegNo(branding.registrationNumber);
     setWebsite(branding.website || '');
     setAdminName(branding.adminDisplayName || user?.name || '');
-    setPrimaryColor(branding.primaryColor || '#01A350');
     showToast('success', 'Changes discarded. Restored original workspace settings.');
   };
 
