@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useTranslation } from '../contexts/LanguageContext';
+import React, { useState, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { db } from '../services/db';
@@ -7,7 +6,7 @@ import {
   Building2, Palette, UserCheck, DollarSign, Award, Bell, 
   FileSpreadsheet, ShieldCheck, Database, Info, 
   Upload, Trash2, Save, RotateCcw, CheckCircle, AlertCircle, 
-  Download, Globe, Lock, Key, Smartphone, Layers, Check, Loader2
+  Download, Key, Smartphone, Loader2
 } from 'lucide-react';
 
 type SettingsSection = 
@@ -23,8 +22,7 @@ type SettingsSection =
   | 'about';
 
 export const SharedSettings: React.FC = () => {
-  const { language, setLanguage } = useTranslation();
-  const { user, updateUserLanguage, updateUserProfile } = useAuth();
+  const { user, updateUserProfile } = useAuth();
   const { branding, updateBranding, getInitials } = useOrganization();
 
   // Navigation State
@@ -44,7 +42,7 @@ export const SharedSettings: React.FC = () => {
   // Branding Colors
   const [primaryColor, setPrimaryColor] = useState(branding.primaryColor || '#00966b');
   const [secondaryColor, setSecondaryColor] = useState(branding.secondaryColor || '#047857');
-  const [accentColor, setAccentColor] = useState(branding.accentColor || '#10b981');
+  const [accentColor] = useState(branding.accentColor || '#10b981');
 
   // Admin Profile
   const [adminName, setAdminName] = useState(branding.adminDisplayName || user?.name || '');
@@ -55,7 +53,6 @@ export const SharedSettings: React.FC = () => {
   const [subYear, setSubYear] = useState('2026');
   const [receiptPrefix, setReceiptPrefix] = useState('REC-');
   const [donationPrefix, setDonationPrefix] = useState('DON-');
-  const [paymentPrefix, setPaymentPrefix] = useState('PAY-');
 
   // Certificate Settings
   const [certFooterNote, setCertFooterNote] = useState('Issued under official Mahallu Governance Committee records.');
