@@ -5,7 +5,7 @@ import { VmOneLogo } from '../components/VmOneLogo';
 import { 
   Building2, UserCheck, Award, Bell, 
   Database, Upload, Save, RotateCcw, CheckCircle, AlertCircle, 
-  Download, Loader2, ShieldCheck, Mail, Smartphone, FileSpreadsheet
+  Download, Loader2, FileSpreadsheet
 } from 'lucide-react';
 
 type SettingsSection = 
