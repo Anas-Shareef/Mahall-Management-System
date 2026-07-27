@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useTranslation } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../contexts/LanguageContext';
+import { useOrganization } from '../../contexts/OrganizationContext';
 import { Shield, Mail, Lock, AlertCircle, CheckCircle, ArrowLeft, UserPlus } from 'lucide-react';
 
 export const AdminLogin: React.FC = () => {
   const { t, language, setLanguage } = useTranslation();
   const { loginWithEmail } = useAuth();
+  const { branding } = useOrganization();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
@@ -58,7 +60,7 @@ export const AdminLogin: React.FC = () => {
             <Shield size={24} color="#ffffff" />
           </div>
           <h1>Admin Portal Login</h1>
-          <p>വള്ളിക്ക്കീൽ ഹിദായത്തുൽ ഇസ്ലാം മഹല്ല്</p>
+          <p>{branding.organizationNameMalayalam || branding.organizationName}</p>
         </div>
 
         {errorMsg && (

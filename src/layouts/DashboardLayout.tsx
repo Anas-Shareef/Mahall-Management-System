@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
+import { useOrganization } from '../contexts/OrganizationContext';
 import { db } from '../services/db';
 import type { Notification } from '../services/db';
 import {
@@ -34,7 +35,8 @@ import { Modal } from '../components/Modal';
 
 export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, logout } = useAuth();
-  const { t, language, setLanguage } = useTranslation();
+  const { language, setLanguage, t } = useTranslation();
+  const { branding, getInitials } = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -280,11 +282,17 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
         {/* Brand Logo Header */}
         <div className="sidebar-brand-header">
           <div className="brand-icon-box">
-            <span className="brand-letter">G</span>
+            {branding.logoUrl ? (
+              <img src={branding.logoUrl} alt={branding.organizationName} className="brand-logo-img" />
+            ) : (
+              <span className="brand-letter">{getInitials(branding.organizationName)}</span>
+            )}
           </div>
           <div className="brand-text-group">
-            <h1 className="brand-name">lessa</h1>
-            <p className="brand-sub">മഹല്ല് പോർട്ടൽ</p>
+            <h1 className="brand-name">{branding.organizationName}</h1>
+            {branding.organizationNameMalayalam && (
+              <p className="brand-sub">{branding.organizationNameMalayalam}</p>
+            )}
           </div>
           <button className="sidebar-close-btn" onClick={() => setIsMobileMenuOpen(false)} aria-label="Close sidebar menu">
             <X size={18} />

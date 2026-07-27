@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider } from './contexts/AuthContext';
+import { OrganizationProvider } from './contexts/OrganizationContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardLayout from './layouts/DashboardLayout';
 
@@ -44,9 +45,10 @@ import SharedSettings from './pages/SharedSettings';
 
 const App: React.FC = () => {
   return (
-    <LanguageProvider>
-      <AuthProvider>
-        <BrowserRouter>
+    <OrganizationProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <BrowserRouter>
           <Routes>
             {/* Onboarding & Authentication Gateway */}
             <Route path="/" element={<LanguageSelect />} />
@@ -131,7 +133,8 @@ const App: React.FC = () => {
         </BrowserRouter>
       </AuthProvider>
     </LanguageProvider>
-  );
+  </OrganizationProvider>
+);
 };
 
 export default App;

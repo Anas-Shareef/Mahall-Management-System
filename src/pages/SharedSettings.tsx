@@ -1,31 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useOrganization } from '../contexts/OrganizationContext';
 import { db } from '../services/db';
 import { 
   Globe, CheckCircle, AlertCircle, Building2, Bell, Shield, 
-  Settings as SettingsIcon, Save, 
+  Settings as SettingsIcon, Save, Upload, Trash2,
   Check, Loader2
 } from 'lucide-react';
 
 export const SharedSettings: React.FC = () => {
   const { language, setLanguage } = useTranslation();
   const { user, updateUserLanguage, updateUserProfile } = useAuth();
+  const { branding, updateBranding, getInitials } = useOrganization();
 
   // Active Section State ('general' | 'language' | 'notifications' | 'security' | 'system')
   const [activeSection, setActiveSection] = useState<'general' | 'language' | 'notifications' | 'security' | 'system'>('general');
 
   // User Profile Form States
-  const [name, setName] = useState(user?.name || '');
-  const [email, setEmail] = useState(user?.email || '');
-  const [phone, setPhone] = useState(user?.phone || '');
+  const [name, setName] = useState(branding.adminDisplayName || user?.name || '');
+  const [email, setEmail] = useState(branding.contactEmail || user?.email || '');
+  const [phone, setPhone] = useState(branding.phone || user?.phone || '');
 
   // Mahall Global Settings States
-  const [mahalName, setMahalName] = useState('Lessa Mahallu Management');
-  const [mahalPhone, setMahalPhone] = useState('+91 98765 43210');
-  const [mahalEmail, setMahalEmail] = useState('contact@mahal.org');
-  const [mahalAddress, setMahalAddress] = useState('Mahallu Central Juma Masjid, Wayanad, Kerala');
-  const [mahalRegNo, setMahalRegNo] = useState('MHL-2026-REG-88');
+  const [mahalName, setMahalName] = useState(branding.organizationName);
+  const [mahalNameMl, setMahalNameMl] = useState(branding.organizationNameMalayalam || '');
+  const [shortName, setShortName] = useState(branding.shortName || '');
+  const [logoUrl, setLogoUrl] = useState<string | null>(branding.logoUrl);
+  const [mahalPhone, setMahalPhone] = useState(branding.phone);
+  const [mahalEmail, setMahalEmail] = useState(branding.contactEmail);
+  const [mahalAddress, setMahalAddress] = useState(branding.address);
+  const [mahalRegNo, setMahalRegNo] = useState(branding.registrationNumber);
+  const [website, setWebsite] = useState(branding.website || '');
 
   // Security Form States
   const [currentPassword, setCurrentPassword] = useState('');
@@ -79,35 +85,67 @@ export const SharedSettings: React.FC = () => {
     showToast('success', `✓ Language preference updated to ${lang === 'en' ? 'English' : 'മലയാളം'}.`);
   };
 
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 3 * 1024 * 1024) {
+      showToast('error', 'Logo image file must be under 3 MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      if (evt.target?.result) {
+        const url = evt.target.result as string;
+        setLogoUrl(url);
+        updateBranding({ logoUrl: url });
+        showToast('success', '✓ Logo image updated live!');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoUrl(null);
+    updateBranding({ logoUrl: null });
+    showToast('success', 'Logo removed. Restored automatic initials fallback.');
+  };
+
   // SAVE GENERAL MAHALL SETTINGS
   const handleSaveGeneral = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
 
     try {
-      localStorage.setItem('mahal_setting_name', mahalName);
-      localStorage.setItem('mahal_setting_phone', mahalPhone);
-      localStorage.setItem('mahal_setting_email', mahalEmail);
-      localStorage.setItem('mahal_setting_address', mahalAddress);
-      localStorage.setItem('mahal_setting_reg', mahalRegNo);
+      updateBranding({
+        organizationName: mahalName.trim(),
+        organizationNameMalayalam: mahalNameMl.trim(),
+        shortName: shortName.trim(),
+        logoUrl: logoUrl,
+        contactEmail: mahalEmail.trim(),
+        phone: mahalPhone.trim(),
+        address: mahalAddress.trim(),
+        registrationNumber: mahalRegNo.trim(),
+        website: website.trim(),
+        adminDisplayName: name.trim(),
+      });
 
-      // Save user profile changes
       if (user) {
-        localStorage.setItem('admin_display_name', name);
         await db.profiles.update(user.id, {
-          name,
-          email: email || null,
-          phone: phone || null,
+          name: name.trim(),
+          email: email.trim() || null,
+          phone: phone.trim() || null,
         });
 
         await updateUserProfile({
-          name,
-          email: email || null,
-          phone: phone || null,
+          name: name.trim(),
+          email: email.trim() || null,
+          phone: phone.trim() || null,
         });
       }
 
-      showToast('success', '✓ General & Mahall settings saved successfully.');
+      showToast('success', '✓ Organization branding & settings saved successfully across the system!');
     } catch (err: any) {
       showToast('error', err.message || 'Failed to save general settings.');
     } finally {
@@ -237,17 +275,92 @@ export const SharedSettings: React.FC = () => {
               </div>
 
               <form onSubmit={handleSaveGeneral} className="settings-form-body">
-                <div className="form-section-label">Organization Details</div>
+                <div className="form-section-label">Organization Logo & Branding</div>
 
-                <div className="form-group">
-                  <label htmlFor="setting-mahal-name">Mahall Organization Name *</label>
-                  <input
-                    id="setting-mahal-name"
-                    type="text"
-                    required
-                    value={mahalName}
-                    onChange={(e) => setMahalName(e.target.value)}
-                  />
+                {/* LOGO UPLOAD & PREVIEW CARD */}
+                <div className="glass-card padding-md margin-bottom-md flex-between align-items-center flex-wrap gap-md">
+                  <div className="flex-row-gap-md align-items-center">
+                    <div className="brand-icon-box shadow-sm" style={{ width: 64, height: 64, borderRadius: 16 }}>
+                      {logoUrl ? (
+                        <img src={logoUrl} alt="Organization Logo" className="brand-logo-img" />
+                      ) : (
+                        <span className="brand-letter font-lg">{getInitials(mahalName)}</span>
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="font-sm font-weight-700 text-dark margin-0">Organization Logo</h4>
+                      <p className="font-xs color-subtle margin-top-2xs">Supports PNG, SVG, WEBP (Max 3MB • Auto-updates Sidebar & Header)</p>
+                    </div>
+                  </div>
+
+                  <div className="flex-row-gap-xs align-items-center">
+                    <label htmlFor="logo-upload-input" className="pill-btn-primary font-xs cursor-pointer">
+                      <Upload size={14} /> Upload Logo
+                      <input
+                        id="logo-upload-input"
+                        type="file"
+                        accept="image/*"
+                        className="display-none"
+                        onChange={handleLogoUpload}
+                      />
+                    </label>
+                    {logoUrl && (
+                      <button type="button" className="pill-btn-danger font-xs" onClick={handleRemoveLogo}>
+                        <Trash2 size={14} /> Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="form-section-label">Organization Names & Details</div>
+
+                <div className="form-row-grid">
+                  <div className="form-group">
+                    <label htmlFor="setting-mahal-name">Organization Name (English) *</label>
+                    <input
+                      id="setting-mahal-name"
+                      type="text"
+                      required
+                      placeholder="e.g. Darul Hasanath Mahallu"
+                      value={mahalName}
+                      onChange={(e) => setMahalName(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="setting-mahal-name-ml">Organization Name (Malayalam / Local)</label>
+                    <input
+                      id="setting-mahal-name-ml"
+                      type="text"
+                      placeholder="e.g. ദാറുൽ ഹസനാത്ത് മഹല്ല്"
+                      value={mahalNameMl}
+                      onChange={(e) => setMahalNameMl(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row-grid">
+                  <div className="form-group">
+                    <label htmlFor="setting-short-name">Short Code / Acronym</label>
+                    <input
+                      id="setting-short-name"
+                      type="text"
+                      placeholder="e.g. DHM"
+                      value={shortName}
+                      onChange={(e) => setShortName(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="setting-mahal-reg">Registration Reference Number</label>
+                    <input
+                      id="setting-mahal-reg"
+                      type="text"
+                      placeholder="e.g. MHL-2026-REG-88"
+                      value={mahalRegNo}
+                      onChange={(e) => setMahalRegNo(e.target.value)}
+                    />
+                  </div>
                 </div>
 
                 <div className="form-row-grid">
@@ -256,6 +369,7 @@ export const SharedSettings: React.FC = () => {
                     <input
                       id="setting-mahal-phone"
                       type="text"
+                      placeholder="+91 98765 43210"
                       value={mahalPhone}
                       onChange={(e) => setMahalPhone(e.target.value)}
                     />
@@ -265,30 +379,35 @@ export const SharedSettings: React.FC = () => {
                     <input
                       id="setting-mahal-email"
                       type="email"
+                      placeholder="contact@mahal.org"
                       value={mahalEmail}
                       onChange={(e) => setMahalEmail(e.target.value)}
                     />
                   </div>
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="setting-mahal-address">Physical Office Address</label>
-                  <input
-                    id="setting-mahal-address"
-                    type="text"
-                    value={mahalAddress}
-                    onChange={(e) => setMahalAddress(e.target.value)}
-                  />
-                </div>
+                <div className="form-row-grid">
+                  <div className="form-group">
+                    <label htmlFor="setting-mahal-address">Physical Office Address</label>
+                    <input
+                      id="setting-mahal-address"
+                      type="text"
+                      placeholder="Central Juma Masjid, Wayanad, Kerala"
+                      value={mahalAddress}
+                      onChange={(e) => setMahalAddress(e.target.value)}
+                    />
+                  </div>
 
-                <div className="form-group">
-                  <label htmlFor="setting-mahal-reg">Registration Reference Number</label>
-                  <input
-                    id="setting-mahal-reg"
-                    type="text"
-                    value={mahalRegNo}
-                    onChange={(e) => setMahalRegNo(e.target.value)}
-                  />
+                  <div className="form-group">
+                    <label htmlFor="setting-mahal-website">Official Website URL</label>
+                    <input
+                      id="setting-mahal-website"
+                      type="url"
+                      placeholder="https://mahal.org"
+                      value={website}
+                      onChange={(e) => setWebsite(e.target.value)}
+                    />
+                  </div>
                 </div>
 
                 {/* LUCA ADMIN STYLE ADMIN PROFILE DETAILS CARD */}

@@ -1217,6 +1217,13 @@ img, svg, video, canvas {
   z-index: 2 !important;
 }
 
+.brand-logo-img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 10px !important;
+}
+
 /* CUSTOM BEAUTIFUL SELECT DROPDOWN SYSTEM */
 select.form-control,
 select.custom-select-pill,

@@ -16,9 +16,11 @@ import { YearFilter } from '../../components/YearFilter';
 import { Modal } from '../../components/Modal';
 import { SidePanel } from '../../components/SidePanel';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { useOrganization } from '../../contexts/OrganizationContext';
 
 export const Donations: React.FC = () => {
   const navigate = useNavigate();
+  const { branding } = useOrganization();
 
   // Primary Sub-Tab State ('all' | 'general' | 'campaigns')
   const [activeTab, setActiveTab] = useState<'all' | 'general' | 'campaigns'>('all');
@@ -834,8 +836,8 @@ export const Donations: React.FC = () => {
               <div className="flex-row-gap-xs">
                 <HeartHandshake size={32} className="text-success" />
                 <div>
-                  <div className="font-weight-800 font-sm text-dark">MAHALL MANAGEMENT SYSTEM</div>
-                  <div className="font-xs color-subtle">OFFICIAL COMMUNITY DONATIONS REGISTRY</div>
+                  <div className="font-weight-800 font-sm text-dark">{branding.organizationName.toUpperCase()}</div>
+                  <div className="font-xs color-subtle">{branding.organizationNameMalayalam || 'OFFICIAL COMMUNITY DONATIONS REGISTRY'}</div>
                 </div>
               </div>
               <div className="text-right">

@@ -12,9 +12,11 @@ import { YearFilter } from '../../components/YearFilter';
 import { Modal } from '../../components/Modal';
 import { SidePanel } from '../../components/SidePanel';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { useOrganization } from '../../contexts/OrganizationContext';
 
 export const Deaths: React.FC = () => {
   const navigate = useNavigate();
+  const { branding } = useOrganization();
 
   // Data States
   const [deaths, setDeaths] = useState<DeathRecord[]>([]);
@@ -793,8 +795,8 @@ export const Deaths: React.FC = () => {
               <div className="flex-row-gap-xs">
                 <Award size={32} className="text-primary" />
                 <div>
-                  <div className="font-weight-800 font-sm text-dark">MAHALL MANAGEMENT SYSTEM</div>
-                  <div className="font-xs color-subtle">OFFICIAL COMMUNITY RECORDS REGISTRY</div>
+                  <div className="font-weight-800 font-sm text-dark">{branding.organizationName.toUpperCase()}</div>
+                  <div className="font-xs color-subtle">{branding.organizationNameMalayalam || 'OFFICIAL COMMUNITY RECORDS REGISTRY'}</div>
                 </div>
               </div>
               <div className="text-right">

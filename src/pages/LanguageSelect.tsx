@@ -1,13 +1,15 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../contexts/LanguageContext';
-import type { Language } from '../contexts/LanguageContext';
+import { useOrganization } from '../contexts/OrganizationContext';
+import { Globe, ArrowRight, Check } from 'lucide-react';
 
 export const LanguageSelect: React.FC = () => {
-  const { setLanguage } = useTranslation();
+  const { language, setLanguage } = useTranslation();
+  const { branding, getInitials } = useOrganization();
   const navigate = useNavigate();
 
-  const handleSelect = (lang: Language) => {
+  const handleSelect = (lang: 'en' | 'ml') => {
     setLanguage(lang);
     document.body.setAttribute('lang', lang);
     navigate('/login');
@@ -18,10 +20,14 @@ export const LanguageSelect: React.FC = () => {
       <div className="language-card animate-fade-in">
         <div className="logo-section">
           <div className="brand-logo-icon">
-            <span>G</span>
+            {branding.logoUrl ? (
+              <img src={branding.logoUrl} alt={branding.organizationName} className="brand-logo-img" />
+            ) : (
+              <span>{getInitials(branding.organizationName)}</span>
+            )}
           </div>
-          <h1 className="title-ml">വെള്ളിക്കീൽ ഹിദായത്തുൽ ഇസ്ലാം മഹല്ല് കമ്മിറ്റി</h1>
-          <h2 className="title-en">Vellikkeel Hidayathul Islam Mahallu Committee</h2>
+          <h1 className="title-ml">{branding.organizationNameMalayalam || branding.organizationName}</h1>
+          <h2 className="title-en">{branding.organizationName}</h2>
         </div>
 
         <div className="selection-divider"></div>

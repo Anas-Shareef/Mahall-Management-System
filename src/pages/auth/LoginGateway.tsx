@@ -1,10 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from '../../contexts/LanguageContext';
+import { useOrganization } from '../../contexts/OrganizationContext';
 import { Shield, User, UserPlus, LogIn, ChevronRight, Globe } from 'lucide-react';
 
 export const LoginGateway: React.FC = () => {
   const { language, setLanguage } = useTranslation();
+  const { branding, getInitials } = useOrganization();
 
   const toggleLanguage = () => {
     const nextLang = language === 'en' ? 'ml' : 'en';
@@ -25,10 +27,14 @@ export const LoginGateway: React.FC = () => {
         {/* Brand Header */}
         <div className="gateway-brand">
           <div className="brand-badge-box">
-            <span>G</span>
+            {branding.logoUrl ? (
+              <img src={branding.logoUrl} alt={branding.organizationName} className="brand-logo-img" />
+            ) : (
+              <span>{getInitials(branding.organizationName)}</span>
+            )}
           </div>
-          <h1>മഹല്ല് പോർട്ടൽ</h1>
-          <h2>Vellikkeel Hidayathul Islam Mahallu Committee</h2>
+          <h1>{branding.organizationNameMalayalam || branding.organizationName}</h1>
+          <h2>{branding.organizationName}</h2>
           <p>Choose your portal to login or register your account</p>
         </div>
 
