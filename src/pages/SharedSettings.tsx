@@ -4,7 +4,7 @@ import { useOrganization } from '../contexts/OrganizationContext';
 import { VmOneLogo } from '../components/VmOneLogo';
 import { 
   Building2, UserCheck, Award, Bell, 
-  Database, Upload, Save, RotateCcw, CheckCircle, AlertCircle, 
+  Database, Save, RotateCcw, CheckCircle, AlertCircle, 
   Download, Loader2, FileSpreadsheet, MessageSquare, Mail, ShieldCheck
 } from 'lucide-react';
 
