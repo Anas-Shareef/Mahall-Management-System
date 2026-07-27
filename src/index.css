@@ -6,22 +6,27 @@
      Vivid Emerald Green · Soft Off-White Canvas · Pill Buttons & Cards
   ═══════════════════════════════════════════ */
 
-  /* Emerald Green Primary Accent */
-  --primary:        #00966b;   /* Vibrant emerald green */
-  --primary-light:  #00b380;   /* Light emerald hover */
-  --primary-dark:   #007a57;   /* Deep emerald */
-  --primary-mid:    #05805b;   /* Mid green for gradients */
-  --primary-glow:   rgba(0, 150, 107, 0.35);
+  /* VM ONE Brand Core Colors (Sampled directly from logo) */
+  --primary:        #01A350;   /* "VM" Emerald Green */
+  --primary-light:  #1FBE68;   /* Light emerald hover */
+  --primary-dark:   #007A45;   /* AA-compliant deep emerald (5.3:1) */
+  --primary-mid:    #019047;   /* Mid green for gradients */
+  --primary-glow:   rgba(1, 163, 80, 0.35);
+
+  --secondary:       #0746D3;   /* "ONE" Royal Blue (Brand Secondary) */
+  --secondary-light: #3B70EA;   /* Light royal blue hover */
+  --secondary-dark:  #0535A3;   /* Deep royal blue */
+  --secondary-bg:    #E7ECFA;
 
   /* Active Nav Item Pill */
-  --nav-active-bg:     #00966b;
+  --nav-active-bg:     #01A350;
   --nav-active-text:   #ffffff;
-  --nav-active-shadow: 0 8px 20px -3px rgba(0, 150, 107, 0.4);
+  --nav-active-shadow: 0 8px 20px -3px rgba(1, 163, 80, 0.4);
 
   /* Secondary Orange Accent (Promo / Banners) */
-  --accent-orange:     #ff7a00;
-  --accent-orange-dark:#ea580c;
-  --accent-orange-bg:  linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  --accent-orange:     #EDAE45;
+  --accent-orange-dark:#C98D29;
+  --accent-orange-bg:  linear-gradient(135deg, #EDAE45 0%, #C98D29 100%);
 
   /* App Canvas & Layout Surfaces */
   --bg-app:        #f8fafc;    /* Clean modern canvas background */
@@ -37,22 +42,23 @@
   --text-subtle:   #9ca3af;    /* Light gray sub-text */
   --text-inverse:  #ffffff;
 
-  /* Semantic Colors */
-  --success:     #10b981;
-  --success-bg:  #d1fae5;
-  --warning:     #f59e0b;
-  --warning-bg:  #fef3c7;
-  --error:       #ef4444;
-  --error-bg:    #fee2e2;
-  --info:        #3b82f6;
-  --info-bg:     #dbeafe;
+  /* Pinwheel Semantic Colors */
+  --success:     #459854;    /* Green pinwheel figure */
+  --success-bg:  #E7F2E9;
+  --warning:     #EDAE45;    /* Amber pinwheel figure */
+  --warning-bg:  #FBF0DC;
+  --error:       #DA3D38;    /* Red pinwheel figure */
+  --error-dark:  #C4302B;    /* AA-compliant dark red for text */
+  --error-bg:    #FBE4E3;
+  --info:        #1E71B5;    /* Blue pinwheel figure */
+  --info-bg:     #E4EFF8;
 
   /* Legacy compatibility variables */
-  --primary-10: rgba(0, 150, 107, 0.08);
-  --primary-20: rgba(0, 150, 107, 0.16);
-  --gold:       #ff7a00;
-  --gold-light: #ff9500;
-  --gold-10:    rgba(255, 122, 0, 0.1);
+  --primary-10: rgba(1, 163, 80, 0.08);
+  --primary-20: rgba(1, 163, 80, 0.16);
+  --gold:       #EDAE45;
+  --gold-light: #F3C26F;
+  --gold-10:    rgba(237, 174, 69, 0.1);
 
   /* Typography Fonts */
   --font-en: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -83,6 +89,14 @@
   --text-main:     #f0f6fc;
   --text-muted:    #8b949e;
   --shadow-floating: 0 15px 35px rgba(0, 0, 0, 0.4);
+
+  --primary:       #1FBE68;
+  --primary-dark:  #01A350;
+  --secondary:     #4C7FE8;
+  --success-bg:    rgba(69, 152, 84, 0.18);
+  --warning-bg:    rgba(237, 174, 69, 0.18);
+  --error-bg:      rgba(218, 61, 56, 0.18);
+  --info-bg:       rgba(30, 113, 181, 0.18);
 }
 
 * {

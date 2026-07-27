@@ -40,9 +40,9 @@ export const SharedSettings: React.FC = () => {
   const [website, setWebsite] = useState(branding.website || '');
 
   // Branding Colors
-  const [primaryColor, setPrimaryColor] = useState(branding.primaryColor || '#00966b');
-  const [secondaryColor, setSecondaryColor] = useState(branding.secondaryColor || '#047857');
-  const [accentColor] = useState(branding.accentColor || '#10b981');
+  const [primaryColor, setPrimaryColor] = useState(branding.primaryColor || '#01A350');
+  const [secondaryColor, setSecondaryColor] = useState(branding.secondaryColor || '#0746D3');
+  const [accentColor] = useState(branding.accentColor || '#1FBE68');
 
   // Admin Profile
   const [adminName, setAdminName] = useState(branding.adminDisplayName || user?.name || '');
