@@ -65,7 +65,6 @@ export const SharedSettings: React.FC = () => {
   const [adminPhone, setAdminPhone] = useState(user?.phone || '');
 
   // Financial & Subscription Settings (Varika Rates)
-  const [subYear, setSubYear] = useState('2026');
   const [varikaStandard, setVarikaStandard] = useState('250');
   const [varikaNonResident, setVarikaNonResident] = useState('500');
   const [autoReceiptNumber, setAutoReceiptNumber] = useState(true);
