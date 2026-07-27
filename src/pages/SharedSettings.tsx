@@ -291,40 +291,53 @@ export const SharedSettings: React.FC = () => {
                   />
                 </div>
 
+                {/* LUCA ADMIN STYLE ADMIN PROFILE DETAILS CARD */}
+                <div className="glass-card padding-lg margin-bottom-lg">
+                  <div className="flex-between align-items-center margin-bottom-md flex-wrap gap-sm">
+                    <div className="flex-row-gap-md align-items-center">
+                      <div className="user-avatar-img font-weight-800 font-md">
+                        {name ? name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() : 'MA'}
+                      </div>
+                      <div>
+                        <h3 className="font-md font-weight-800 text-dark margin-0">{name || 'Admin User'}</h3>
+                        <span className="album-type-chip margin-top-xs display-inline-block">System Administrator</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="form-grid-2col gap-md">
+                    <div className="form-group">
+                      <label htmlFor="setting-admin-name" className="form-label font-weight-700">Admin Display Name *</label>
+                      <input
+                        id="setting-admin-name"
+                        type="text"
+                        className="form-control"
+                        required
+                        value={name}
+                        onChange={(e) => {
+                          setName(e.target.value);
+                          localStorage.setItem('admin_display_name', e.target.value);
+                        }}
+                        placeholder="e.g. Muhammed Anas"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="setting-admin-email" className="form-label font-weight-700">Admin Login Email</label>
+                      <input
+                        id="setting-admin-email"
+                        type="email"
+                        className="form-control"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="admin@mahall.org"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="form-divider"></div>
-                <div className="form-section-label">Admin Profile Details</div>
-
-                <div className="form-group">
-                  <label htmlFor="setting-admin-name">Admin Display Name *</label>
-                  <input
-                    id="setting-admin-name"
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </div>
-
-                <div className="form-row-grid">
-                  <div className="form-group">
-                    <label htmlFor="setting-admin-phone">Admin Mobile Phone</label>
-                    <input
-                      id="setting-admin-phone"
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="setting-admin-email">Admin Login Email</label>
-                    <input
-                      id="setting-admin-email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
-                </div>
+                <div className="form-section-label">Organization Details</div>
 
                 <div className="form-actions-bar">
                   <button type="submit" className="add-btn primary-btn" disabled={isSaving}>
