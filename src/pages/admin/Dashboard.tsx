@@ -305,14 +305,14 @@ export const Dashboard: React.FC = () => {
       <div className="dashboard-header-bar">
         <div>
           <h3 className="dashboard-title">
-            {t('dashboard.welcome')}, {user?.name || 'Administrator'} ({user?.role?.toUpperCase() || 'ADMIN'})
+            {t('dashboard.welcome')}, {user?.name || 'Administrator'} ({(user?.role as string)?.toUpperCase() || 'ADMIN'})
           </h3>
           <p className="dashboard-subtitle">
-            {user?.role === 'treasurer'
+            {(user?.role as string) === 'treasurer'
               ? t('dashboard.subtitle_treasurer')
-              : user?.role === 'secretary'
+              : (user?.role as string) === 'secretary'
               ? t('dashboard.subtitle_secretary')
-              : user?.role === 'president'
+              : (user?.role as string) === 'president'
               ? t('dashboard.subtitle_president')
               : t('dashboard.subtitle_admin')}
           </p>
@@ -326,12 +326,12 @@ export const Dashboard: React.FC = () => {
             showAllOption={true}
           />
 
-          {user?.role === 'treasurer' ? (
+          {(user?.role as string) === 'treasurer' ? (
             <button className="add-btn primary-btn" onClick={() => navigate('/admin/payments')}>
               <Plus size={16} />
               <span>+ Record Payment</span>
             </button>
-          ) : user?.role === 'secretary' ? (
+          ) : (user?.role as string) === 'secretary' ? (
             <button className="add-btn primary-btn" onClick={() => navigate('/admin/members')}>
               <Plus size={16} />
               <span>+ Add Member</span>
@@ -347,7 +347,7 @@ export const Dashboard: React.FC = () => {
 
       {/* 1. HERO STATS EMERALD BANNER CARD (ROLE-SCOPED) */}
       <div className="hero-emerald-banner shadow-md">
-        {user?.role === 'treasurer' ? (
+        {(user?.role as string) === 'treasurer' ? (
           <>
             <div className="hero-stat-col">
               <div className="hero-stat-top">
@@ -385,7 +385,7 @@ export const Dashboard: React.FC = () => {
               <span className="hero-stat-sub font-xs">Year {activeYearObj?.year} Target</span>
             </div>
           </>
-        ) : user?.role === 'secretary' ? (
+        ) : (user?.role as string) === 'secretary' ? (
           <>
             <div className="hero-stat-col">
               <div className="hero-stat-top">

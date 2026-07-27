@@ -278,11 +278,11 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     return crumbs;
   };
   const filteredMenuGroups = useMemo(() => {
-    if (!user || user.role === 'admin' || user.role === 'super_admin') {
+    const role = (user?.role as string) || 'admin';
+    if (!user || role === 'admin' || role === 'super_admin') {
       return adminMenuGroups;
     }
 
-    const role = user.role;
     return adminMenuGroups
       .map((group) => {
         const allowedItems = group.items.filter((item) => {
@@ -662,7 +662,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
           <span>Dashboard</span>
         </NavLink>
 
-        {user?.role === 'treasurer' ? (
+        {(user?.role as string) === 'treasurer' ? (
           <>
             <NavLink to="/admin/payments" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
               <Receipt size={20} />
@@ -677,7 +677,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
               <span>Reports</span>
             </NavLink>
           </>
-        ) : user?.role === 'secretary' ? (
+        ) : (user?.role as string) === 'secretary' ? (
           <>
             <NavLink to="/admin/households" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
               <Home size={20} />
