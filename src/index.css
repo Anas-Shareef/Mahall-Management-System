@@ -1373,6 +1373,18 @@ img, svg, video, canvas {
   background: #ffffff !important;
 }
 
+.active-tab-emerald {
+  background: #ecfdf5 !important;
+  color: #01A350 !important;
+  border-bottom: 2px solid #01A350 !important;
+  font-weight: 700 !important;
+}
+
+.border-danger-subtle {
+  border: 1.5px solid #fecaca !important;
+  background: #fff5f5 !important;
+}
+
 /* ENTERPRISE SETTINGS REDESIGN STYLES */
 .settings-viewport-grid {
   display: grid !important;
