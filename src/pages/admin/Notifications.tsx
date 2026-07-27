@@ -987,7 +987,7 @@ export const Notifications: React.FC = () => {
         .select-icon { position: absolute; left: 14px; color: #9ca3af; pointer-events: none; }
 
         .filter-select-wrapper select {
-          padding: 10px 32px 10px 36px;
+          padding: 10px 32px 10px 44px;
           border: 1px solid var(--border-color);
           border-radius: var(--radius-pill);
           background: #f9fafb;

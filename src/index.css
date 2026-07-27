@@ -1453,7 +1453,7 @@ img, svg, video, canvas {
 }
 
 .filter-select-wrapper select {
-  padding-left: 38px !important;
+  padding-left: 44px !important;
   padding-right: 32px !important;
   height: 40px !important;
   border-radius: 9999px !important;

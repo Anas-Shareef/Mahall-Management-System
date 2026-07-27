@@ -1160,7 +1160,7 @@ export const Reports: React.FC = () => {
         .filter-select-wrapper { position: relative; display: flex; align-items: center; }
         .select-icon { position: absolute; left: 14px; color: #9ca3af; pointer-events: none; }
         .filter-select-wrapper select {
-          padding: 9px 32px 9px 36px; border: 1px solid var(--border-color); border-radius: var(--radius-pill);
+          width: 100%; padding: 10px 36px 10px 44px; border: 1px solid var(--border-color); border-radius: var(--radius-pill);
           background: #f9fafb; color: #374151; appearance: none; cursor: pointer; font-weight: 600; font-size: 13px;
         }
         .clear-filters-link { background: transparent; border: none; color: var(--primary); font-weight: 700; font-size: 13px; cursor: pointer; padding: 6px 12px; }
