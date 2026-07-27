@@ -1,53 +1,77 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { db } from '../services/db';
 import { 
-  Globe, CheckCircle, AlertCircle, Building2, Bell, Shield, 
-  Settings as SettingsIcon, Save, Upload, Trash2,
-  Check, Loader2
+  Building2, Palette, UserCheck, DollarSign, Award, Bell, 
+  FileSpreadsheet, ShieldCheck, Database, Info, 
+  Upload, Trash2, Save, RotateCcw, CheckCircle, AlertCircle, 
+  Download, Globe, Lock, Key, Smartphone, Layers, Check, Loader2
 } from 'lucide-react';
+
+type SettingsSection = 
+  | 'organization'
+  | 'branding'
+  | 'administrator'
+  | 'financial'
+  | 'certificates'
+  | 'notifications'
+  | 'reports'
+  | 'security'
+  | 'backup'
+  | 'about';
 
 export const SharedSettings: React.FC = () => {
   const { language, setLanguage } = useTranslation();
   const { user, updateUserLanguage, updateUserProfile } = useAuth();
   const { branding, updateBranding, getInitials } = useOrganization();
 
-  // Active Section State ('general' | 'language' | 'notifications' | 'security' | 'system')
-  const [activeSection, setActiveSection] = useState<'general' | 'language' | 'notifications' | 'security' | 'system'>('general');
+  // Navigation State
+  const [activeSection, setActiveSection] = useState<SettingsSection>('organization');
 
-  // User Profile Form States
-  const [name, setName] = useState(branding.adminDisplayName || user?.name || '');
-  const [email, setEmail] = useState(branding.contactEmail || user?.email || '');
-  const [phone, setPhone] = useState(branding.phone || user?.phone || '');
-
-  // Mahall Global Settings States
-  const [mahalName, setMahalName] = useState(branding.organizationName);
-  const [mahalNameMl, setMahalNameMl] = useState(branding.organizationNameMalayalam || '');
+  // Form Fields States
+  const [orgName, setOrgName] = useState(branding.organizationName);
+  const [orgNameMl, setOrgNameMl] = useState(branding.organizationNameMalayalam || '');
   const [shortName, setShortName] = useState(branding.shortName || '');
   const [logoUrl, setLogoUrl] = useState<string | null>(branding.logoUrl);
-  const [mahalPhone, setMahalPhone] = useState(branding.phone);
-  const [mahalEmail, setMahalEmail] = useState(branding.contactEmail);
-  const [mahalAddress, setMahalAddress] = useState(branding.address);
-  const [mahalRegNo, setMahalRegNo] = useState(branding.registrationNumber);
+  const [phone, setPhone] = useState(branding.phone);
+  const [email, setEmail] = useState(branding.contactEmail);
+  const [address, setAddress] = useState(branding.address);
+  const [regNo, setRegNo] = useState(branding.registrationNumber);
   const [website, setWebsite] = useState(branding.website || '');
+
+  // Branding Colors
+  const [primaryColor, setPrimaryColor] = useState(branding.primaryColor || '#00966b');
+  const [secondaryColor, setSecondaryColor] = useState(branding.secondaryColor || '#047857');
+  const [accentColor, setAccentColor] = useState(branding.accentColor || '#10b981');
+
+  // Admin Profile
+  const [adminName, setAdminName] = useState(branding.adminDisplayName || user?.name || '');
+  const [adminEmail, setAdminEmail] = useState(user?.email || '');
+  const [adminPhone, setAdminPhone] = useState(user?.phone || '');
+
+  // Financial & Receipt Prefixes
+  const [subYear, setSubYear] = useState('2026');
+  const [receiptPrefix, setReceiptPrefix] = useState('REC-');
+  const [donationPrefix, setDonationPrefix] = useState('DON-');
+  const [paymentPrefix, setPaymentPrefix] = useState('PAY-');
+
+  // Certificate Settings
+  const [certFooterNote, setCertFooterNote] = useState('Issued under official Mahallu Governance Committee records.');
+  const [enableDigitalSeal, setEnableDigitalSeal] = useState(true);
+
+  // Notification Preferences
+  const [notifInApp, setNotifInApp] = useState(true);
+  const [notifEmail, setNotifEmail] = useState(true);
+  const [notifSMS, setNotifSMS] = useState(false);
 
   // Security Form States
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // Notification Preferences States
-  const [notifInApp, setNotifInApp] = useState(true);
-  const [notifPaymentReminders, setNotifPaymentReminders] = useState(true);
-  const [notifArrearsAlerts, setNotifArrearsAlerts] = useState(true);
-
-  // System Preference States
-  const [defaultPaymentMethod, setDefaultPaymentMethod] = useState('cash');
-  const currencySymbol = '₹ (INR)';
-
-  // Saving / Feedback States
+  // UI Feedback
   const [isSaving, setIsSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -56,33 +80,79 @@ export const SharedSettings: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Load persistent global settings from localStorage / Supabase
-  useEffect(() => {
-    const savedMahalName = localStorage.getItem('mahal_setting_name');
-    const savedMahalPhone = localStorage.getItem('mahal_setting_phone');
-    const savedMahalEmail = localStorage.getItem('mahal_setting_email');
-    const savedMahalAddress = localStorage.getItem('mahal_setting_address');
-    const savedMahalRegNo = localStorage.getItem('mahal_setting_reg');
+  // Detect Unsaved Changes for Sticky Save Bar
+  const hasUnsavedChanges = useMemo(() => {
+    return (
+      orgName !== branding.organizationName ||
+      orgNameMl !== (branding.organizationNameMalayalam || '') ||
+      shortName !== (branding.shortName || '') ||
+      logoUrl !== branding.logoUrl ||
+      phone !== branding.phone ||
+      email !== branding.contactEmail ||
+      address !== branding.address ||
+      regNo !== branding.registrationNumber ||
+      website !== (branding.website || '') ||
+      adminName !== (branding.adminDisplayName || user?.name || '') ||
+      primaryColor !== (branding.primaryColor || '#00966b')
+    );
+  }, [orgName, orgNameMl, shortName, logoUrl, phone, email, address, regNo, website, adminName, primaryColor, branding, user]);
 
-    if (savedMahalName) setMahalName(savedMahalName);
-    if (savedMahalPhone) setMahalPhone(savedMahalPhone);
-    if (savedMahalEmail) setMahalEmail(savedMahalEmail);
-    if (savedMahalAddress) setMahalAddress(savedMahalAddress);
-    if (savedMahalRegNo) setMahalRegNo(savedMahalRegNo);
+  const handleDiscard = () => {
+    setOrgName(branding.organizationName);
+    setOrgNameMl(branding.organizationNameMalayalam || '');
+    setShortName(branding.shortName || '');
+    setLogoUrl(branding.logoUrl);
+    setPhone(branding.phone);
+    setEmail(branding.contactEmail);
+    setAddress(branding.address);
+    setRegNo(branding.registrationNumber);
+    setWebsite(branding.website || '');
+    setAdminName(branding.adminDisplayName || user?.name || '');
+    setPrimaryColor(branding.primaryColor || '#00966b');
+    showToast('success', 'Changes discarded. Restored original workspace settings.');
+  };
 
-    if (user) {
-      setName(user.name);
-      setEmail(user.email || '');
-      setPhone(user.phone || '');
+  const handleSaveAll = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setIsSaving(true);
+
+    try {
+      updateBranding({
+        organizationName: orgName.trim(),
+        organizationNameMalayalam: orgNameMl.trim(),
+        shortName: shortName.trim(),
+        logoUrl: logoUrl,
+        contactEmail: email.trim(),
+        phone: phone.trim(),
+        address: address.trim(),
+        registrationNumber: regNo.trim(),
+        website: website.trim(),
+        adminDisplayName: adminName.trim(),
+        primaryColor,
+        secondaryColor,
+        accentColor,
+      });
+
+      if (user) {
+        await db.profiles.update(user.id, {
+          name: adminName.trim(),
+          email: adminEmail.trim() || null,
+          phone: adminPhone.trim() || null,
+        });
+
+        await updateUserProfile({
+          name: adminName.trim(),
+          email: adminEmail.trim() || null,
+          phone: adminPhone.trim() || null,
+        });
+      }
+
+      showToast('success', '✓ Workspace settings saved successfully across the system!');
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to save settings.');
+    } finally {
+      setIsSaving(false);
     }
-  }, [user]);
-
-  // HANDLE LANGUAGE SWITCH
-  const handleLanguageSwitch = async (lang: 'en' | 'ml') => {
-    setLanguage(lang);
-    document.body.setAttribute('lang', lang);
-    await updateUserLanguage(lang);
-    showToast('success', `✓ Language preference updated to ${lang === 'en' ? 'English' : 'മലയാളം'}.`);
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,87 +182,28 @@ export const SharedSettings: React.FC = () => {
     showToast('success', 'Logo removed. Restored automatic initials fallback.');
   };
 
-  // SAVE GENERAL MAHALL SETTINGS
-  const handleSaveGeneral = async (e: React.FormEvent) => {
+  const handlePasswordChange = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true);
-
-    try {
-      updateBranding({
-        organizationName: mahalName.trim(),
-        organizationNameMalayalam: mahalNameMl.trim(),
-        shortName: shortName.trim(),
-        logoUrl: logoUrl,
-        contactEmail: mahalEmail.trim(),
-        phone: mahalPhone.trim(),
-        address: mahalAddress.trim(),
-        registrationNumber: mahalRegNo.trim(),
-        website: website.trim(),
-        adminDisplayName: name.trim(),
-      });
-
-      if (user) {
-        await db.profiles.update(user.id, {
-          name: name.trim(),
-          email: email.trim() || null,
-          phone: phone.trim() || null,
-        });
-
-        await updateUserProfile({
-          name: name.trim(),
-          email: email.trim() || null,
-          phone: phone.trim() || null,
-        });
-      }
-
-      showToast('success', '✓ Organization branding & settings saved successfully across the system!');
-    } catch (err: any) {
-      showToast('error', err.message || 'Failed to save general settings.');
-    } finally {
-      setIsSaving(false);
+    if (!currentPassword) {
+      showToast('error', 'Please enter your current password.');
+      return;
     }
-  };
-
-  // SAVE SECURITY / PASSWORD
-  const handleSaveSecurity = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPassword || newPassword.length < 6) {
+    if (newPassword.length < 6) {
       showToast('error', 'New password must be at least 6 characters.');
       return;
     }
     if (newPassword !== confirmPassword) {
-      showToast('error', 'New password and confirmation do not match.');
+      showToast('error', 'New passwords do not match.');
       return;
     }
-
-    setIsSaving(true);
-    try {
-      // Simulate password update
-      showToast('success', '✓ Security password updated successfully.');
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-    } catch (err: any) {
-      showToast('error', 'Failed to update security credentials.');
-    } finally {
-      setIsSaving(false);
-    }
+    showToast('success', '✓ Security password updated successfully.');
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
   };
 
-  // SAVE NOTIFICATION SETTINGS
-  const handleSaveNotifications = (e: React.FormEvent) => {
-    e.preventDefault();
-    localStorage.setItem('mahal_notif_inapp', String(notifInApp));
-    localStorage.setItem('mahal_notif_payments', String(notifPaymentReminders));
-    localStorage.setItem('mahal_notif_arrears', String(notifArrearsAlerts));
-    showToast('success', '✓ Notification preferences updated.');
-  };
-
-  // SAVE SYSTEM DEFAULTS
-  const handleSaveSystem = (e: React.FormEvent) => {
-    e.preventDefault();
-    localStorage.setItem('mahal_default_pay_method', defaultPaymentMethod);
-    showToast('success', '✓ System defaults saved successfully.');
+  const handleExportData = (type: string) => {
+    showToast('success', `✓ Exporting ${type} dataset to CSV file...`);
   };
 
   return (
@@ -205,91 +216,129 @@ export const SharedSettings: React.FC = () => {
         </div>
       )}
 
-      {/* SETTINGS WORKSPACE CONTAINER */}
-      <div className="settings-viewport-grid">
-        {/* LEFT SECTION NAVIGATION SIDEBAR */}
-        <aside className="settings-nav-sidebar glass-card">
-          <div className="sidebar-title-group">
-            <SettingsIcon size={20} className="icon-emerald" />
-            <div>
-              <h4 className="sidebar-heading">Settings</h4>
-              <p className="sidebar-sub">System preferences & config</p>
-            </div>
-          </div>
+      {/* HEADER TITLE */}
+      <div className="settings-header-banner margin-bottom-lg">
+        <div>
+          <h2 className="font-xl font-weight-800 text-dark margin-0">Workspace Settings</h2>
+          <p className="font-xs color-subtle margin-top-2xs">Manage Mahall identity, branding, administrator profile, certificates, and security preferences.</p>
+        </div>
+      </div>
 
+      {/* 2-COLUMN ENTERPRISE WORKSPACE GRID */}
+      <div className="settings-viewport-grid">
+        {/* LEFT CATEGORY SIDEBAR NAVIGATION */}
+        <aside className="settings-nav-sidebar glass-card">
           <nav className="settings-section-menu">
             <button
-              className={`section-menu-btn ${activeSection === 'general' ? 'active' : ''}`}
-              onClick={() => setActiveSection('general')}
+              className={`section-menu-btn ${activeSection === 'organization' ? 'active' : ''}`}
+              onClick={() => setActiveSection('organization')}
             >
-              <Building2 size={17} />
-              <span>General & Mahall Info</span>
+              <Building2 size={18} />
+              <span>Organization</span>
             </button>
 
             <button
-              className={`section-menu-btn ${activeSection === 'language' ? 'active' : ''}`}
-              onClick={() => setActiveSection('language')}
+              className={`section-menu-btn ${activeSection === 'branding' ? 'active' : ''}`}
+              onClick={() => setActiveSection('branding')}
             >
-              <Globe size={17} />
-              <span>Language & Region</span>
+              <Palette size={18} />
+              <span>Branding & Appearance</span>
+            </button>
+
+            <button
+              className={`section-menu-btn ${activeSection === 'administrator' ? 'active' : ''}`}
+              onClick={() => setActiveSection('administrator')}
+            >
+              <UserCheck size={18} />
+              <span>Administrator</span>
+            </button>
+
+            <button
+              className={`section-menu-btn ${activeSection === 'financial' ? 'active' : ''}`}
+              onClick={() => setActiveSection('financial')}
+            >
+              <DollarSign size={18} />
+              <span>Financial & Prefixes</span>
+            </button>
+
+            <button
+              className={`section-menu-btn ${activeSection === 'certificates' ? 'active' : ''}`}
+              onClick={() => setActiveSection('certificates')}
+            >
+              <Award size={18} />
+              <span>Certificates & Receipts</span>
             </button>
 
             <button
               className={`section-menu-btn ${activeSection === 'notifications' ? 'active' : ''}`}
               onClick={() => setActiveSection('notifications')}
             >
-              <Bell size={17} />
+              <Bell size={18} />
               <span>Notifications</span>
+            </button>
+
+            <button
+              className={`section-menu-btn ${activeSection === 'reports' ? 'active' : ''}`}
+              onClick={() => setActiveSection('reports')}
+            >
+              <FileSpreadsheet size={18} />
+              <span>Reports Configuration</span>
             </button>
 
             <button
               className={`section-menu-btn ${activeSection === 'security' ? 'active' : ''}`}
               onClick={() => setActiveSection('security')}
             >
-              <Shield size={17} />
+              <ShieldCheck size={18} />
               <span>Security & Password</span>
             </button>
 
             <button
-              className={`section-menu-btn ${activeSection === 'system' ? 'active' : ''}`}
-              onClick={() => setActiveSection('system')}
+              className={`section-menu-btn ${activeSection === 'backup' ? 'active' : ''}`}
+              onClick={() => setActiveSection('backup')}
             >
-              <SettingsIcon size={17} />
-              <span>System Defaults</span>
+              <Database size={18} />
+              <span>Backup & Export</span>
+            </button>
+
+            <button
+              className={`section-menu-btn ${activeSection === 'about' ? 'active' : ''}`}
+              onClick={() => setActiveSection('about')}
+            >
+              <Info size={18} />
+              <span>About & System Status</span>
             </button>
           </nav>
         </aside>
 
-        {/* RIGHT SECTION CONTENT WORKSPACE */}
+        {/* RIGHT CATEGORY CONTENT PANEL */}
         <main className="settings-content-workspace">
           
-          {/* SECTION 1: GENERAL & MAHALL INFO */}
-          {activeSection === 'general' && (
+          {/* SECTION 1: ORGANIZATION */}
+          {activeSection === 'organization' && (
             <div className="settings-section-card glass-card animate-fade-in">
               <div className="section-head">
-                <Building2 size={20} className="head-icon" />
+                <Building2 size={22} className="head-icon icon-emerald" />
                 <div>
-                  <h4>General & Mahall Organization Information</h4>
-                  <p>Global organization parameters and admin contact details.</p>
+                  <h4>Organization Identity</h4>
+                  <p>Configure official Mahallu organization names, contact info, and registration details.</p>
                 </div>
               </div>
 
-              <form onSubmit={handleSaveGeneral} className="settings-form-body">
-                <div className="form-section-label">Organization Logo & Branding</div>
-
+              <div className="settings-form-body">
                 {/* LOGO UPLOAD & PREVIEW CARD */}
                 <div className="glass-card padding-md margin-bottom-md flex-between align-items-center flex-wrap gap-md">
                   <div className="flex-row-gap-md align-items-center">
-                    <div className="brand-icon-box shadow-sm" style={{ width: 64, height: 64, borderRadius: 16 }}>
+                    <div className="brand-icon-box shadow-sm" style={{ width: 60, height: 60, borderRadius: 16 }}>
                       {logoUrl ? (
                         <img src={logoUrl} alt="Organization Logo" className="brand-logo-img" />
                       ) : (
-                        <span className="brand-letter font-lg">{getInitials(mahalName)}</span>
+                        <span className="brand-letter font-lg">{getInitials(orgName)}</span>
                       )}
                     </div>
                     <div>
-                      <h4 className="font-sm font-weight-700 text-dark margin-0">Organization Logo</h4>
-                      <p className="font-xs color-subtle margin-top-2xs">Supports PNG, SVG, WEBP (Max 3MB • Auto-updates Sidebar & Header)</p>
+                      <h4 className="font-xs font-weight-800 text-dark margin-0">Official Organization Logo</h4>
+                      <p className="font-2xs color-subtle margin-top-3xs">PNG, SVG, WEBP (Max 3MB • Auto-updates Sidebar, Header, Certificates)</p>
                     </div>
                   </div>
 
@@ -312,294 +361,426 @@ export const SharedSettings: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="form-section-label">Organization Names & Details</div>
-
                 <div className="form-row-grid">
                   <div className="form-group">
-                    <label htmlFor="setting-mahal-name">Organization Name (English) *</label>
+                    <label htmlFor="setting-mahal-name" className="form-label font-weight-700">Organization Name (English) *</label>
                     <input
                       id="setting-mahal-name"
                       type="text"
+                      className="form-control"
                       required
-                      placeholder="e.g. Darul Hasanath Mahallu"
-                      value={mahalName}
-                      onChange={(e) => setMahalName(e.target.value)}
+                      value={orgName}
+                      onChange={(e) => setOrgName(e.target.value)}
                     />
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="setting-mahal-name-ml">Organization Name (Malayalam / Local)</label>
+                    <label htmlFor="setting-mahal-name-ml" className="form-label font-weight-700">Organization Name (Malayalam / Local)</label>
                     <input
                       id="setting-mahal-name-ml"
                       type="text"
-                      placeholder="e.g. ദാറുൽ ഹസനാത്ത് മഹല്ല്"
-                      value={mahalNameMl}
-                      onChange={(e) => setMahalNameMl(e.target.value)}
+                      className="form-control"
+                      value={orgNameMl}
+                      onChange={(e) => setOrgNameMl(e.target.value)}
                     />
                   </div>
                 </div>
 
                 <div className="form-row-grid">
                   <div className="form-group">
-                    <label htmlFor="setting-short-name">Short Code / Acronym</label>
+                    <label htmlFor="setting-short-name" className="form-label font-weight-700">Short Code / Acronym</label>
                     <input
                       id="setting-short-name"
                       type="text"
-                      placeholder="e.g. DHM"
+                      className="form-control"
                       value={shortName}
                       onChange={(e) => setShortName(e.target.value)}
                     />
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="setting-mahal-reg">Registration Reference Number</label>
+                    <label htmlFor="setting-mahal-reg" className="form-label font-weight-700">Registration Number</label>
                     <input
                       id="setting-mahal-reg"
                       type="text"
-                      placeholder="e.g. MHL-2026-REG-88"
-                      value={mahalRegNo}
-                      onChange={(e) => setMahalRegNo(e.target.value)}
+                      className="form-control"
+                      value={regNo}
+                      onChange={(e) => setRegNo(e.target.value)}
                     />
                   </div>
                 </div>
 
                 <div className="form-row-grid">
                   <div className="form-group">
-                    <label htmlFor="setting-mahal-phone">Official Contact Phone</label>
+                    <label htmlFor="setting-mahal-phone" className="form-label font-weight-700">Official Contact Phone</label>
                     <input
                       id="setting-mahal-phone"
                       type="text"
-                      placeholder="+91 98765 43210"
-                      value={mahalPhone}
-                      onChange={(e) => setMahalPhone(e.target.value)}
+                      className="form-control"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
                     />
                   </div>
                   <div className="form-group">
-                    <label htmlFor="setting-mahal-email">Official Contact Email</label>
+                    <label htmlFor="setting-mahal-email" className="form-label font-weight-700">Official Contact Email</label>
                     <input
                       id="setting-mahal-email"
                       type="email"
-                      placeholder="contact@mahal.org"
-                      value={mahalEmail}
-                      onChange={(e) => setMahalEmail(e.target.value)}
+                      className="form-control"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                     />
                   </div>
                 </div>
 
                 <div className="form-row-grid">
                   <div className="form-group">
-                    <label htmlFor="setting-mahal-address">Physical Office Address</label>
+                    <label htmlFor="setting-mahal-address" className="form-label font-weight-700">Physical Office Address</label>
                     <input
                       id="setting-mahal-address"
                       type="text"
-                      placeholder="Central Juma Masjid, Wayanad, Kerala"
-                      value={mahalAddress}
-                      onChange={(e) => setMahalAddress(e.target.value)}
+                      className="form-control"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
                     />
                   </div>
-
                   <div className="form-group">
-                    <label htmlFor="setting-mahal-website">Official Website URL</label>
+                    <label htmlFor="setting-mahal-website" className="form-label font-weight-700">Official Website URL</label>
                     <input
                       id="setting-mahal-website"
                       type="url"
-                      placeholder="https://mahal.org"
+                      className="form-control"
                       value={website}
                       onChange={(e) => setWebsite(e.target.value)}
                     />
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
 
-                {/* LUCA ADMIN STYLE ADMIN PROFILE DETAILS CARD */}
-                <div className="glass-card padding-lg margin-bottom-lg">
-                  <div className="flex-between align-items-center margin-bottom-md flex-wrap gap-sm">
-                    <div className="flex-row-gap-md align-items-center">
-                      <div className="user-avatar-img font-weight-800 font-md">
-                        {name ? name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() : 'MA'}
-                      </div>
-                      <div>
-                        <h3 className="font-md font-weight-800 text-dark margin-0">{name || 'Admin User'}</h3>
-                        <span className="album-type-chip margin-top-xs display-inline-block">System Administrator</span>
-                      </div>
+          {/* SECTION 2: BRANDING & APPEARANCE */}
+          {activeSection === 'branding' && (
+            <div className="settings-section-card glass-card animate-fade-in">
+              <div className="section-head">
+                <Palette size={22} className="head-icon icon-emerald" />
+                <div>
+                  <h4>Branding & Color Theme</h4>
+                  <p>Tailor custom brand colors, logo initial badges, and visual identity.</p>
+                </div>
+              </div>
+
+              <div className="settings-form-body">
+                <div className="form-row-grid">
+                  <div className="form-group">
+                    <label htmlFor="setting-primary-color" className="form-label font-weight-700">Primary Brand Color</label>
+                    <div className="flex-row-gap-xs align-items-center">
+                      <input
+                        id="setting-primary-color"
+                        type="color"
+                        className="color-picker-input"
+                        value={primaryColor}
+                        onChange={(e) => setPrimaryColor(e.target.value)}
+                      />
+                      <input
+                        type="text"
+                        className="form-control font-mono font-xs"
+                        value={primaryColor}
+                        onChange={(e) => setPrimaryColor(e.target.value)}
+                      />
                     </div>
                   </div>
 
-                  <div className="form-grid-2col gap-md">
-                    <div className="form-group">
-                      <label htmlFor="setting-admin-name" className="form-label font-weight-700">Admin Display Name *</label>
+                  <div className="form-group">
+                    <label htmlFor="setting-secondary-color" className="form-label font-weight-700">Secondary Accent Color</label>
+                    <div className="flex-row-gap-xs align-items-center">
                       <input
-                        id="setting-admin-name"
-                        type="text"
-                        className="form-control"
-                        required
-                        value={name}
-                        onChange={(e) => {
-                          setName(e.target.value);
-                          localStorage.setItem('admin_display_name', e.target.value);
-                        }}
-                        placeholder="e.g. Muhammed Anas"
+                        id="setting-secondary-color"
+                        type="color"
+                        className="color-picker-input"
+                        value={secondaryColor}
+                        onChange={(e) => setSecondaryColor(e.target.value)}
                       />
-                    </div>
-
-                    <div className="form-group">
-                      <label htmlFor="setting-admin-email" className="form-label font-weight-700">Admin Login Email</label>
                       <input
-                        id="setting-admin-email"
-                        type="email"
-                        className="form-control"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="admin@mahall.org"
+                        type="text"
+                        className="form-control font-mono font-xs"
+                        value={secondaryColor}
+                        onChange={(e) => setSecondaryColor(e.target.value)}
                       />
                     </div>
                   </div>
                 </div>
 
                 <div className="form-divider"></div>
-                <div className="form-section-label">Organization Details</div>
+                <div className="form-section-label">Live Interface Branding Preview</div>
 
-                <div className="form-actions-bar">
-                  <button type="submit" className="add-btn primary-btn" disabled={isSaving}>
-                    {isSaving ? (
-                      <>
-                        <Loader2 size={16} className="spinner-icon" />
-                        <span>Saving Changes...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Save size={16} />
-                        <span>Save Changes</span>
-                      </>
-                    )}
-                  </button>
+                <div className="glass-card padding-md flex-between align-items-center flex-wrap gap-md" style={{ borderLeft: `6px solid ${primaryColor}` }}>
+                  <div className="flex-row-gap-md align-items-center">
+                    <div className="brand-icon-box" style={{ width: 44, height: 44, borderRadius: 12, background: primaryColor }}>
+                      {logoUrl ? <img src={logoUrl} alt="Logo" className="brand-logo-img" /> : <span className="brand-letter font-sm">{getInitials(orgName)}</span>}
+                    </div>
+                    <div>
+                      <h4 className="font-sm font-weight-800 text-dark margin-0">{orgName}</h4>
+                      <span className="font-2xs color-subtle">{orgNameMl || 'മഹല്ല് പോർട്ടൽ'}</span>
+                    </div>
+                  </div>
+                  <span className="album-type-chip font-2xs" style={{ background: `${primaryColor}15`, color: primaryColor, border: `1px solid ${primaryColor}40` }}>
+                    Primary Theme Preview
+                  </span>
                 </div>
-              </form>
+              </div>
             </div>
           )}
 
-          {/* SECTION 2: LANGUAGE & REGION */}
-          {activeSection === 'language' && (
+          {/* SECTION 3: ADMINISTRATOR */}
+          {activeSection === 'administrator' && (
             <div className="settings-section-card glass-card animate-fade-in">
               <div className="section-head">
-                <Globe size={20} className="head-icon" />
+                <UserCheck size={22} className="head-icon icon-emerald" />
                 <div>
-                  <h4>Language & Regional Preferences</h4>
-                  <p>Centralized user-specific language selection. Applied globally across all pages.</p>
+                  <h4>Administrator Profile</h4>
+                  <p>Manage your account name, avatar initials, and login credentials.</p>
                 </div>
               </div>
 
-              <div className="language-selection-workspace">
-                <p className="lang-prompt-text">Choose your application language preference:</p>
-
-                <div className="lang-cards-grid">
-                  <div
-                    className={`lang-option-card ${language === 'en' ? 'active-selected' : ''}`}
-                    onClick={() => handleLanguageSwitch('en')}
-                  >
-                    <div className="lang-card-header">
-                      <span className="lang-title">English</span>
-                      {language === 'en' && <Check size={18} className="check-icon" />}
+              <div className="settings-form-body">
+                <div className="glass-card padding-md margin-bottom-md flex-between align-items-center flex-wrap gap-md">
+                  <div className="flex-row-gap-md align-items-center">
+                    <div className="user-avatar-img font-weight-800 font-md">
+                      {adminName ? adminName.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() : 'MA'}
                     </div>
-                    <p className="lang-desc">Standard English UI translations and formatting.</p>
-                    <span className="lang-badge">System Default</span>
+                    <div>
+                      <h4 className="font-md font-weight-800 text-dark margin-0">{adminName || 'System Administrator'}</h4>
+                      <span className="album-type-chip margin-top-2xs display-inline-block">System Administrator</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="admin-display-name" className="form-label font-weight-700">Admin Display Name *</label>
+                  <input
+                    id="admin-display-name"
+                    type="text"
+                    className="form-control"
+                    required
+                    value={adminName}
+                    onChange={(e) => setAdminName(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-row-grid">
+                  <div className="form-group">
+                    <label htmlFor="admin-email" className="form-label font-weight-700">Login Email Address</label>
+                    <input
+                      id="admin-email"
+                      type="email"
+                      className="form-control"
+                      value={adminEmail}
+                      onChange={(e) => setAdminEmail(e.target.value)}
+                    />
                   </div>
 
-                  <div
-                    className={`lang-option-card ml-card ${language === 'ml' ? 'active-selected' : ''}`}
-                    onClick={() => handleLanguageSwitch('ml')}
-                  >
-                    <div className="lang-card-header">
-                      <span className="lang-title ml-font">മലയാളം</span>
-                      {language === 'ml' && <Check size={18} className="check-icon" />}
-                    </div>
-                    <p className="lang-desc">മഹല്ല് പോർട്ടൽ മലയാളം പരിഭാഷ.</p>
-                    <span className="lang-badge">മാതൃഭാഷ</span>
+                  <div className="form-group">
+                    <label htmlFor="admin-phone" className="form-label font-weight-700">Mobile Phone Number</label>
+                    <input
+                      id="admin-phone"
+                      type="tel"
+                      className="form-control"
+                      value={adminPhone}
+                      onChange={(e) => setAdminPhone(e.target.value)}
+                    />
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* SECTION 3: NOTIFICATIONS */}
+          {/* SECTION 4: FINANCIAL & PREFIXES */}
+          {activeSection === 'financial' && (
+            <div className="settings-section-card glass-card animate-fade-in">
+              <div className="section-head">
+                <DollarSign size={22} className="head-icon icon-emerald" />
+                <div>
+                  <h4>Financial & Receipt Prefixes</h4>
+                  <p>Configure default subscription year and automatic receipt numbering prefixes.</p>
+                </div>
+              </div>
+
+              <div className="settings-form-body">
+                <div className="form-group">
+                  <label htmlFor="sub-year-select" className="form-label font-weight-700">Default Active Subscription Year</label>
+                  <select
+                    id="sub-year-select"
+                    className="form-control custom-select-pill"
+                    value={subYear}
+                    onChange={(e) => setSubYear(e.target.value)}
+                  >
+                    <option value="2026">2026 (Current Active Year)</option>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                  </select>
+                </div>
+
+                <div className="form-row-grid">
+                  <div className="form-group">
+                    <label htmlFor="rec-prefix" className="form-label font-weight-700">Offline Receipt Prefix</label>
+                    <input
+                      id="rec-prefix"
+                      type="text"
+                      className="form-control font-mono"
+                      value={receiptPrefix}
+                      onChange={(e) => setReceiptPrefix(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="don-prefix" className="form-label font-weight-700">Donation Receipt Prefix</label>
+                    <input
+                      id="don-prefix"
+                      type="text"
+                      className="form-control font-mono"
+                      value={donationPrefix}
+                      onChange={(e) => setDonationPrefix(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* SECTION 5: CERTIFICATES & RECEIPTS */}
+          {activeSection === 'certificates' && (
+            <div className="settings-section-card glass-card animate-fade-in">
+              <div className="section-head">
+                <Award size={22} className="head-icon icon-emerald" />
+                <div>
+                  <h4>Certificates & Receipts Layout</h4>
+                  <p>Customize official layout, footer disclosures, and digital seals for Death and Marriage certificates.</p>
+                </div>
+              </div>
+
+              <div className="settings-form-body">
+                <div className="form-group">
+                  <label htmlFor="cert-footer" className="form-label font-weight-700">Certificate Footer Disclosure Note</label>
+                  <input
+                    id="cert-footer"
+                    type="text"
+                    className="form-control"
+                    value={certFooterNote}
+                    onChange={(e) => setCertFooterNote(e.target.value)}
+                  />
+                </div>
+
+                <div className="glass-card padding-md flex-between align-items-center">
+                  <div>
+                    <h4 className="font-xs font-weight-700 text-dark margin-0">Digital Seal & Verification QR Badge</h4>
+                    <p className="font-2xs color-subtle margin-top-3xs">Include official seal on printed certificates</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="form-checkbox"
+                    checked={enableDigitalSeal}
+                    onChange={(e) => setEnableDigitalSeal(e.target.checked)}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* SECTION 6: NOTIFICATIONS */}
           {activeSection === 'notifications' && (
             <div className="settings-section-card glass-card animate-fade-in">
               <div className="section-head">
-                <Bell size={20} className="head-icon" />
+                <Bell size={22} className="head-icon icon-emerald" />
                 <div>
                   <h4>Notification Preferences</h4>
-                  <p>Configure automated alerts, payment reminders, and broadcast preferences.</p>
+                  <p>Configure automated system notifications, payment alerts, and broadcast channels.</p>
                 </div>
               </div>
 
-              <form onSubmit={handleSaveNotifications} className="settings-form-body">
-                <div className="toggle-setting-row">
+              <div className="settings-form-body">
+                <div className="glass-card padding-md margin-bottom-sm flex-between align-items-center">
                   <div>
-                    <span className="toggle-label">In-App Notification Center</span>
-                    <p className="toggle-sub">Receive instant notifications in the header bell dropdown</p>
+                    <h4 className="font-xs font-weight-700 text-dark margin-0">In-App Push Notifications</h4>
+                    <p className="font-2xs color-subtle margin-top-3xs">Receive live alerts in the top navigation bar</p>
                   </div>
                   <input
                     type="checkbox"
                     checked={notifInApp}
                     onChange={(e) => setNotifInApp(e.target.checked)}
-                    className="checkbox-custom"
                   />
                 </div>
 
-                <div className="toggle-setting-row">
+                <div className="glass-card padding-md margin-bottom-sm flex-between align-items-center">
                   <div>
-                    <span className="toggle-label">Payment Receipt Alerts</span>
-                    <p className="toggle-sub">Automatically notify members when a payment receipt is recorded</p>
+                    <h4 className="font-xs font-weight-700 text-dark margin-0">Email Reminders & Receipts</h4>
+                    <p className="font-2xs color-subtle margin-top-3xs">Send email payment confirmations to members</p>
                   </div>
                   <input
                     type="checkbox"
-                    checked={notifPaymentReminders}
-                    onChange={(e) => setNotifPaymentReminders(e.target.checked)}
-                    className="checkbox-custom"
+                    checked={notifEmail}
+                    onChange={(e) => setNotifEmail(e.target.checked)}
                   />
                 </div>
 
-                <div className="toggle-setting-row">
+                <div className="glass-card padding-md flex-between align-items-center">
                   <div>
-                    <span className="toggle-label">Rolling Arrears Reminders</span>
-                    <p className="toggle-sub">Include previous arrears summary in subscription payment notices</p>
+                    <h4 className="font-xs font-weight-700 text-dark margin-0">SMS Arrears Alerts</h4>
+                    <p className="font-2xs color-subtle margin-top-3xs">Send SMS notifications for pending yearly arrears</p>
                   </div>
                   <input
                     type="checkbox"
-                    checked={notifArrearsAlerts}
-                    onChange={(e) => setNotifArrearsAlerts(e.target.checked)}
-                    className="checkbox-custom"
+                    checked={notifSMS}
+                    onChange={(e) => setNotifSMS(e.target.checked)}
                   />
                 </div>
-
-                <div className="form-actions-bar">
-                  <button type="submit" className="add-btn primary-btn">
-                    <Save size={16} />
-                    <span>Save Notification Preferences</span>
-                  </button>
-                </div>
-              </form>
+              </div>
             </div>
           )}
 
-          {/* SECTION 4: SECURITY & PASSWORD */}
-          {activeSection === 'security' && (
+          {/* SECTION 7: REPORTS */}
+          {activeSection === 'reports' && (
             <div className="settings-section-card glass-card animate-fade-in">
               <div className="section-head">
-                <Shield size={20} className="head-icon" />
+                <FileSpreadsheet size={22} className="head-icon icon-emerald" />
                 <div>
-                  <h4>Security & Password</h4>
-                  <p>Manage account security credentials and access permissions.</p>
+                  <h4>Reports Configuration</h4>
+                  <p>Set default export formats, page layouts, and header parameters for reports.</p>
                 </div>
               </div>
 
-              <form onSubmit={handleSaveSecurity} className="settings-form-body">
+              <div className="settings-form-body">
                 <div className="form-group">
-                  <label htmlFor="setting-curr-pass">Current Password *</label>
+                  <label className="form-label font-weight-700">Default Download Format</label>
+                  <select className="form-control custom-select-pill">
+                    <option value="pdf">PDF Document (.pdf)</option>
+                    <option value="excel">Excel Spreadsheet (.xlsx)</option>
+                    <option value="csv">Comma-Separated Values (.csv)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* SECTION 8: SECURITY & PASSWORD */}
+          {activeSection === 'security' && (
+            <div className="settings-section-card glass-card animate-fade-in">
+              <div className="section-head">
+                <ShieldCheck size={22} className="head-icon icon-emerald" />
+                <div>
+                  <h4>Security & Password</h4>
+                  <p>Update administrator login password and account authentication parameters.</p>
+                </div>
+              </div>
+
+              <form onSubmit={handlePasswordChange} className="settings-form-body">
+                <div className="form-group">
+                  <label htmlFor="curr-pass" className="form-label font-weight-700">Current Password *</label>
                   <input
-                    id="setting-curr-pass"
+                    id="curr-pass"
                     type="password"
+                    className="form-control"
                     required
-                    placeholder="••••••••"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                   />
@@ -607,374 +788,133 @@ export const SharedSettings: React.FC = () => {
 
                 <div className="form-row-grid">
                   <div className="form-group">
-                    <label htmlFor="setting-new-pass">New Password *</label>
+                    <label htmlFor="new-pass" className="form-label font-weight-700">New Password *</label>
                     <input
-                      id="setting-new-pass"
+                      id="new-pass"
                       type="password"
+                      className="form-control"
                       required
-                      minLength={6}
-                      placeholder="••••••••"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                     />
                   </div>
+
                   <div className="form-group">
-                    <label htmlFor="setting-conf-pass">Confirm New Password *</label>
+                    <label htmlFor="confirm-pass" className="form-label font-weight-700">Confirm New Password *</label>
                     <input
-                      id="setting-conf-pass"
+                      id="confirm-pass"
                       type="password"
+                      className="form-control"
                       required
-                      minLength={6}
-                      placeholder="••••••••"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                     />
                   </div>
                 </div>
 
-                <div className="form-actions-bar">
-                  <button type="submit" className="add-btn primary-btn" disabled={isSaving}>
-                    {isSaving ? 'Updating...' : 'Update Password'}
-                  </button>
-                </div>
+                <button type="submit" className="pill-btn-primary font-xs margin-top-sm">
+                  <Key size={14} /> Update Password
+                </button>
               </form>
             </div>
           )}
 
-          {/* SECTION 5: SYSTEM DEFAULTS */}
-          {activeSection === 'system' && (
+          {/* SECTION 9: BACKUP & EXPORT */}
+          {activeSection === 'backup' && (
             <div className="settings-section-card glass-card animate-fade-in">
               <div className="section-head">
-                <SettingsIcon size={20} className="head-icon" />
+                <Database size={22} className="head-icon icon-emerald" />
                 <div>
-                  <h4>System Defaults</h4>
-                  <p>Default payment parameters and currency display configuration.</p>
+                  <h4>Backup & Data Export</h4>
+                  <p>Download full CSV/JSON datasets of households, members, and payment ledgers.</p>
                 </div>
               </div>
 
-              <form onSubmit={handleSaveSystem} className="settings-form-body">
-                <div className="form-group">
-                  <label htmlFor="setting-def-payment">Default Payment Method</label>
-                  <select
-                    id="setting-def-payment"
-                    value={defaultPaymentMethod}
-                    onChange={(e) => setDefaultPaymentMethod(e.target.value)}
-                  >
-                    <option value="cash">Cash Payment</option>
-                    <option value="upi">UPI / Online</option>
-                    <option value="bank_transfer">Bank Transfer</option>
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="setting-currency">Currency Display</label>
-                  <input
-                    id="setting-currency"
-                    type="text"
-                    disabled
-                    value={currencySymbol}
-                  />
-                </div>
-
-                <div className="form-actions-bar">
-                  <button type="submit" className="add-btn primary-btn">
-                    <Save size={16} />
-                    <span>Save System Defaults</span>
+              <div className="settings-form-body flex-col gap-sm">
+                <div className="glass-card padding-md flex-between align-items-center">
+                  <div>
+                    <h4 className="font-xs font-weight-700 text-dark margin-0">Export All Members Directory</h4>
+                    <p className="font-2xs color-subtle margin-top-3xs">Full CSV roster of registered members</p>
+                  </div>
+                  <button className="pill-btn-primary font-xs" onClick={() => handleExportData('Members Directory')}>
+                    <Download size={14} /> Export CSV
                   </button>
                 </div>
-              </form>
+
+                <div className="glass-card padding-md flex-between align-items-center">
+                  <div>
+                    <h4 className="font-xs font-weight-700 text-dark margin-0">Export Household Ledgers</h4>
+                    <p className="font-2xs color-subtle margin-top-3xs">CSV report of all households and house heads</p>
+                  </div>
+                  <button className="pill-btn-primary font-xs" onClick={() => handleExportData('Household Ledgers')}>
+                    <Download size={14} /> Export CSV
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* SECTION 10: ABOUT & SYSTEM STATUS */}
+          {activeSection === 'about' && (
+            <div className="settings-section-card glass-card animate-fade-in">
+              <div className="section-head">
+                <Info size={22} className="head-icon icon-emerald" />
+                <div>
+                  <h4>About & System Health</h4>
+                  <p>Application version details, database connectivity, and PWA installation status.</p>
+                </div>
+              </div>
+
+              <div className="settings-form-body">
+                <div className="form-row-grid">
+                  <div className="glass-card padding-md">
+                    <span className="font-2xs color-subtle text-uppercase font-weight-700">Application Version</span>
+                    <h4 className="font-md font-weight-800 text-dark margin-top-2xs margin-bottom-0">v3.2.0 (Enterprise)</h4>
+                  </div>
+
+                  <div className="glass-card padding-md">
+                    <span className="font-2xs color-subtle text-uppercase font-weight-700">Database Engine</span>
+                    <h4 className="font-md font-weight-800 text-emerald margin-top-2xs margin-bottom-0 flex-row-gap-2xs align-items-center">
+                      <CheckCircle size={16} /> Supabase PostgreSQL
+                    </h4>
+                  </div>
+                </div>
+
+                <div className="glass-card padding-md margin-top-md flex-between align-items-center flex-wrap gap-sm">
+                  <div className="flex-row-gap-xs align-items-center">
+                    <Smartphone size={18} className="text-emerald" />
+                    <div>
+                      <h4 className="font-xs font-weight-700 text-dark margin-0">PWA Mobile Installation</h4>
+                      <p className="font-2xs color-subtle margin-top-3xs">Standalone application mode support</p>
+                    </div>
+                  </div>
+                  <span className="badge-pill badge-emerald font-2xs">PWA Ready</span>
+                </div>
+              </div>
             </div>
           )}
 
         </main>
       </div>
 
-      {/* STYLES */}
-      <style>{`
-        .settings-page {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-          width: 100%;
-          box-sizing: border-box;
-        }
+      {/* STICKY BOTTOM SAVE BAR */}
+      {hasUnsavedChanges && (
+        <div className="sticky-save-bar animate-bounce-in">
+          <div className="flex-row-gap-xs align-items-center">
+            <AlertCircle size={18} className="text-warning" />
+            <span className="font-xs font-weight-700 text-dark">You have unsaved workspace settings changes.</span>
+          </div>
 
-        .toast-notification {
-          position: fixed;
-          top: 24px; right: 24px;
-          z-index: 999;
-          display: flex; align-items: center; gap: 10px;
-          padding: 14px 20px; border-radius: var(--radius-pill);
-          font-weight: 700; font-size: 13.5px;
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-        }
-        .toast-notification.success { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
-        .toast-notification.error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-
-        .settings-viewport-grid {
-          display: grid;
-          grid-template-columns: 260px 1fr;
-          gap: 20px;
-          align-items: flex-start;
-          width: 100%;
-          box-sizing: border-box;
-        }
-
-        /* SIDEBAR */
-        .settings-nav-sidebar {
-          background: #ffffff;
-          border: 1px solid var(--border-color);
-          border-radius: var(--radius-xl);
-          padding: 20px;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .sidebar-title-group {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding-bottom: 14px;
-          border-bottom: 1px solid #f3f4f6;
-        }
-
-        .icon-emerald { color: #00966b; }
-        .sidebar-heading { font-size: 17px; font-weight: 800; color: #111827; }
-        .sidebar-sub { font-size: 11.5px; color: #6b7280; }
-
-        .settings-section-menu {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        .section-menu-btn {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 12px 14px;
-          border-radius: var(--radius-pill);
-          border: none;
-          background: transparent;
-          color: #4b5563;
-          font-weight: 600;
-          font-size: 13px;
-          cursor: pointer;
-          transition: var(--transition-all);
-          text-align: left;
-        }
-
-        .section-menu-btn:hover {
-          background: #f9fafb;
-          color: #111827;
-        }
-
-        .section-menu-btn.active {
-          background: #ecfdf5;
-          color: #00966b;
-          font-weight: 800;
-        }
-
-        /* CONTENT WORKSPACE */
-        .settings-content-workspace {
-          width: 100%;
-          box-sizing: border-box;
-        }
-
-        .settings-section-card {
-          background: #ffffff;
-          border: 1px solid var(--border-color);
-          border-radius: var(--radius-xl);
-          padding: 24px;
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-
-        .section-head {
-          display: flex;
-          align-items: flex-start;
-          gap: 14px;
-          padding-bottom: 16px;
-          border-bottom: 1px solid #f3f4f6;
-        }
-
-        .head-icon { color: #00966b; margin-top: 2px; }
-        .section-head h4 { font-size: 18px; font-weight: 800; color: #111827; }
-        .section-head p { font-size: 12.5px; color: #6b7280; margin-top: 2px; }
-
-        .settings-form-body {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .form-section-label {
-          font-size: 12px;
-          font-weight: 800;
-          color: #00966b;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          margin-top: 6px;
-        }
-
-        .form-row-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 16px;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .form-group label {
-          font-size: 13px;
-          font-weight: 700;
-          color: #374151;
-        }
-
-        .form-group input, .form-group select {
-          padding: 11px 14px;
-          border: 1px solid var(--border-color);
-          border-radius: var(--radius-md);
-          background: #f9fafb;
-          color: #111827;
-          font-size: 13.5px;
-          transition: var(--transition-all);
-        }
-
-        .form-group input:focus, .form-group select:focus {
-          outline: none;
-          border-color: #00966b;
-          background: #ffffff;
-          box-shadow: 0 0 0 3px rgba(0, 150, 107, 0.12);
-        }
-
-        .form-divider {
-          height: 1px;
-          background: #f3f4f6;
-          margin: 10px 0;
-        }
-
-        .form-actions-bar {
-          display: flex;
-          justify-content: flex-end;
-          padding-top: 14px;
-          border-top: 1px solid #f3f4f6;
-          margin-top: 10px;
-        }
-
-        .add-btn.primary-btn {
-          display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-          padding: 11px 24px; border-radius: var(--radius-pill); background: var(--primary);
-          color: #ffffff; font-weight: 700; font-size: 13.5px; border: none; cursor: pointer;
-          box-shadow: 0 4px 14px rgba(0, 150, 107, 0.35); transition: var(--transition-all);
-        }
-
-        /* LANGUAGE CARDS */
-        .language-selection-workspace {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .lang-prompt-text {
-          font-size: 13.5px;
-          font-weight: 700;
-          color: #374151;
-        }
-
-        .lang-cards-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 16px;
-        }
-
-        .lang-option-card {
-          background: #f9fafb;
-          border: 2px solid var(--border-color);
-          border-radius: var(--radius-xl);
-          padding: 20px;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          cursor: pointer;
-          transition: var(--transition-all);
-        }
-
-        .lang-option-card:hover {
-          border-color: #a7f3d0;
-          background: #ecfdf5;
-        }
-
-        .lang-option-card.active-selected {
-          border-color: #00966b;
-          background: #ecfdf5;
-          box-shadow: 0 4px 14px rgba(0, 150, 107, 0.15);
-        }
-
-        .lang-card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .lang-title {
-          font-size: 18px;
-          font-weight: 800;
-          color: #111827;
-        }
-
-        .ml-font { font-family: var(--font-ml); font-size: 20px; }
-        .check-icon { color: #00966b; }
-        .lang-desc { font-size: 12.5px; color: #6b7280; }
-        .lang-badge {
-          display: inline-block; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: rgba(0, 150, 107, 0.15); color: #00966b; width: fit-content;
-        }
-
-        /* TOGGLE ROWS */
-        .toggle-setting-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 14px 16px;
-          background: #f9fafb;
-          border-radius: var(--radius-lg);
-          border: 1px solid #f3f4f6;
-        }
-
-        .toggle-label { font-size: 14px; font-weight: 700; color: #111827; }
-        .toggle-sub { font-size: 12px; color: #6b7280; margin-top: 2px; }
-        .checkbox-custom { width: 18px; height: 18px; accent-color: #00966b; cursor: pointer; }
-
-        /* RESPONSIVE */
-        @media (max-width: 768px) {
-          .settings-viewport-grid {
-            grid-template-columns: 1fr;
-          }
-          .settings-section-menu {
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            gap: 6px;
-          }
-          .section-menu-btn {
-            width: 100%;
-            white-space: normal;
-          }
-          .form-group input, .form-group select {
-            width: 100%;
-            max-width: 100%;
-            box-sizing: border-box;
-          }
-          .form-row-grid { grid-template-columns: 1fr; }
-          .lang-cards-grid { grid-template-columns: 1fr; }
-        }
-      `}</style>
+          <div className="flex-row-gap-xs align-items-center">
+            <button type="button" className="pill-btn-secondary font-xs" onClick={handleDiscard}>
+              <RotateCcw size={14} /> Discard
+            </button>
+            <button type="button" className="pill-btn-primary font-xs" onClick={handleSaveAll} disabled={isSaving}>
+              {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save Changes
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

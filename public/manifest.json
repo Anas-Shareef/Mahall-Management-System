@@ -1,0 +1,19 @@
+{
+  "short_name": "Mahallu Portal",
+  "name": "Mahallu Management System — Admin & Member Portal",
+  "description": "Enterprise Mahallu Community Management & Administration Portal",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512 192x192 96x96 48x48",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/login",
+  "background_color": "#0f172a",
+  "theme_color": "#00966b",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "/"
+}
