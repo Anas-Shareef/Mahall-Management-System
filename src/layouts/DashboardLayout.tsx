@@ -38,7 +38,7 @@ import { Modal } from '../components/Modal';
 export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, logout } = useAuth();
   const { language, setLanguage, t } = useTranslation();
-  const { branding, getInitials } = useOrganization();
+  const { branding } = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
 

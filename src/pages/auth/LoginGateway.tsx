@@ -7,7 +7,7 @@ import { Shield, User, UserPlus, LogIn, ChevronRight, Globe } from 'lucide-react
 
 export const LoginGateway: React.FC = () => {
   const { language, setLanguage } = useTranslation();
-  const { branding, getInitials } = useOrganization();
+  const { branding } = useOrganization();
 
   const toggleLanguage = () => {
     const nextLang = language === 'en' ? 'ml' : 'en';
