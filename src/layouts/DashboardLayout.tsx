@@ -21,10 +21,8 @@ import {
   Menu,
   X,
   Languages,
-  Check,
   ChevronDown,
   ChevronRight,
-  Globe,
   Edit2,
   HeartHandshake,
   UserX,
@@ -46,7 +44,6 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
   const [isMoreModulesOpen, setIsMoreModulesOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
 
   const getMoreModulesList = () => {
     const allModules = [
@@ -207,7 +204,6 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     setIsMoreModulesOpen(false);
     setIsNotificationOpen(false);
     setIsProfileOpen(false);
-    setIsLangMenuOpen(false);
   }, [location.pathname]);
 
   const adminMenuGroups = [
