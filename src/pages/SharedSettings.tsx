@@ -226,11 +226,12 @@ export const SharedSettings: React.FC = () => {
         {/* LEFT CATEGORY SIDEBAR NAVIGATION */}
         <aside className="settings-nav-sidebar glass-card">
           <nav className="settings-section-menu">
+            <div className="menu-group-label">WORKSPACE IDENTITY</div>
             <button
               className={`section-menu-btn ${activeSection === 'organization' ? 'active' : ''}`}
               onClick={() => setActiveSection('organization')}
             >
-              <Building2 size={18} />
+              <div className="menu-icon-badge"><Building2 size={16} /></div>
               <span>Organization</span>
             </button>
 
@@ -238,23 +239,24 @@ export const SharedSettings: React.FC = () => {
               className={`section-menu-btn ${activeSection === 'branding' ? 'active' : ''}`}
               onClick={() => setActiveSection('branding')}
             >
-              <Palette size={18} />
-              <span>Branding & Appearance</span>
+              <div className="menu-icon-badge"><Palette size={16} /></div>
+              <span>Branding & Colors</span>
             </button>
 
             <button
               className={`section-menu-btn ${activeSection === 'administrator' ? 'active' : ''}`}
               onClick={() => setActiveSection('administrator')}
             >
-              <UserCheck size={18} />
+              <div className="menu-icon-badge"><UserCheck size={16} /></div>
               <span>Administrator</span>
             </button>
 
+            <div className="menu-group-label margin-top-md">PREFERENCES & GOVERNANCE</div>
             <button
               className={`section-menu-btn ${activeSection === 'financial' ? 'active' : ''}`}
               onClick={() => setActiveSection('financial')}
             >
-              <DollarSign size={18} />
+              <div className="menu-icon-badge"><DollarSign size={16} /></div>
               <span>Financial & Prefixes</span>
             </button>
 
@@ -262,15 +264,15 @@ export const SharedSettings: React.FC = () => {
               className={`section-menu-btn ${activeSection === 'certificates' ? 'active' : ''}`}
               onClick={() => setActiveSection('certificates')}
             >
-              <Award size={18} />
-              <span>Certificates & Receipts</span>
+              <div className="menu-icon-badge"><Award size={16} /></div>
+              <span>Certificates & Seals</span>
             </button>
 
             <button
               className={`section-menu-btn ${activeSection === 'notifications' ? 'active' : ''}`}
               onClick={() => setActiveSection('notifications')}
             >
-              <Bell size={18} />
+              <div className="menu-icon-badge"><Bell size={16} /></div>
               <span>Notifications</span>
             </button>
 
@@ -278,15 +280,16 @@ export const SharedSettings: React.FC = () => {
               className={`section-menu-btn ${activeSection === 'reports' ? 'active' : ''}`}
               onClick={() => setActiveSection('reports')}
             >
-              <FileSpreadsheet size={18} />
-              <span>Reports Configuration</span>
+              <div className="menu-icon-badge"><FileSpreadsheet size={16} /></div>
+              <span>Reports Config</span>
             </button>
 
+            <div className="menu-group-label margin-top-md">SYSTEM & DATA</div>
             <button
               className={`section-menu-btn ${activeSection === 'security' ? 'active' : ''}`}
               onClick={() => setActiveSection('security')}
             >
-              <ShieldCheck size={18} />
+              <div className="menu-icon-badge"><ShieldCheck size={16} /></div>
               <span>Security & Password</span>
             </button>
 
@@ -294,7 +297,7 @@ export const SharedSettings: React.FC = () => {
               className={`section-menu-btn ${activeSection === 'backup' ? 'active' : ''}`}
               onClick={() => setActiveSection('backup')}
             >
-              <Database size={18} />
+              <div className="menu-icon-badge"><Database size={16} /></div>
               <span>Backup & Export</span>
             </button>
 
@@ -302,8 +305,8 @@ export const SharedSettings: React.FC = () => {
               className={`section-menu-btn ${activeSection === 'about' ? 'active' : ''}`}
               onClick={() => setActiveSection('about')}
             >
-              <Info size={18} />
-              <span>About & System Status</span>
+              <div className="menu-icon-badge"><Info size={16} /></div>
+              <span>About & Health</span>
             </button>
           </nav>
         </aside>
