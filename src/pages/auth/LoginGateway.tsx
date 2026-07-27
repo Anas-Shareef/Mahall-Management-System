@@ -194,3 +194,5 @@ export const LoginGateway: React.FC = () => {
     </div>
   );
 };
+
+export default LoginGateway;
