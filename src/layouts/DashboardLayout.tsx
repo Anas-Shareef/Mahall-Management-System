@@ -49,13 +49,9 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
 
   const getMoreModulesList = () => {
-    const role = (user?.role as string) || 'admin';
     const allModules = [
-      { to: '/admin/subscriptions', label: t('nav.subscriptions'), icon: FileText },
-      { to: '/admin/payments', label: t('nav.payments'), icon: Receipt },
-      { to: '/admin/donations', label: t('nav.donations'), icon: HeartHandshake },
-      { to: '/admin/households', label: t('nav.households'), icon: Home },
       { to: '/admin/members', label: t('nav.members'), icon: Users },
+      { to: '/admin/donations', label: t('nav.donations'), icon: HeartHandshake },
       { to: '/admin/marriages', label: t('nav.marriages'), icon: Heart },
       { to: '/admin/deaths', label: t('nav.deaths'), icon: UserX },
       { to: '/admin/notifications', label: t('nav.notifications'), icon: Bell },
@@ -64,15 +60,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
       { to: '/admin/settings', label: t('nav.settings'), icon: Settings },
     ];
 
-    let excludedPaths: string[] = [];
-    if (role === 'treasurer') {
-      excludedPaths = ['/admin/dashboard', '/admin/payments', '/admin/donations', '/admin/reports'];
-    } else if (role === 'secretary') {
-      excludedPaths = ['/admin/dashboard', '/admin/households', '/admin/members', '/admin/marriages'];
-    } else {
-      excludedPaths = ['/admin/dashboard', '/admin/households', '/admin/payments', '/admin/reports'];
-    }
-
+    const excludedPaths = ['/admin/dashboard', '/admin/households', '/admin/subscriptions', '/admin/payments'];
     return allModules.filter((m) => !excludedPaths.includes(m.to));
   };
 
@@ -472,36 +460,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
               <kbd className="shortcut-kbd">Ctrl+K</kbd>
             </button>
 
-            {/* Language Switcher Popover */}
-            <div className="lang-switcher-wrap">
-              <button
-                className="icon-circle-btn"
-                onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
-                title={t('settings.changeLanguage')}
-                aria-label="Select application language"
-              >
-                <Globe size={18} />
-              </button>
-              {isLangMenuOpen && (
-                <div className="lang-popover-menu animate-fade-in">
-                  <div className="pop-header-title">Language / ഭാഷ</div>
-                  <button
-                    className={`lang-popover-item ${language === 'en' ? 'active' : ''}`}
-                    onClick={() => handleLanguageSwitch('en')}
-                  >
-                    <span>English</span>
-                    {language === 'en' && <Check size={14} color="#00966b" />}
-                  </button>
-                  <button
-                    className={`lang-popover-item ${language === 'ml' ? 'active' : ''}`}
-                    onClick={() => handleLanguageSwitch('ml')}
-                  >
-                    <span style={{ fontFamily: 'var(--font-ml)' }}>മലയാളം</span>
-                    {language === 'ml' && <Check size={14} color="#00966b" />}
-                  </button>
-                </div>
-              )}
-            </div>
+
 
             {/* Notification Bell */}
             <div className="notif-bell-wrap">
@@ -692,56 +651,24 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
           <span>Dashboard</span>
         </NavLink>
 
-        {(user?.role as string) === 'treasurer' ? (
-          <>
-            <NavLink to="/admin/payments" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
-              <Receipt size={20} />
-              <span>Payments</span>
-            </NavLink>
-            <NavLink to="/admin/donations" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
-              <HeartHandshake size={20} />
-              <span>Donations</span>
-            </NavLink>
-            <NavLink to="/admin/reports" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
-              <BarChart3 size={20} />
-              <span>Reports</span>
-            </NavLink>
-          </>
-        ) : (user?.role as string) === 'secretary' ? (
-          <>
-            <NavLink to="/admin/households" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
-              <Home size={20} />
-              <span>Households</span>
-            </NavLink>
-            <NavLink to="/admin/members" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
-              <Users size={20} />
-              <span>Members</span>
-            </NavLink>
-            <NavLink to="/admin/marriages" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
-              <Heart size={20} />
-              <span>Records</span>
-            </NavLink>
-          </>
-        ) : (
-          <>
-            <NavLink to="/admin/households" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
-              <Home size={20} />
-              <span>Households</span>
-            </NavLink>
-            <NavLink to="/admin/payments" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
-              <Receipt size={20} />
-              <span>Finances</span>
-            </NavLink>
-            <NavLink to="/admin/reports" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
-              <BarChart3 size={20} />
-              <span>Reports</span>
-            </NavLink>
-          </>
-        )}
+        <NavLink to="/admin/households" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+          <Home size={20} />
+          <span>Households</span>
+        </NavLink>
+
+        <NavLink to="/admin/subscriptions" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+          <FileText size={20} />
+          <span>Subscriptions</span>
+        </NavLink>
+
+        <NavLink to="/admin/payments" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+          <Receipt size={20} />
+          <span>Finances</span>
+        </NavLink>
 
         <button type="button" className="bottom-nav-item" onClick={() => setIsMoreModulesOpen(true)}>
           <Menu size={20} />
-          <span>More</span>
+          <span>Menu</span>
         </button>
       </nav>
 
