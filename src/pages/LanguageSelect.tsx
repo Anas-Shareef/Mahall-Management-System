@@ -2,10 +2,9 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useOrganization } from '../contexts/OrganizationContext';
-import { Globe, ArrowRight, Check } from 'lucide-react';
 
 export const LanguageSelect: React.FC = () => {
-  const { language, setLanguage } = useTranslation();
+  const { setLanguage } = useTranslation();
   const { branding, getInitials } = useOrganization();
   const navigate = useNavigate();
 
