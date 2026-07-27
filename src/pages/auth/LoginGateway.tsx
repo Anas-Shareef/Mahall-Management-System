@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { useOrganization } from '../../contexts/OrganizationContext';
+import { VmOneLogo } from '../../components/VmOneLogo';
 import { Shield, User, UserPlus, LogIn, ChevronRight, Globe } from 'lucide-react';
 
 export const LoginGateway: React.FC = () => {
@@ -26,15 +27,16 @@ export const LoginGateway: React.FC = () => {
       <div className="gateway-content animate-fade-in">
         {/* Brand Header */}
         <div className="gateway-brand">
-          <div className="brand-badge-box">
-            {branding.logoUrl ? (
+          {branding.logoUrl ? (
+            <div className="brand-badge-box">
               <img src={branding.logoUrl} alt={branding.organizationName} className="brand-logo-img" />
-            ) : (
-              <span>{getInitials(branding.organizationName)}</span>
-            )}
-          </div>
-          <h1>{branding.organizationNameMalayalam || branding.organizationName}</h1>
-          <h2>{branding.organizationName}</h2>
+            </div>
+          ) : (
+            <div className="margin-bottom-sm flex-center">
+              <VmOneLogo size={52} showWordmark={true} showTagline={true} />
+            </div>
+          )}
+          <h2 className="margin-top-xs">Vellikkeel Mahallu Organization for Native's Empowerment</h2>
           <p>Choose your portal to login or register your account</p>
         </div>
 

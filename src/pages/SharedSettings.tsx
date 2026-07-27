@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
+import { VmOneLogo } from '../components/VmOneLogo';
 import { db } from '../services/db';
 import { 
   Building2, Palette, UserCheck, DollarSign, Award, Bell, 
@@ -329,11 +330,11 @@ export const SharedSettings: React.FC = () => {
                 {/* LOGO UPLOAD & PREVIEW CARD */}
                 <div className="glass-card padding-md margin-bottom-md flex-between align-items-center flex-wrap gap-md">
                   <div className="flex-row-gap-md align-items-center">
-                    <div className="brand-icon-box shadow-sm" style={{ width: 60, height: 60, borderRadius: 16 }}>
+                    <div className="brand-icon-box shadow-sm" style={{ width: 60, height: 60, borderRadius: 16, background: '#ffffff' }}>
                       {logoUrl ? (
                         <img src={logoUrl} alt="Organization Logo" className="brand-logo-img" />
                       ) : (
-                        <span className="brand-letter font-lg">{getInitials(orgName)}</span>
+                        <VmOneLogo size={40} showWordmark={false} />
                       )}
                     </div>
                     <div>

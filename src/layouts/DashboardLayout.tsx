@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { PWAInstallPrompt } from '../components/PWAInstallPrompt';
+import { VmOneLogo } from '../components/VmOneLogo';
 import { db } from '../services/db';
 import type { Notification } from '../services/db';
 import {
@@ -282,19 +283,19 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
       <aside className={`sidebar-aside ${isMobileMenuOpen ? 'mobile-visible' : ''}`}>
         {/* Brand Logo Header */}
         <div className="sidebar-brand-header">
-          <div className="brand-icon-box">
-            {branding.logoUrl ? (
-              <img src={branding.logoUrl} alt={branding.organizationName} className="brand-logo-img" />
-            ) : (
-              <span className="brand-letter">{getInitials(branding.organizationName)}</span>
-            )}
-          </div>
-          <div className="brand-text-group">
-            <h1 className="brand-name">{branding.organizationName}</h1>
-            {branding.organizationNameMalayalam && (
-              <p className="brand-sub">{branding.organizationNameMalayalam}</p>
-            )}
-          </div>
+          {branding.logoUrl ? (
+            <div className="flex-row-gap-md align-items-center">
+              <div className="brand-icon-box">
+                <img src={branding.logoUrl} alt={branding.organizationName} className="brand-logo-img" />
+              </div>
+              <div className="brand-text-group">
+                <h1 className="brand-name">{branding.organizationName}</h1>
+                <p className="brand-sub">{branding.organizationNameMalayalam || 'ഒരുമ · സേവനം · വളർച്ച'}</p>
+              </div>
+            </div>
+          ) : (
+            <VmOneLogo size={36} showWordmark={true} showTagline={true} />
+          )}
           <button className="sidebar-close-btn" onClick={() => setIsMobileMenuOpen(false)} aria-label="Close sidebar menu">
             <X size={18} />
           </button>

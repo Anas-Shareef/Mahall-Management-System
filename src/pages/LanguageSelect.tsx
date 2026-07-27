@@ -2,10 +2,11 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useOrganization } from '../contexts/OrganizationContext';
+import { VmOneLogo } from '../components/VmOneLogo';
 
 export const LanguageSelect: React.FC = () => {
   const { setLanguage } = useTranslation();
-  const { branding, getInitials } = useOrganization();
+  const { branding } = useOrganization();
   const navigate = useNavigate();
 
   const handleSelect = (lang: 'en' | 'ml') => {
@@ -18,15 +19,16 @@ export const LanguageSelect: React.FC = () => {
     <div className="language-select-container">
       <div className="language-card animate-fade-in">
         <div className="logo-section">
-          <div className="brand-logo-icon">
-            {branding.logoUrl ? (
+          {branding.logoUrl ? (
+            <div className="brand-logo-icon">
               <img src={branding.logoUrl} alt={branding.organizationName} className="brand-logo-img" />
-            ) : (
-              <span>{getInitials(branding.organizationName)}</span>
-            )}
-          </div>
-          <h1 className="title-ml">{branding.organizationNameMalayalam || branding.organizationName}</h1>
-          <h2 className="title-en">{branding.organizationName}</h2>
+            </div>
+          ) : (
+            <div className="margin-bottom-sm flex-center">
+              <VmOneLogo size={48} showWordmark={true} showTagline={true} />
+            </div>
+          )}
+          <h2 className="title-en margin-top-xs">Vellikkeel Mahallu Organization for Native's Empowerment</h2>
         </div>
 
         <div className="selection-divider"></div>

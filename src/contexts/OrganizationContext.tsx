@@ -50,29 +50,29 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [branding, setBrandingState] = useState<OrganizationBranding>(() => {
     try {
       const saved = localStorage.getItem('mahall_organization_branding');
+      let loaded = DEFAULT_BRANDING;
+
       if (saved) {
-        return { ...DEFAULT_BRANDING, ...JSON.parse(saved) };
+        const parsed = JSON.parse(saved);
+        // Auto-migrate legacy brand parameters
+        if (parsed.organizationName === 'Lessa Mahallu Management' || !parsed.organizationName) {
+          parsed.organizationName = 'VM ONE';
+        }
+        if (parsed.organizationNameMalayalam === 'മഹല്ല് പോർട്ടൽ' || !parsed.organizationNameMalayalam) {
+          parsed.organizationNameMalayalam = 'ഒരുമ · സേവനം · വളർച്ച';
+        }
+        if (parsed.primaryColor === '#00966b') {
+          parsed.primaryColor = '#01A350';
+        }
+        if (!parsed.secondaryColor || parsed.secondaryColor === '#047857') {
+          parsed.secondaryColor = '#0746D3';
+        }
+        loaded = { ...DEFAULT_BRANDING, ...parsed };
       }
 
-      // Check legacy setting keys fallback
-      const mahalName = localStorage.getItem('mahal_setting_name');
-      const mahalPhone = localStorage.getItem('mahal_setting_phone');
-      const mahalEmail = localStorage.getItem('mahal_setting_email');
-      const mahalAddress = localStorage.getItem('mahal_setting_address');
-      const mahalReg = localStorage.getItem('mahal_setting_reg');
-      const adminName = localStorage.getItem('admin_display_name');
-      const logoUrl = localStorage.getItem('mahal_setting_logo');
-
-      return {
-        ...DEFAULT_BRANDING,
-        ...(mahalName ? { organizationName: mahalName } : {}),
-        ...(mahalPhone ? { phone: mahalPhone } : {}),
-        ...(mahalEmail ? { contactEmail: mahalEmail } : {}),
-        ...(mahalAddress ? { address: mahalAddress } : {}),
-        ...(mahalReg ? { registrationNumber: mahalReg } : {}),
-        ...(adminName ? { adminDisplayName: adminName } : {}),
-        ...(logoUrl ? { logoUrl } : {}),
-      };
+      // Persist updated branding
+      localStorage.setItem('mahall_organization_branding', JSON.stringify(loaded));
+      return loaded;
     } catch {
       return DEFAULT_BRANDING;
     }
