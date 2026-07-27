@@ -190,7 +190,6 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     if (user) {
       db.profiles.update(user.id, { language: lang });
     }
-    setIsLangMenuOpen(false);
     setIsProfileOpen(false);
   };
 
