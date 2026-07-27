@@ -277,6 +277,33 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
 
     return crumbs;
   };
+  const filteredMenuGroups = useMemo(() => {
+    if (!user || user.role === 'admin' || user.role === 'super_admin') {
+      return adminMenuGroups;
+    }
+
+    const role = user.role;
+    return adminMenuGroups
+      .map((group) => {
+        const allowedItems = group.items.filter((item) => {
+          if (item.to === '/admin/dashboard') return true;
+          if (role === 'treasurer') {
+            return ['/admin/subscriptions', '/admin/payments', '/admin/donations', '/admin/reports'].includes(item.to);
+          }
+          if (role === 'secretary') {
+            return ['/admin/households', '/admin/members', '/admin/deaths', '/admin/marriages', '/admin/notifications', '/admin/gallery'].includes(item.to);
+          }
+          if (role === 'president') {
+            return item.to !== '/admin/settings';
+          }
+          return true;
+        });
+
+        return { ...group, items: allowedItems };
+      })
+      .filter((group) => group.items.length > 0);
+  }, [user, adminMenuGroups]);
+
   return (
     <div className="layout-shell">
       {/* SIDEBAR */}
@@ -303,8 +330,8 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
 
         {/* Navigation Items */}
         <nav className="sidebar-nav-container">
-          {user?.role === 'admin' ? (
-            adminMenuGroups.map((group, gIdx) => (
+          {user?.role !== 'member' ? (
+            filteredMenuGroups.map((group, gIdx) => (
               <div key={gIdx} className="nav-group-section">
                 {group.label && <span className="nav-section-label">{group.label}</span>}
                 {group.items.map((link) => {
@@ -627,6 +654,66 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
           {children}
         </main>
       </div>
+
+      {/* MOBILE BOTTOM NAVIGATION BAR */}
+      <nav className="mobile-bottom-nav-bar">
+        <NavLink to={user?.role === 'member' ? '/member/dashboard' : '/admin/dashboard'} className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+          <LayoutDashboard size={20} />
+          <span>Dashboard</span>
+        </NavLink>
+
+        {user?.role === 'treasurer' ? (
+          <>
+            <NavLink to="/admin/payments" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+              <Receipt size={20} />
+              <span>Payments</span>
+            </NavLink>
+            <NavLink to="/admin/donations" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+              <HeartHandshake size={20} />
+              <span>Donations</span>
+            </NavLink>
+            <NavLink to="/admin/reports" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+              <BarChart3 size={20} />
+              <span>Reports</span>
+            </NavLink>
+          </>
+        ) : user?.role === 'secretary' ? (
+          <>
+            <NavLink to="/admin/households" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+              <Home size={20} />
+              <span>Households</span>
+            </NavLink>
+            <NavLink to="/admin/members" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+              <Users size={20} />
+              <span>Members</span>
+            </NavLink>
+            <NavLink to="/admin/marriages" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+              <Heart size={20} />
+              <span>Records</span>
+            </NavLink>
+          </>
+        ) : (
+          <>
+            <NavLink to="/admin/households" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+              <Home size={20} />
+              <span>Households</span>
+            </NavLink>
+            <NavLink to="/admin/payments" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+              <Receipt size={20} />
+              <span>Finances</span>
+            </NavLink>
+            <NavLink to="/admin/reports" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+              <BarChart3 size={20} />
+              <span>Reports</span>
+            </NavLink>
+          </>
+        )}
+
+        <button type="button" className="bottom-nav-item" onClick={() => setIsMobileMenuOpen(true)}>
+          <Menu size={20} />
+          <span>More</span>
+        </button>
+      </nav>
 
       <PWAInstallPrompt />
 

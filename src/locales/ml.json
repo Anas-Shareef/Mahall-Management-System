@@ -1,0 +1,53 @@
+{
+  "common": {
+    "dashboard": "ഡാഷ്‌ബോർഡ്",
+    "households": "കുടുംബങ്ങൾ",
+    "members": "അംഗങ്ങൾ",
+    "subscriptions": "വരിസംഖ്യ",
+    "payments": "വരവുകൾ",
+    "donations": "സംഭാവനകൾ",
+    "marriages": "നിക്കാഹ് രജിസ്റ്റർ",
+    "deaths": "മരണ രജിസ്റ്റർ",
+    "notifications": "അറിയിപ്പുകൾ",
+    "gallery": "മീഡിയ & ഗാലറി",
+    "reports": "റിപ്പോർട്ടുകൾ",
+    "settings": "ക്രമീകരണങ്ങൾ",
+    "logout": "ലോഗ് ഔട്ട്",
+    "search_placeholder": "തിരയുക... (Ctrl+K)",
+    "role_status": "റോൾ സ്റ്റാറ്റസ്",
+    "admin_portal": "അഡ്മിൻ പോർട്ടൽ",
+    "save_changes": "സേവ് ചെയ്യുക",
+    "discard": "റദ്ദാക്കുക",
+    "view_all": "എല്ലാം കാണുക",
+    "export_csv": "CSV എക്സ്പോർട്ട്",
+    "filter": "ഫിൽട്ടർ",
+    "status": "സ്റ്റാറ്റസ്",
+    "actions": "നടപടികൾ"
+  },
+  "dashboard": {
+    "welcome": "സ്വാഗതം",
+    "subtitle_admin": "മഹല്ല് സെൻട്രൽ മാനേജ്‌മെന്റ് കമാൻഡ് സെന്റർ",
+    "subtitle_treasurer": "ധനകാര്യ പിരിവുകളും വരിസംഖ്യ കുടിശ്ശികകളും",
+    "subtitle_secretary": "അംഗത്വ ഡയറക്ടറിയും മഹല്ല് രജിസ്റ്ററുകളും",
+    "subtitle_president": "എക്സിക്യൂട്ടീവ് വിലയിരുത്തലും റിപ്പോർട്ടുകളും",
+    "total_members": "ആകെ അംഗങ്ങൾ",
+    "active_households": "കുടുംബങ്ങൾ",
+    "collections_mtd": "ഈ മാസത്തെ വരവ്",
+    "pending_dues": "വരിസംഖ്യ കുടിശ്ശിക",
+    "donations_mtd": "സംഭാവനകൾ",
+    "marriage_records": "നിക്കാഹ് രജിസ്റ്ററുകൾ",
+    "death_records": "മരണ രജിസ്റ്ററുകൾ",
+    "quick_action_treasurer": "പുതിയ വരവ് / വരിസംഖ്യ ചേർക്കുക",
+    "quick_action_secretary": "പുതിയ കുടുംബം / അംഗത്തെ ചേർക്കുക",
+    "recent_activity": "സമീപകാല പ്രവർത്തനങ്ങൾ",
+    "financial_overview": "മാസാന്ത ധനകാര്യ അവലോകനം",
+    "approvals_pending": "അംഗീകാരം കാത്തിരിക്കുന്നവ"
+  },
+  "roles": {
+    "super_admin": "സൂപ്പർ അഡ്മിനിസ്ട്രേറ്റർ",
+    "admin": "മഹല്ല് അഡ്മിനിസ്ട്രേറ്റർ",
+    "treasurer": "ട്രഷറർ",
+    "secretary": "സെക്രട്ടറി",
+    "president": "പ്രസിഡന്റ്"
+  }
+}

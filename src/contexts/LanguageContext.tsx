@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
-import en from '../i18n/en.json';
-import ml from '../i18n/ml.json';
+import en from '../locales/en.json';
+import ml from '../locales/ml.json';
 
 type Language = 'en' | 'ml';
 

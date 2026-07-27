@@ -1385,6 +1385,55 @@ img, svg, video, canvas {
   background: #fff5f5 !important;
 }
 
+/* ── MOBILE BOTTOM NAVIGATION BAR (≤767px) ── */
+.mobile-bottom-nav-bar {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .mobile-bottom-nav-bar {
+    display: flex !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 64px !important;
+    background: #ffffff !important;
+    border-top: 1px solid var(--border-color) !important;
+    z-index: 1000 !important;
+    align-items: center !important;
+    justify-content: space-around !important;
+    box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.05) !important;
+    padding: 0 8px !important;
+  }
+
+  .bottom-nav-item {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    flex: 1 !important;
+    height: 100% !important;
+    color: #64748b !important;
+    text-decoration: none !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    border: none !important;
+    background: transparent !important;
+    cursor: pointer !important;
+  }
+
+  .bottom-nav-item.active {
+    color: var(--primary) !important;
+    font-weight: 800 !important;
+  }
+
+  .main-viewport {
+    padding-bottom: 74px !important;
+  }
+}
+
 /* ENTERPRISE SETTINGS REDESIGN STYLES */
 .settings-viewport-grid {
   display: grid !important;

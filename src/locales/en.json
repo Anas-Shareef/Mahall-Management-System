@@ -1,0 +1,53 @@
+{
+  "common": {
+    "dashboard": "Dashboard",
+    "households": "Households",
+    "members": "Members",
+    "subscriptions": "Subscriptions",
+    "payments": "Payments",
+    "donations": "Donations",
+    "marriages": "Marriage Records",
+    "deaths": "Death Records",
+    "notifications": "Notifications",
+    "gallery": "Media & Gallery",
+    "reports": "Reports & Analytics",
+    "settings": "Settings",
+    "logout": "Logout",
+    "search_placeholder": "Search database... (Ctrl+K)",
+    "role_status": "Role Status",
+    "admin_portal": "Admin Portal",
+    "save_changes": "Save Changes",
+    "discard": "Discard",
+    "view_all": "View All",
+    "export_csv": "Export CSV",
+    "filter": "Filter",
+    "status": "Status",
+    "actions": "Actions"
+  },
+  "dashboard": {
+    "welcome": "Welcome back",
+    "subtitle_admin": "Mahallu Central Management Command Center",
+    "subtitle_treasurer": "Financial Collections & Dues Reconciliation Center",
+    "subtitle_secretary": "Membership Directory & Community Records Registry",
+    "subtitle_president": "Executive Oversight & Analytical Reports Dashboard",
+    "total_members": "Total Members",
+    "active_households": "Active Households",
+    "collections_mtd": "Collections (MTD)",
+    "pending_dues": "Pending Dues",
+    "donations_mtd": "Donations (MTD)",
+    "marriage_records": "Marriage Records",
+    "death_records": "Death Records",
+    "quick_action_treasurer": "Record New Payment / Varika Collection",
+    "quick_action_secretary": "Register New Family / Member",
+    "recent_activity": "Recent System Activity",
+    "financial_overview": "Monthly Financial Collection Trend",
+    "approvals_pending": "Approvals & Verification Pending"
+  },
+  "roles": {
+    "super_admin": "Super Administrator",
+    "admin": "Mahall Administrator",
+    "treasurer": "Treasurer",
+    "secretary": "Secretary",
+    "president": "President"
+  }
+}

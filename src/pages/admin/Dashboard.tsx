@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../contexts/LanguageContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../services/db';
 import type { Household, Member, MemberSubscription, SubscriptionYear, Payment } from '../../services/db';
 import { 
@@ -12,6 +13,7 @@ import { YearFilter } from '../../components/YearFilter';
 
 export const Dashboard: React.FC = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   // Data States
@@ -302,9 +304,17 @@ export const Dashboard: React.FC = () => {
       {/* PAGE HEADER & QUICK ACTIONS */}
       <div className="dashboard-header-bar">
         <div>
-          <h3 className="dashboard-title">{t('nav.dashboard')} Overview</h3>
+          <h3 className="dashboard-title">
+            {t('dashboard.welcome')}, {user?.name || 'Administrator'} ({user?.role?.toUpperCase() || 'ADMIN'})
+          </h3>
           <p className="dashboard-subtitle">
-            Consolidated metrics, active subscription year analytics & quick operations.
+            {user?.role === 'treasurer'
+              ? t('dashboard.subtitle_treasurer')
+              : user?.role === 'secretary'
+              ? t('dashboard.subtitle_secretary')
+              : user?.role === 'president'
+              ? t('dashboard.subtitle_president')
+              : t('dashboard.subtitle_admin')}
           </p>
         </div>
 
@@ -316,60 +326,142 @@ export const Dashboard: React.FC = () => {
             showAllOption={true}
           />
 
-          <button className="add-btn primary-btn" onClick={openAddHouseModal}>
-            <Plus size={16} />
-            <span>+ Add Household</span>
-          </button>
+          {user?.role === 'treasurer' ? (
+            <button className="add-btn primary-btn" onClick={() => navigate('/admin/payments')}>
+              <Plus size={16} />
+              <span>+ Record Payment</span>
+            </button>
+          ) : user?.role === 'secretary' ? (
+            <button className="add-btn primary-btn" onClick={() => navigate('/admin/members')}>
+              <Plus size={16} />
+              <span>+ Add Member</span>
+            </button>
+          ) : (
+            <button className="add-btn primary-btn" onClick={openAddHouseModal}>
+              <Plus size={16} />
+              <span>+ Add Household</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* 1. HERO STATS EMERALD BANNER CARD */}
+      {/* 1. HERO STATS EMERALD BANNER CARD (ROLE-SCOPED) */}
       <div className="hero-emerald-banner shadow-md">
-        <div className="hero-stat-col">
-          <div className="hero-stat-top">
-            <div className="hero-icon-circle">
-              <Home size={18} color="#ffffff" />
+        {user?.role === 'treasurer' ? (
+          <>
+            <div className="hero-stat-col">
+              <div className="hero-stat-top">
+                <div className="hero-icon-circle"><CheckCircle size={18} color="#ffffff" /></div>
+                <span className="hero-stat-label">{t('dashboard.collections_mtd')}</span>
+              </div>
+              <h2 className="hero-stat-value">{formatCurrency(dynamicStats.totalCollected)}</h2>
+              <span className="hero-stat-sub font-xs">Actual payments received</span>
             </div>
-            <span className="hero-stat-label">{t('dashboard.totalHouseholds')}</span>
-          </div>
-          <h2 className="hero-stat-value">{dynamicStats.totalHouseholds}</h2>
-          <span className="hero-stat-sub font-xs">Active house units</span>
-        </div>
 
-        <div className="hero-stat-col">
-          <div className="hero-stat-top">
-            <div className="hero-icon-circle">
-              <Users size={18} color="#ffffff" />
+            <div className="hero-stat-col">
+              <div className="hero-stat-top">
+                <div className="hero-icon-circle"><AlertCircle size={18} color="#ffffff" /></div>
+                <span className="hero-stat-label">{t('dashboard.pending_dues')}</span>
+              </div>
+              <h2 className="hero-stat-value">{formatCurrency(dynamicStats.pendingAmount)}</h2>
+              <span className="hero-stat-sub font-xs">Outstanding balance</span>
             </div>
-            <span className="hero-stat-label">{t('dashboard.totalMembers')}</span>
-          </div>
-          <h2 className="hero-stat-value">{dynamicStats.totalMembers}</h2>
-          <span className="hero-stat-sub font-xs">
-            {dynamicStats.accountableMembersCount} Accountable
-          </span>
-        </div>
 
-        <div className="hero-stat-col">
-          <div className="hero-stat-top">
-            <div className="hero-icon-circle">
-              <TrendingUp size={18} color="#ffffff" />
+            <div className="hero-stat-col">
+              <div className="hero-stat-top">
+                <div className="hero-icon-circle"><TrendingUp size={18} color="#ffffff" /></div>
+                <span className="hero-stat-label">{t('dashboard.donations_mtd')}</span>
+              </div>
+              <h2 className="hero-stat-value">{formatCurrency(dynamicStats.totalDonations)}</h2>
+              <span className="hero-stat-sub font-xs">Received contributions</span>
             </div>
-            <span className="hero-stat-label">Collection Target</span>
-          </div>
-          <h2 className="hero-stat-value">{dynamicStats.collectionRate}%</h2>
-          <span className="hero-stat-sub font-xs">Year {activeYearObj?.year} Target</span>
-        </div>
 
-        <div className="hero-stat-col no-border">
-          <div className="hero-stat-top">
-            <div className="hero-icon-circle">
-              <CheckCircle size={18} color="#ffffff" />
+            <div className="hero-stat-col no-border">
+              <div className="hero-stat-top">
+                <div className="hero-icon-circle"><Sparkles size={18} color="#ffffff" /></div>
+                <span className="hero-stat-label">Target Rate</span>
+              </div>
+              <h2 className="hero-stat-value">{dynamicStats.collectionRate}%</h2>
+              <span className="hero-stat-sub font-xs">Year {activeYearObj?.year} Target</span>
             </div>
-            <span className="hero-stat-label">{t('dashboard.totalCollected')}</span>
-          </div>
-          <h2 className="hero-stat-value">{formatCurrency(dynamicStats.totalCollected)}</h2>
-          <span className="hero-stat-sub font-xs">Actual payments received</span>
-        </div>
+          </>
+        ) : user?.role === 'secretary' ? (
+          <>
+            <div className="hero-stat-col">
+              <div className="hero-stat-top">
+                <div className="hero-icon-circle"><Home size={18} color="#ffffff" /></div>
+                <span className="hero-stat-label">{t('dashboard.active_households')}</span>
+              </div>
+              <h2 className="hero-stat-value">{dynamicStats.totalHouseholds}</h2>
+              <span className="hero-stat-sub font-xs">Registered households</span>
+            </div>
+
+            <div className="hero-stat-col">
+              <div className="hero-stat-top">
+                <div className="hero-icon-circle"><Users size={18} color="#ffffff" /></div>
+                <span className="hero-stat-label">{t('dashboard.total_members')}</span>
+              </div>
+              <h2 className="hero-stat-value">{dynamicStats.totalMembers}</h2>
+              <span className="hero-stat-sub font-xs">{dynamicStats.accountableMembersCount} Accountable</span>
+            </div>
+
+            <div className="hero-stat-col">
+              <div className="hero-stat-top">
+                <div className="hero-icon-circle"><BookOpen size={18} color="#ffffff" /></div>
+                <span className="hero-stat-label">{t('dashboard.marriage_records')}</span>
+              </div>
+              <h2 className="hero-stat-value">{dynamicStats.marriagesCount}</h2>
+              <span className="hero-stat-sub font-xs">Nikah entries</span>
+            </div>
+
+            <div className="hero-stat-col no-border">
+              <div className="hero-stat-top">
+                <div className="hero-icon-circle"><CheckCircle size={18} color="#ffffff" /></div>
+                <span className="hero-stat-label">{t('dashboard.death_records')}</span>
+              </div>
+              <h2 className="hero-stat-value">{dynamicStats.deathsCount}</h2>
+              <span className="hero-stat-sub font-xs">Recorded demises</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="hero-stat-col">
+              <div className="hero-stat-top">
+                <div className="hero-icon-circle"><Home size={18} color="#ffffff" /></div>
+                <span className="hero-stat-label">{t('dashboard.active_households')}</span>
+              </div>
+              <h2 className="hero-stat-value">{dynamicStats.totalHouseholds}</h2>
+              <span className="hero-stat-sub font-xs">Active house units</span>
+            </div>
+
+            <div className="hero-stat-col">
+              <div className="hero-stat-top">
+                <div className="hero-icon-circle"><Users size={18} color="#ffffff" /></div>
+                <span className="hero-stat-label">{t('dashboard.total_members')}</span>
+              </div>
+              <h2 className="hero-stat-value">{dynamicStats.totalMembers}</h2>
+              <span className="hero-stat-sub font-xs">{dynamicStats.accountableMembersCount} Accountable</span>
+            </div>
+
+            <div className="hero-stat-col">
+              <div className="hero-stat-top">
+                <div className="hero-icon-circle"><TrendingUp size={18} color="#ffffff" /></div>
+                <span className="hero-stat-label">Collection Target</span>
+              </div>
+              <h2 className="hero-stat-value">{dynamicStats.collectionRate}%</h2>
+              <span className="hero-stat-sub font-xs">Year {activeYearObj?.year} Target</span>
+            </div>
+
+            <div className="hero-stat-col no-border">
+              <div className="hero-stat-top">
+                <div className="hero-icon-circle"><CheckCircle size={18} color="#ffffff" /></div>
+                <span className="hero-stat-label">{t('dashboard.collections_mtd')}</span>
+              </div>
+              <h2 className="hero-stat-value">{formatCurrency(dynamicStats.totalCollected)}</h2>
+              <span className="hero-stat-sub font-xs">Actual payments received</span>
+            </div>
+          </>
+        )}
       </div>
 
       {/* 2. MIDDLE GRID: Revenue Summary + Quick Actions & Alerts */}
