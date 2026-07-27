@@ -5,10 +5,10 @@ import { VmOneLogo } from '../components/VmOneLogo';
 import { db } from '../services/db';
 import { 
   Building2, Palette, UserCheck, DollarSign, Award, Bell, 
-  FileSpreadsheet, ShieldCheck, Database, Info, 
-  Upload, Trash2, Save, RotateCcw, CheckCircle, AlertCircle, 
-  Download, Key, Smartphone, Loader2, Send, FileText, Check,
-  Sliders, MessageSquare, AlertTriangle, Shield, Copy
+  ShieldCheck, Database, Info, 
+  Upload, Save, RotateCcw, CheckCircle, AlertCircle, 
+  Download, Smartphone, Loader2, Send,
+  MessageSquare, AlertTriangle, Shield, Copy
 } from 'lucide-react';
 
 type SettingsSection = 
@@ -37,7 +37,7 @@ interface RolePermission {
 
 export const SharedSettings: React.FC = () => {
   const { user, updateUserProfile } = useAuth();
-  const { branding, updateBranding, getInitials } = useOrganization();
+  const { branding, updateBranding } = useOrganization();
 
   // Navigation State
   const [activeSection, setActiveSection] = useState<SettingsSection>('organization');
