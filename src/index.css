@@ -4181,6 +4181,48 @@ select.custom-select-pill:focus,
   color: #01A350 !important;
 }
 
+/* ── SETTINGS HORIZONTAL PILL TAB BAR (MATCHING IMAGE 3) ── */
+.settings-horizontal-tabs-bar {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: #ffffff !important;
+  border-radius: 9999px !important;
+  border: 1.5px solid #e2e8f0 !important;
+  padding: 6px !important;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04) !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.settings-pill-tab {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 10px 20px !important;
+  border-radius: 9999px !important;
+  border: none !important;
+  background: transparent !important;
+  color: #64748b !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: all 0.2s ease !important;
+}
+
+.settings-pill-tab:hover {
+  background: #f8fafc !important;
+  color: #01A350 !important;
+}
+
+.settings-pill-tab.active {
+  background: #ecfdf5 !important;
+  color: #01A350 !important;
+  font-weight: 800 !important;
+  box-shadow: 0 2px 10px rgba(1, 163, 80, 0.12) !important;
+}
+
 
 
 

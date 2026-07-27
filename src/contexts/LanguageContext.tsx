@@ -26,6 +26,25 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem('mahal_language', lang);
   };
 
+  const formatFallbackKey = (rawKey: string): string => {
+    const overrides: Record<string, string> = {
+      'Household.householdsTitle': 'Households',
+      'Household.addHousehold': 'Add Household',
+      'Member.membersTitle': 'Members',
+      'Member.addMember': 'Add Member',
+      'Subscription.subscriptionTitle': 'Subscriptions',
+      'Payment.paymentsTitle': 'Payments',
+      'Notifications.notificationsTitle': 'Notifications',
+      'Reports.reportsTitle': 'Reports',
+    };
+    if (overrides[rawKey]) return overrides[rawKey];
+
+    const lastPart = rawKey.includes('.') ? rawKey.split('.').pop() || rawKey : rawKey;
+    let formatted = lastPart.replace(/([A-Z])/g, ' $1').trim();
+    formatted = formatted.replace(/\s*Title$/i, '');
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+  };
+
   const t = (key: string, variables?: Record<string, string | number>): string => {
     const keys = key.split('.');
     let current: any = translations[language];
@@ -50,14 +69,12 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             break;
           }
         }
-        const cleanKey = key.replace(/^nav\./i, '').replace(/^common\./i, '');
-        return cleanKey.charAt(0).toUpperCase() + cleanKey.slice(1);
+        return formatFallbackKey(key);
       }
     }
 
     if (typeof current !== 'string') {
-      const cleanKey = key.replace(/^nav\./i, '').replace(/^common\./i, '');
-      return cleanKey.charAt(0).toUpperCase() + cleanKey.slice(1);
+      return formatFallbackKey(key);
     }
 
     let text = current;
