@@ -45,7 +45,6 @@ export const SharedSettings: React.FC = () => {
   // Form Fields States
   const [orgName, setOrgName] = useState(branding.organizationName);
   const [orgNameMl, setOrgNameMl] = useState(branding.organizationNameMalayalam || '');
-  const [shortName, setShortName] = useState(branding.shortName || '');
   const [logoUrl, setLogoUrl] = useState<string | null>(branding.logoUrl);
   const [sealUrl, setSealUrl] = useState<string | null>(null);
   const [phone, setPhone] = useState(branding.phone);
@@ -112,7 +111,6 @@ export const SharedSettings: React.FC = () => {
     return (
       orgName !== branding.organizationName ||
       orgNameMl !== (branding.organizationNameMalayalam || '') ||
-      shortName !== (branding.shortName || '') ||
       logoUrl !== branding.logoUrl ||
       phone !== branding.phone ||
       email !== branding.contactEmail ||
@@ -122,12 +120,11 @@ export const SharedSettings: React.FC = () => {
       adminName !== (branding.adminDisplayName || user?.name || '') ||
       primaryColor !== (branding.primaryColor || '#01A350')
     );
-  }, [orgName, orgNameMl, shortName, logoUrl, phone, email, address, regNo, website, adminName, primaryColor, branding, user]);
+  }, [orgName, orgNameMl, logoUrl, phone, email, address, regNo, website, adminName, primaryColor, branding, user]);
 
   const handleDiscard = () => {
     setOrgName(branding.organizationName);
     setOrgNameMl(branding.organizationNameMalayalam || '');
-    setShortName(branding.shortName || '');
     setLogoUrl(branding.logoUrl);
     setPhone(branding.phone);
     setEmail(branding.contactEmail);
@@ -147,7 +144,7 @@ export const SharedSettings: React.FC = () => {
       updateBranding({
         organizationName: orgName.trim(),
         organizationNameMalayalam: orgNameMl.trim(),
-        shortName: shortName.trim(),
+        shortName: orgName.trim(),
         logoUrl: logoUrl,
         contactEmail: email.trim(),
         phone: phone.trim(),
@@ -443,17 +440,6 @@ export const SharedSettings: React.FC = () => {
 
                 <div className="form-row-grid">
                   <div className="form-group">
-                    <label htmlFor="setting-short-name" className="form-label font-weight-700">Short Code / Acronym</label>
-                    <input
-                      id="setting-short-name"
-                      type="text"
-                      className="form-control"
-                      value={shortName}
-                      onChange={(e) => setShortName(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="form-group">
                     <label htmlFor="setting-mahal-reg" className="form-label font-weight-700">Waqf Board / Reg Number</label>
                     <input
                       id="setting-mahal-reg"
@@ -463,9 +449,7 @@ export const SharedSettings: React.FC = () => {
                       onChange={(e) => setRegNo(e.target.value)}
                     />
                   </div>
-                </div>
 
-                <div className="form-row-grid">
                   <div className="form-group">
                     <label htmlFor="setting-foundation" className="form-label font-weight-700">Foundation Year</label>
                     <input
@@ -476,7 +460,9 @@ export const SharedSettings: React.FC = () => {
                       onChange={(e) => setFoundationYear(e.target.value)}
                     />
                   </div>
+                </div>
 
+                <div className="form-row-grid">
                   <div className="form-group">
                     <label htmlFor="setting-mahal-phone" className="form-label font-weight-700">Official Phone Number</label>
                     <input
@@ -1052,14 +1038,14 @@ export const SharedSettings: React.FC = () => {
 
               <div className="settings-form-body">
                 <div className="form-row-grid">
-                  <div className="glass-card padding-md">
+                  <div className="glass-card padding-md flex-col gap-2xs">
                     <span className="font-2xs color-subtle text-uppercase font-weight-700">Application Version</span>
-                    <h4 className="font-md font-weight-800 text-dark margin-top-2xs margin-bottom-0">v3.5.0 (VM ONE Edition)</h4>
+                    <h4 className="font-md font-weight-800 text-dark margin-0">v3.5.0 (VM ONE Edition)</h4>
                   </div>
 
-                  <div className="glass-card padding-md">
+                  <div className="glass-card padding-md flex-col gap-2xs">
                     <span className="font-2xs color-subtle text-uppercase font-weight-700">Database Engine</span>
-                    <h4 className="font-md font-weight-800 text-emerald margin-top-2xs margin-bottom-0 flex-row-gap-2xs align-items-center">
+                    <h4 className="font-md font-weight-800 text-emerald margin-0 flex-row-gap-2xs align-items-center">
                       <CheckCircle size={16} /> Supabase PostgreSQL
                     </h4>
                   </div>
