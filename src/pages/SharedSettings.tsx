@@ -5,7 +5,7 @@ import { VmOneLogo } from '../components/VmOneLogo';
 import { 
   Building2, UserCheck, Award, Bell, 
   Database, Upload, Save, RotateCcw, CheckCircle, AlertCircle, 
-  Download, Loader2, FileSpreadsheet
+  Download, Loader2, FileSpreadsheet, MessageSquare, Mail, ShieldCheck
 } from 'lucide-react';
 
 type SettingsSection = 
@@ -155,8 +155,8 @@ export const SharedSettings: React.FC = () => {
         </div>
       )}
 
-      {/* HEADER TITLE */}
-      <div className="settings-header-banner margin-bottom-md flex-between align-items-center flex-wrap gap-md">
+      {/* HEADER TITLE (SPACIOUS MARGIN BOTTOM - MATCHING IMAGE 2) */}
+      <div className="settings-header-banner flex-between align-items-center flex-wrap gap-md" style={{ marginBottom: 28 }}>
         <div>
           <h2 className="font-xl font-weight-800 text-dark margin-0">
             System Settings <span className="font-xs color-subtle">/ {activeSection.toUpperCase()}</span>
@@ -165,8 +165,8 @@ export const SharedSettings: React.FC = () => {
         </div>
       </div>
 
-      {/* HORIZONTAL PILL TAB NAVIGATION BAR (MATCHING IMAGE 3) */}
-      <div className="settings-horizontal-tabs-bar margin-bottom-lg">
+      {/* HORIZONTAL PILL TAB NAVIGATION BAR (GENEROUS BOTTOM SPACING - MATCHING IMAGE 2 & 3) */}
+      <div className="settings-horizontal-tabs-bar" style={{ marginBottom: 32 }}>
         <button
           className={`settings-pill-tab ${activeSection === 'organization' ? 'active' : ''}`}
           onClick={() => setActiveSection('organization')}
@@ -213,8 +213,8 @@ export const SharedSettings: React.FC = () => {
         
         {/* SECTION 1: MAHALL PROFILE */}
         {activeSection === 'organization' && (
-          <div className="settings-section-card glass-card animate-fade-in">
-            <div className="section-head">
+          <div className="settings-section-card glass-card animate-fade-in" style={{ padding: 32, borderRadius: 24 }}>
+            <div className="section-head margin-bottom-lg">
               <Building2 size={22} className="head-icon icon-emerald" />
               <div>
                 <h4>Mahall Profile & Identity</h4>
@@ -223,44 +223,34 @@ export const SharedSettings: React.FC = () => {
             </div>
 
             <div className="settings-form-body">
-              {/* REDESIGNED LOGO & SEAL UPLOAD CARDS */}
-              <div className="form-row-grid margin-bottom-md">
-                {/* MAHALL LOGO UPLOAD */}
-                <div className="glass-card padding-md flex-between align-items-center flex-wrap gap-sm" style={{ border: '1.5px solid #e2e8f0', borderRadius: 20 }}>
-                  <div className="flex-row-gap-md align-items-center">
-                    <div className="brand-icon-box shadow-sm" style={{ width: 64, height: 64, borderRadius: 16, background: '#ffffff', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {logoUrl ? <img src={logoUrl} alt="Logo" className="brand-logo-img" style={{ maxHeight: 52, maxWidth: 52 }} /> : <VmOneLogo size={42} showWordmark={false} />}
-                    </div>
-                    <div>
-                      <h4 className="font-sm font-weight-800 text-dark margin-0">Mahall Logo</h4>
-                      <p className="font-2xs color-subtle margin-top-3xs">PNG / SVG / WEBP (Max 3MB)</p>
-                    </div>
+              {/* DASHED UPLOAD DROPZONE CARDS (MATCHING IMAGE 1) */}
+              <div className="form-row-grid margin-bottom-lg" style={{ gap: 20 }}>
+                {/* MAHALL LOGO UPLOAD DROPZONE */}
+                <label htmlFor="logo-upload-input" className="dashed-upload-dropzone">
+                  <div className="dropzone-left-preview">
+                    {logoUrl ? <img src={logoUrl} alt="Logo" className="brand-logo-img" style={{ maxHeight: 52, maxWidth: 52 }} /> : <VmOneLogo size={42} showWordmark={false} />}
                   </div>
-                  <label htmlFor="logo-upload-input" className="pill-btn-primary font-xs cursor-pointer" style={{ padding: '10px 18px', borderRadius: 9999 }}>
-                    <Upload size={14} /> Upload Logo
-                    <input id="logo-upload-input" type="file" accept="image/*" className="display-none" onChange={handleLogoUpload} />
-                  </label>
-                </div>
+                  <div className="dropzone-right-info">
+                    <div className="dropzone-title">Click to replace logo</div>
+                    <div className="dropzone-subtitle">SVG, PNG or WEBP, 300×100px</div>
+                  </div>
+                  <input id="logo-upload-input" type="file" accept="image/*" className="display-none" onChange={handleLogoUpload} />
+                </label>
 
-                {/* OFFICIAL STAMP / SEAL UPLOAD */}
-                <div className="glass-card padding-md flex-between align-items-center flex-wrap gap-sm" style={{ border: '1.5px solid #e2e8f0', borderRadius: 20 }}>
-                  <div className="flex-row-gap-md align-items-center">
-                    <div className="brand-icon-box shadow-sm" style={{ width: 64, height: 64, borderRadius: 16, background: '#f8fafc', border: '1.5px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {sealUrl ? <img src={sealUrl} alt="Official Seal" className="brand-logo-img" style={{ maxHeight: 52, maxWidth: 52 }} /> : <Award size={28} className="text-emerald" />}
-                    </div>
-                    <div>
-                      <h4 className="font-sm font-weight-800 text-dark margin-0">Official Stamp / Seal</h4>
-                      <p className="font-2xs color-subtle margin-top-3xs">Used on printed certificates</p>
-                    </div>
+                {/* OFFICIAL STAMP / SEAL UPLOAD DROPZONE */}
+                <label htmlFor="seal-upload-input" className="dashed-upload-dropzone">
+                  <div className="dropzone-left-preview">
+                    {sealUrl ? <img src={sealUrl} alt="Official Seal" className="brand-logo-img" style={{ maxHeight: 52, maxWidth: 52 }} /> : <Award size={28} className="text-emerald" />}
                   </div>
-                  <label htmlFor="seal-upload-input" className="pill-btn-secondary font-xs cursor-pointer" style={{ padding: '10px 18px', borderRadius: 9999 }}>
-                    <Upload size={14} /> Upload Seal
-                    <input id="seal-upload-input" type="file" accept="image/*" className="display-none" onChange={handleSealUpload} />
-                  </label>
-                </div>
+                  <div className="dropzone-right-info">
+                    <div className="dropzone-title">Official Stamp / Seal</div>
+                    <div className="dropzone-subtitle">Used on printed certificates • SVG or PNG</div>
+                  </div>
+                  <input id="seal-upload-input" type="file" accept="image/*" className="display-none" onChange={handleSealUpload} />
+                </label>
               </div>
 
-              <div className="form-row-grid">
+              <div className="form-row-grid margin-bottom-md">
                 <div className="form-group">
                   <label htmlFor="setting-mahal-name" className="form-label font-weight-700">Official Mahall Name (English) *</label>
                   <input
@@ -285,7 +275,7 @@ export const SharedSettings: React.FC = () => {
                 </div>
               </div>
 
-              <div className="form-row-grid">
+              <div className="form-row-grid margin-bottom-md">
                 <div className="form-group">
                   <label htmlFor="setting-mahal-reg" className="form-label font-weight-700">Waqf Board / Reg Number</label>
                   <input
@@ -309,7 +299,7 @@ export const SharedSettings: React.FC = () => {
                 </div>
               </div>
 
-              <div className="form-row-grid">
+              <div className="form-row-grid margin-bottom-md">
                 <div className="form-group">
                   <label htmlFor="setting-mahal-phone" className="form-label font-weight-700">Official Phone Number</label>
                   <input
@@ -332,7 +322,7 @@ export const SharedSettings: React.FC = () => {
                 </div>
               </div>
 
-              <div className="form-group margin-top-xs">
+              <div className="form-group">
                 <label htmlFor="setting-mahal-address" className="form-label font-weight-700">Physical Office Address</label>
                 <input
                   id="setting-mahal-address"
@@ -348,8 +338,8 @@ export const SharedSettings: React.FC = () => {
 
         {/* SECTION 2: ADMINISTRATOR */}
         {activeSection === 'administrator' && (
-          <div className="settings-section-card glass-card animate-fade-in">
-            <div className="section-head">
+          <div className="settings-section-card glass-card animate-fade-in" style={{ padding: 32, borderRadius: 24 }}>
+            <div className="section-head margin-bottom-lg">
               <UserCheck size={22} className="head-icon icon-emerald" />
               <div>
                 <h4>Administrator Profile</h4>
@@ -358,7 +348,7 @@ export const SharedSettings: React.FC = () => {
             </div>
 
             <div className="settings-form-body">
-              <div className="form-group">
+              <div className="form-group margin-bottom-md">
                 <label htmlFor="admin-display-name" className="form-label font-weight-700">Admin Display Name *</label>
                 <input
                   id="admin-display-name"
@@ -399,8 +389,8 @@ export const SharedSettings: React.FC = () => {
 
         {/* SECTION 3: CERTIFICATE TEMPLATES */}
         {activeSection === 'certificates' && (
-          <div className="settings-section-card glass-card animate-fade-in">
-            <div className="section-head">
+          <div className="settings-section-card glass-card animate-fade-in" style={{ padding: 32, borderRadius: 24 }}>
+            <div className="section-head margin-bottom-lg">
               <Award size={22} className="head-icon icon-emerald" />
               <div>
                 <h4>Certificate & Document Templates</h4>
@@ -469,9 +459,9 @@ export const SharedSettings: React.FC = () => {
           </div>
         )}
 
-        {/* SECTION 4: NOTIFICATION CHANNELS (MATCHING IMAGES 1 & 2) */}
+        {/* SECTION 4: NOTIFICATION CHANNELS (MATCHING IMAGES 1, 2, & 3) */}
         {activeSection === 'notifications' && (
-          <div className="settings-section-card glass-card animate-fade-in" style={{ borderRadius: 24, padding: 32, border: '1px solid #e2e8f0', background: '#ffffff', boxShadow: '0 4px 20px rgba(15, 23, 42, 0.03)' }}>
+          <div className="settings-section-card glass-card animate-fade-in" style={{ borderRadius: 24, padding: 32, border: '1.5px solid #e2e8f0', background: '#ffffff', boxShadow: '0 4px 20px rgba(15, 23, 42, 0.03)' }}>
             <div className="section-head margin-bottom-lg" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               <div style={{ width: 48, height: 48, borderRadius: 14, background: '#ecfdf5', color: '#01A350', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Bell size={24} />
@@ -484,45 +474,66 @@ export const SharedSettings: React.FC = () => {
 
             <div className="settings-form-body flex-col gap-md">
               {/* Push Alerts Option Card */}
-              <div className="glass-card padding-md flex-between align-items-center flex-wrap gap-sm" style={{ border: '1.5px solid #e2e8f0', borderRadius: 18, background: '#ffffff' }}>
-                <div>
-                  <h4 className="font-sm font-weight-800 text-dark margin-0">In-App Push Alerts</h4>
-                  <p className="font-2xs color-subtle margin-top-3xs">Receive live notifications in top bar</p>
+              <div className="setting-option-card">
+                <div className="flex-row-gap-md align-items-center">
+                  <div style={{ width: 42, height: 42, borderRadius: 12, background: '#ecfdf5', color: '#01A350', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Bell size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-sm font-weight-800 text-dark margin-0">In-App Push Alerts</h4>
+                    <p className="font-2xs color-subtle margin-top-3xs">Receive live notifications in top bar</p>
+                  </div>
                 </div>
-                <input 
-                  type="checkbox" 
-                  checked={pushAlerts} 
-                  onChange={(e) => setPushAlerts(e.target.checked)}
-                  style={{ width: 22, height: 22, accentColor: '#01A350', cursor: 'pointer' }}
-                />
+                <label className="ios-toggle-wrap">
+                  <input 
+                    type="checkbox" 
+                    checked={pushAlerts} 
+                    onChange={(e) => setPushAlerts(e.target.checked)}
+                  />
+                  <span className="ios-toggle-slider"></span>
+                </label>
               </div>
 
               {/* Email Confirmations Option Card */}
-              <div className="glass-card padding-md flex-between align-items-center flex-wrap gap-sm" style={{ border: '1.5px solid #e2e8f0', borderRadius: 18, background: '#ffffff' }}>
-                <div>
-                  <h4 className="font-sm font-weight-800 text-dark margin-0">Email Confirmations</h4>
-                  <p className="font-2xs color-subtle margin-top-3xs">Send PDF receipts automatically via email</p>
+              <div className="setting-option-card">
+                <div className="flex-row-gap-md align-items-center">
+                  <div style={{ width: 42, height: 42, borderRadius: 12, background: '#eff6ff', color: '#0746D3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Mail size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-sm font-weight-800 text-dark margin-0">Email Confirmations</h4>
+                    <p className="font-2xs color-subtle margin-top-3xs">Send PDF receipts automatically via email</p>
+                  </div>
                 </div>
-                <input 
-                  type="checkbox" 
-                  checked={emailConfirmations} 
-                  onChange={(e) => setEmailConfirmations(e.target.checked)}
-                  style={{ width: 22, height: 22, accentColor: '#01A350', cursor: 'pointer' }}
-                />
+                <label className="ios-toggle-wrap">
+                  <input 
+                    type="checkbox" 
+                    checked={emailConfirmations} 
+                    onChange={(e) => setEmailConfirmations(e.target.checked)}
+                  />
+                  <span className="ios-toggle-slider"></span>
+                </label>
               </div>
 
               {/* WhatsApp Reminders Option Card */}
-              <div className="glass-card padding-md flex-between align-items-center flex-wrap gap-sm" style={{ border: '1.5px solid #e2e8f0', borderRadius: 18, background: '#ffffff' }}>
-                <div>
-                  <h4 className="font-sm font-weight-800 text-dark margin-0">WhatsApp Dues Reminders</h4>
-                  <p className="font-2xs color-subtle margin-top-3xs">Send automated subscription payment alerts via WhatsApp API</p>
+              <div className="setting-option-card">
+                <div className="flex-row-gap-md align-items-center">
+                  <div style={{ width: 42, height: 42, borderRadius: 12, background: '#f0fdf4', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <MessageSquare size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-sm font-weight-800 text-dark margin-0">WhatsApp Dues Reminders</h4>
+                    <p className="font-2xs color-subtle margin-top-3xs">Send automated subscription payment alerts via WhatsApp API</p>
+                  </div>
                 </div>
-                <input 
-                  type="checkbox" 
-                  checked={whatsappReminders} 
-                  onChange={(e) => setWhatsappReminders(e.target.checked)}
-                  style={{ width: 22, height: 22, accentColor: '#01A350', cursor: 'pointer' }}
-                />
+                <label className="ios-toggle-wrap">
+                  <input 
+                    type="checkbox" 
+                    checked={whatsappReminders} 
+                    onChange={(e) => setWhatsappReminders(e.target.checked)}
+                  />
+                  <span className="ios-toggle-slider"></span>
+                </label>
               </div>
             </div>
           </div>
@@ -530,7 +541,7 @@ export const SharedSettings: React.FC = () => {
 
         {/* SECTION 5: BACKUP & DATA EXPORT */}
         {activeSection === 'backup' && (
-          <div className="settings-section-card glass-card animate-fade-in" style={{ borderRadius: 24, padding: 32, border: '1px solid #e2e8f0', background: '#ffffff' }}>
+          <div className="settings-section-card glass-card animate-fade-in" style={{ borderRadius: 24, padding: 32, border: '1.5px solid #e2e8f0', background: '#ffffff', boxShadow: '0 4px 20px rgba(15, 23, 42, 0.03)' }}>
             <div className="section-head margin-bottom-lg" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               <div style={{ width: 48, height: 48, borderRadius: 14, background: '#ecfdf5', color: '#01A350', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Database size={24} />
@@ -542,33 +553,48 @@ export const SharedSettings: React.FC = () => {
             </div>
 
             <div className="settings-form-body flex-col gap-md">
-              <div className="glass-card padding-md flex-between align-items-center flex-wrap gap-sm" style={{ border: '1.5px solid #e2e8f0', borderRadius: 18 }}>
-                <div>
-                  <h4 className="font-sm font-weight-800 text-dark margin-0">Full Database Backup (JSON)</h4>
-                  <p className="font-2xs color-subtle margin-top-3xs">Complete snapshot of households, members, payments, and system settings</p>
+              <div className="setting-option-card">
+                <div className="flex-row-gap-md align-items-center">
+                  <div style={{ width: 42, height: 42, borderRadius: 12, background: '#ecfdf5', color: '#01A350', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <ShieldCheck size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-sm font-weight-800 text-dark margin-0">Full Database Backup (JSON)</h4>
+                    <p className="font-2xs color-subtle margin-top-3xs">Complete snapshot of households, members, payments, and system settings</p>
+                  </div>
                 </div>
                 <button className="pill-btn-primary font-xs" style={{ padding: '10px 18px', borderRadius: 9999 }} onClick={() => showToast('success', 'Database JSON backup generated & downloaded.')}>
-                  <Download size={14} /> Download JSON Backup
+                  <Download size={14} /> Download JSON
                 </button>
               </div>
 
-              <div className="glass-card padding-md flex-between align-items-center flex-wrap gap-sm" style={{ border: '1.5px solid #e2e8f0', borderRadius: 18 }}>
-                <div>
-                  <h4 className="font-sm font-weight-800 text-dark margin-0">Export Members Directory (CSV)</h4>
-                  <p className="font-2xs color-subtle margin-top-3xs">Full CSV roster of registered members</p>
+              <div className="setting-option-card">
+                <div className="flex-row-gap-md align-items-center">
+                  <div style={{ width: 42, height: 42, borderRadius: 12, background: '#eff6ff', color: '#0746D3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <FileSpreadsheet size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-sm font-weight-800 text-dark margin-0">Export Members Directory (CSV)</h4>
+                    <p className="font-2xs color-subtle margin-top-3xs">Full CSV roster of registered members</p>
+                  </div>
                 </div>
                 <button className="pill-btn-secondary font-xs" style={{ padding: '10px 18px', borderRadius: 9999 }} onClick={() => showToast('success', 'Exporting Members CSV...')}>
-                  <FileSpreadsheet size={14} /> Export Members CSV
+                  <Download size={14} /> Export CSV
                 </button>
               </div>
 
-              <div className="glass-card padding-md flex-between align-items-center flex-wrap gap-sm" style={{ border: '1.5px solid #e2e8f0', borderRadius: 18 }}>
-                <div>
-                  <h4 className="font-sm font-weight-800 text-dark margin-0">Export Household Ledgers (CSV)</h4>
-                  <p className="font-2xs color-subtle margin-top-3xs">CSV report of all registered households and payment status</p>
+              <div className="setting-option-card">
+                <div className="flex-row-gap-md align-items-center">
+                  <div style={{ width: 42, height: 42, borderRadius: 12, background: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <FileSpreadsheet size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-sm font-weight-800 text-dark margin-0">Export Household Ledgers (CSV)</h4>
+                    <p className="font-2xs color-subtle margin-top-3xs">CSV report of all registered households and payment status</p>
+                  </div>
                 </div>
                 <button className="pill-btn-secondary font-xs" style={{ padding: '10px 18px', borderRadius: 9999 }} onClick={() => showToast('success', 'Exporting Household Ledgers...')}>
-                  <FileSpreadsheet size={14} /> Export Households CSV
+                  <Download size={14} /> Export CSV
                 </button>
               </div>
             </div>
