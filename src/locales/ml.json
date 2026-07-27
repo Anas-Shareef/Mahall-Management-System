@@ -1,4 +1,27 @@
 {
+  "nav": {
+    "dashboard": "ഡാഷ്‌ബോർഡ്",
+    "people": "ആളുകൾ",
+    "households": "കുടുംബങ്ങൾ",
+    "members": "അംഗങ്ങൾ",
+    "finance": "ധനകാര്യം",
+    "subscriptions": "വരിസംഖ്യ",
+    "payments": "വരവുകൾ",
+    "donations": "സംഭാവനകൾ",
+    "community": "സമൂഹം",
+    "deaths": "മരണ രജിസ്റ്റർ",
+    "marriages": "നിക്കാഹ് രജിസ്റ്റർ",
+    "communication": "അറിയിപ്പുകൾ",
+    "notifications": "അറിയിപ്പുകൾ",
+    "media": "മീഡിയ",
+    "gallery": "മീഡിയ & ഗാലറി",
+    "reports": "റിപ്പോർട്ടുകൾ",
+    "settings": "ക്രമീകരണങ്ങൾ",
+    "logout": "ലോഗ് ഔട്ട്",
+    "mySubscription": "എന്റെ വരിസംഖ്യ",
+    "paymentHistory": "പേയ്‌മെന്റ് ചരിത്രം",
+    "myProfile": "എന്റെ പ്രൊഫൈൽ"
+  },
   "common": {
     "dashboard": "ഡാഷ്‌ബോർഡ്",
     "households": "കുടുംബങ്ങൾ",

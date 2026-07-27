@@ -50,12 +50,14 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             break;
           }
         }
-        return key;
+        const cleanKey = key.replace(/^nav\./i, '').replace(/^common\./i, '');
+        return cleanKey.charAt(0).toUpperCase() + cleanKey.slice(1);
       }
     }
 
     if (typeof current !== 'string') {
-      return key;
+      const cleanKey = key.replace(/^nav\./i, '').replace(/^common\./i, '');
+      return cleanKey.charAt(0).toUpperCase() + cleanKey.slice(1);
     }
 
     let text = current;

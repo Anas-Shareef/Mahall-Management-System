@@ -1,4 +1,27 @@
 {
+  "nav": {
+    "dashboard": "Dashboard",
+    "people": "People",
+    "households": "Households",
+    "members": "Members",
+    "finance": "Finance",
+    "subscriptions": "Subscriptions",
+    "payments": "Payments",
+    "donations": "Donations",
+    "community": "Community Records",
+    "deaths": "Death Records",
+    "marriages": "Marriage Records",
+    "communication": "Communication",
+    "notifications": "Notifications",
+    "media": "Media",
+    "gallery": "Media & Gallery",
+    "reports": "Reports & Analytics",
+    "settings": "Settings",
+    "logout": "Logout",
+    "mySubscription": "My Subscription",
+    "paymentHistory": "Payment History",
+    "myProfile": "My Profile"
+  },
   "common": {
     "dashboard": "Dashboard",
     "households": "Households",

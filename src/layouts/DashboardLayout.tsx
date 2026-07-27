@@ -43,9 +43,38 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
   const location = useLocation();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMoreModulesOpen, setIsMoreModulesOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+
+  const getMoreModulesList = () => {
+    const role = (user?.role as string) || 'admin';
+    const allModules = [
+      { to: '/admin/subscriptions', label: t('nav.subscriptions'), icon: FileText },
+      { to: '/admin/payments', label: t('nav.payments'), icon: Receipt },
+      { to: '/admin/donations', label: t('nav.donations'), icon: HeartHandshake },
+      { to: '/admin/households', label: t('nav.households'), icon: Home },
+      { to: '/admin/members', label: t('nav.members'), icon: Users },
+      { to: '/admin/marriages', label: t('nav.marriages'), icon: Heart },
+      { to: '/admin/deaths', label: t('nav.deaths'), icon: UserX },
+      { to: '/admin/notifications', label: t('nav.notifications'), icon: Bell },
+      { to: '/admin/gallery', label: t('nav.gallery'), icon: ImageIcon },
+      { to: '/admin/reports', label: t('nav.reports'), icon: BarChart3 },
+      { to: '/admin/settings', label: t('nav.settings'), icon: Settings },
+    ];
+
+    let excludedPaths: string[] = [];
+    if (role === 'treasurer') {
+      excludedPaths = ['/admin/dashboard', '/admin/payments', '/admin/donations', '/admin/reports'];
+    } else if (role === 'secretary') {
+      excludedPaths = ['/admin/dashboard', '/admin/households', '/admin/members', '/admin/marriages'];
+    } else {
+      excludedPaths = ['/admin/dashboard', '/admin/households', '/admin/payments', '/admin/reports'];
+    }
+
+    return allModules.filter((m) => !excludedPaths.includes(m.to));
+  };
 
   // Dynamic Admin Profile Name State
   const [adminName, setAdminName] = useState<string>(() => {
@@ -187,6 +216,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
+    setIsMoreModulesOpen(false);
     setIsNotificationOpen(false);
     setIsProfileOpen(false);
     setIsLangMenuOpen(false);
@@ -709,11 +739,52 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
           </>
         )}
 
-        <button type="button" className="bottom-nav-item" onClick={() => setIsMobileMenuOpen(true)}>
+        <button type="button" className="bottom-nav-item" onClick={() => setIsMoreModulesOpen(true)}>
           <Menu size={20} />
           <span>More</span>
         </button>
       </nav>
+
+      {/* MORE MODULES BOTTOM SHEET MODAL */}
+      {isMoreModulesOpen && (
+        <div className="more-modules-overlay animate-fade-in" onClick={() => setIsMoreModulesOpen(false)}>
+          <div className="more-modules-sheet animate-slide-up" onClick={(e) => e.stopPropagation()}>
+            <div className="more-modules-header">
+              <h3 className="more-modules-title">More Modules</h3>
+              <button 
+                type="button" 
+                className="more-modules-close-btn" 
+                onClick={() => setIsMoreModulesOpen(false)}
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="more-modules-grid">
+              {getMoreModulesList().map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.to}
+                    type="button"
+                    className="more-module-card"
+                    onClick={() => {
+                      navigate(item.to);
+                      setIsMoreModulesOpen(false);
+                    }}
+                  >
+                    <div className="more-module-icon-box">
+                      <Icon size={22} />
+                    </div>
+                    <span className="more-module-label">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       <PWAInstallPrompt />
 
