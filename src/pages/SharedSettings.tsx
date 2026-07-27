@@ -4,26 +4,18 @@ import { useOrganization } from '../contexts/OrganizationContext';
 import { VmOneLogo } from '../components/VmOneLogo';
 import { db } from '../services/db';
 import { 
-  Building2, Palette, UserCheck, DollarSign, Award, Bell, 
-  ShieldCheck, Database, Info, 
-  Upload, Save, RotateCcw, CheckCircle, AlertCircle, 
-  Download, Smartphone, Loader2, Send,
-  MessageSquare, AlertTriangle, Shield, Copy
+  Building2, UserCheck, DollarSign, Award, Bell, 
+  Database, Upload, Save, RotateCcw, CheckCircle, AlertCircle, 
+  Download, Loader2
 } from 'lucide-react';
 
 type SettingsSection = 
   | 'organization'
-  | 'branding'
   | 'administrator'
   | 'financial'
-  | 'committee'
-  | 'sms'
   | 'certificates'
   | 'notifications'
-  | 'reports'
-  | 'security'
-  | 'backup'
-  | 'about';
+  | 'backup';
 
 interface RolePermission {
   role: string;
@@ -55,8 +47,8 @@ export const SharedSettings: React.FC = () => {
   const [website, setWebsite] = useState(branding.website || '');
 
   // Branding Colors
-  const [primaryColor, setPrimaryColor] = useState(branding.primaryColor || '#01A350');
-  const [secondaryColor, setSecondaryColor] = useState(branding.secondaryColor || '#0746D3');
+  const [primaryColor] = useState(branding.primaryColor || '#01A350');
+  const [secondaryColor] = useState(branding.secondaryColor || '#0746D3');
 
   // Admin Profile
   const [adminName, setAdminName] = useState(branding.adminDisplayName || user?.name || '');
@@ -70,32 +62,11 @@ export const SharedSettings: React.FC = () => {
   const [receiptPrefix, setReceiptPrefix] = useState('MHL-2026-');
   const [donationPrefix, setDonationPrefix] = useState('DON-2026-');
 
-  // Committee & Permission Matrix State
-  const [permissions, setPermissions] = useState<RolePermission[]>([
-    { role: 'President', finances: true, households: true, marriages: true, deaths: true, gallery: true, settings: true },
-    { role: 'Secretary', finances: true, households: true, marriages: true, deaths: true, gallery: true, settings: true },
-    { role: 'Treasurer', finances: true, households: false, marriages: false, deaths: false, gallery: false, settings: false },
-    { role: 'Khatib / Imam', finances: false, households: true, marriages: true, deaths: true, gallery: true, settings: false },
-    { role: 'Data Entry Admin', finances: false, households: true, marriages: true, deaths: true, gallery: true, settings: false },
-  ]);
-
-  // Communication & SMS Gateway State
-  const [smsGateway, setSmsGateway] = useState('Fast2SMS');
-  const [smsApiKey, setSmsApiKey] = useState('f2s_live_884920485910485');
-  const [smsSenderId, setSmsSenderId] = useState('VMONE');
-  const [smsTemplate, setSmsTemplate] = useState('Respected {{Family_Name}}, your monthly Varika subscription of ₹{{Due_Amount}} for {{Month}} is due. - VM ONE Mahallu Committee');
-  const [testPhoneNumber, setTestPhoneNumber] = useState('+91 98765 43210');
-  const [isTestingSms, setIsTestingSms] = useState(false);
-
   // Certificate Templates State
   const [activeCertTab, setActiveCertTab] = useState<'nikah' | 'noc' | 'membership'>('nikah');
   const [certNikahBody, setCertNikahBody] = useState('This is to certify that the marriage (Nikah) between {{Groom_Name}} and {{Bride_Name}} was solemnized at {{Venue}} on {{Date}} under official Mahallu Register No. {{Register_No}}.');
   const [certNocBody, setCertNocBody] = useState('The Mahallu Committee has No Objection for {{Member_Name}} (Member ID: {{Member_ID}}) to apply for official administrative procedures.');
   const [certMembershipBody, setCertMembershipBody] = useState('This is to certify that {{Head_Name}} and family residing at {{House_Address}} are registered members of VM ONE Mahallu Committee.');
-
-  // Destructive Actions Modal State
-  const [showResetModal, setShowResetModal] = useState(false);
-  const [confirmNameInput, setConfirmNameInput] = useState('');
 
   // UI Feedback
   const [isSaving, setIsSaving] = useState(false);
@@ -213,37 +184,6 @@ export const SharedSettings: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleTogglePermission = (index: number, key: keyof RolePermission) => {
-    if (key === 'role') return;
-    const updated = [...permissions];
-    updated[index][key] = !updated[index][key] as boolean;
-    setPermissions(updated);
-    showToast('success', `✓ Updated ${updated[index].role} permissions.`);
-  };
-
-  const handleInsertVariableChip = (chip: string) => {
-    setSmsTemplate((prev) => `${prev} ${chip}`);
-    showToast('success', `Added chip ${chip} to message template.`);
-  };
-
-  const handleTestSms = () => {
-    setIsTestingSms(true);
-    setTimeout(() => {
-      setIsTestingSms(false);
-      showToast('success', `✓ Test SMS dispatched successfully to ${testPhoneNumber}!`);
-    }, 1200);
-  };
-
-  const handleConfirmReset = () => {
-    if (confirmNameInput.trim().toUpperCase() !== branding.organizationName.toUpperCase()) {
-      showToast('error', `Confirmation name must match "${branding.organizationName}".`);
-      return;
-    }
-    setShowResetModal(false);
-    setConfirmNameInput('');
-    showToast('success', '✓ Financial year reset successfully. Created clean 2026 ledger archives.');
-  };
-
   return (
     <div className="settings-page animate-fade-in">
       {/* TOAST NOTIFICATION */}
@@ -279,14 +219,6 @@ export const SharedSettings: React.FC = () => {
             </button>
 
             <button
-              className={`section-menu-btn ${activeSection === 'branding' ? 'active' : ''}`}
-              onClick={() => setActiveSection('branding')}
-            >
-              <div className="menu-icon-badge"><Palette size={16} /></div>
-              <span>Branding & Colors</span>
-            </button>
-
-            <button
               className={`section-menu-btn ${activeSection === 'administrator' ? 'active' : ''}`}
               onClick={() => setActiveSection('administrator')}
             >
@@ -294,7 +226,7 @@ export const SharedSettings: React.FC = () => {
               <span>Administrator</span>
             </button>
 
-            <div className="menu-group-label margin-top-md">FINANCES & ROLES</div>
+            <div className="menu-group-label margin-top-md">FINANCES & CONFIGURATION</div>
             <button
               className={`section-menu-btn ${activeSection === 'financial' ? 'active' : ''}`}
               onClick={() => setActiveSection('financial')}
@@ -303,23 +235,7 @@ export const SharedSettings: React.FC = () => {
               <span>Financials & Varika</span>
             </button>
 
-            <button
-              className={`section-menu-btn ${activeSection === 'committee' ? 'active' : ''}`}
-              onClick={() => setActiveSection('committee')}
-            >
-              <div className="menu-icon-badge"><Shield size={16} /></div>
-              <span>Committee & Roles</span>
-            </button>
-
             <div className="menu-group-label margin-top-md">COMMUNICATION & TEMPLATES</div>
-            <button
-              className={`section-menu-btn ${activeSection === 'sms' ? 'active' : ''}`}
-              onClick={() => setActiveSection('sms')}
-            >
-              <div className="menu-icon-badge"><MessageSquare size={16} /></div>
-              <span>SMS & WhatsApp</span>
-            </button>
-
             <button
               className={`section-menu-btn ${activeSection === 'certificates' ? 'active' : ''}`}
               onClick={() => setActiveSection('certificates')}
@@ -338,27 +254,11 @@ export const SharedSettings: React.FC = () => {
 
             <div className="menu-group-label margin-top-md">SYSTEM & DATA</div>
             <button
-              className={`section-menu-btn ${activeSection === 'security' ? 'active' : ''}`}
-              onClick={() => setActiveSection('security')}
-            >
-              <div className="menu-icon-badge"><ShieldCheck size={16} /></div>
-              <span>Security & Password</span>
-            </button>
-
-            <button
               className={`section-menu-btn ${activeSection === 'backup' ? 'active' : ''}`}
               onClick={() => setActiveSection('backup')}
             >
               <div className="menu-icon-badge"><Database size={16} /></div>
               <span>Backup & Export</span>
-            </button>
-
-            <button
-              className={`section-menu-btn ${activeSection === 'about' ? 'active' : ''}`}
-              onClick={() => setActiveSection('about')}
-            >
-              <div className="menu-icon-badge"><Info size={16} /></div>
-              <span>About & System Status</span>
             </button>
           </nav>
         </aside>
@@ -1025,35 +925,6 @@ export const SharedSettings: React.FC = () => {
             </div>
           )}
 
-          {/* SECTION 11: ABOUT & SYSTEM STATUS */}
-          {activeSection === 'about' && (
-            <div className="settings-section-card glass-card animate-fade-in">
-              <div className="section-head">
-                <Info size={22} className="head-icon icon-emerald" />
-                <div>
-                  <h4>About & System Health</h4>
-                  <p>Application version details, database connectivity, and PWA install status.</p>
-                </div>
-              </div>
-
-              <div className="settings-form-body">
-                <div className="form-row-grid">
-                  <div className="glass-card padding-md flex-col gap-2xs">
-                    <span className="font-2xs color-subtle text-uppercase font-weight-700">Application Version</span>
-                    <h4 className="font-md font-weight-800 text-dark margin-0">v3.5.0 (VM ONE Edition)</h4>
-                  </div>
-
-                  <div className="glass-card padding-md flex-col gap-2xs">
-                    <span className="font-2xs color-subtle text-uppercase font-weight-700">Database Engine</span>
-                    <h4 className="font-md font-weight-800 text-emerald margin-0 flex-row-gap-2xs align-items-center">
-                      <CheckCircle size={16} /> Supabase PostgreSQL
-                    </h4>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
         </main>
       </div>
 
@@ -1072,48 +943,6 @@ export const SharedSettings: React.FC = () => {
             <button type="button" className="pill-btn-primary font-xs" onClick={handleSaveAll} disabled={isSaving}>
               {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save Changes
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* DESTRUCTIVE ACTION CONFIRMATION MODAL */}
-      {showResetModal && (
-        <div className="modal-backdrop animate-fade-in" onClick={() => setShowResetModal(false)}>
-          <div className="modal-size-sm side-panel-shell padding-lg animate-scale-up" onClick={(e) => e.stopPropagation()}>
-            <div className="flex-between align-items-center margin-bottom-md">
-              <div className="flex-row-gap-xs align-items-center">
-                <AlertTriangle size={22} className="text-danger" />
-                <h3 className="font-md font-weight-800 text-dark margin-0">Reset Financial Year</h3>
-              </div>
-            </div>
-
-            <p className="font-xs color-subtle margin-bottom-md">
-              This action will archive the current subscription year and prepare a clean 2027 financial ledger. To prevent accidental resets, please type <strong>{branding.organizationName}</strong> below to confirm.
-            </p>
-
-            <div className="form-group margin-bottom-md">
-              <input
-                type="text"
-                className="form-control font-weight-700 text-center"
-                placeholder={`Type "${branding.organizationName}"`}
-                value={confirmNameInput}
-                onChange={(e) => setConfirmNameInput(e.target.value)}
-              />
-            </div>
-
-            <div className="flex-row-gap-xs justify-content-end">
-              <button type="button" className="pill-btn-secondary font-xs" onClick={() => setShowResetModal(false)}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="pill-btn-danger font-xs"
-                onClick={handleConfirmReset}
-                disabled={confirmNameInput.trim().toUpperCase() !== branding.organizationName.toUpperCase()}
-              >
-                Confirm Reset
-              </button>
-            </div>
           </div>
         </div>
       )}
