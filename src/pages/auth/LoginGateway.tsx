@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useOrganization } from '../../contexts/OrganizationContext';
 import { VmOneLogo } from '../../components/VmOneLogo';
-import { Mail, Lock, Shield, User, LogIn, AlertCircle, CheckCircle, ArrowRight } from 'lucide-react';
+import { Mail, Lock, Shield, User, LogIn, AlertCircle, CheckCircle, ArrowRight, UserPlus } from 'lucide-react';
 
 export const LoginGateway: React.FC = () => {
   const { loginWithEmail } = useAuth();
   const { branding } = useOrganization();
   const navigate = useNavigate();
 
-  const [activeRoleTab, setActiveRoleTab] = useState<'admin' | 'treasurer' | 'secretary' | 'president' | 'member'>('admin');
+  const [activeRoleTab, setActiveRoleTab] = useState<'admin' | 'member'>('admin');
   const [email, setEmail] = useState('admin@mahal.com');
   const [password, setPassword] = useState('password123');
   const [errorMsg, setErrorMsg] = useState('');
@@ -19,13 +19,10 @@ export const LoginGateway: React.FC = () => {
 
   const roleCredentials = {
     admin: { email: 'admin@mahal.com', label: 'Admin Portal', desc: 'Full Mahallu Management Control' },
-    treasurer: { email: 'treasurer@mahal.com', label: 'Treasurer', desc: 'Financial Collections & Dues' },
-    secretary: { email: 'secretary@mahal.com', label: 'Secretary', desc: 'Directory & Community Records' },
-    president: { email: 'president@mahal.com', label: 'President', desc: 'Executive Oversight & Reports' },
     member: { email: 'member@mahal.com', label: 'Member Portal', desc: 'Personal Subscriptions & Dues' },
   };
 
-  const handleRoleSelect = (roleKey: 'admin' | 'treasurer' | 'secretary' | 'president' | 'member') => {
+  const handleRoleSelect = (roleKey: 'admin' | 'member') => {
     setActiveRoleTab(roleKey);
     setEmail(roleCredentials[roleKey].email);
     setPassword('password123');
@@ -70,42 +67,21 @@ export const LoginGateway: React.FC = () => {
           <p className="dhic-org-sub">{branding.organizationNameMalayalam || 'ഒരുമ · സേവനം · വളർച്ച'}</p>
         </div>
 
-        {/* DHIC Academic Role Selection Tabs */}
+        {/* Role Selection Tabs (Admin & Member) */}
         <div className="dhic-role-tabs-wrap">
           <button
             type="button"
             className={`dhic-role-tab-btn ${activeRoleTab === 'admin' ? 'active' : ''}`}
             onClick={() => handleRoleSelect('admin')}
           >
-            <Shield size={14} /> Admin
-          </button>
-          <button
-            type="button"
-            className={`dhic-role-tab-btn ${activeRoleTab === 'treasurer' ? 'active' : ''}`}
-            onClick={() => handleRoleSelect('treasurer')}
-          >
-            Treasurer
-          </button>
-          <button
-            type="button"
-            className={`dhic-role-tab-btn ${activeRoleTab === 'secretary' ? 'active' : ''}`}
-            onClick={() => handleRoleSelect('secretary')}
-          >
-            Secretary
-          </button>
-          <button
-            type="button"
-            className={`dhic-role-tab-btn ${activeRoleTab === 'president' ? 'active' : ''}`}
-            onClick={() => handleRoleSelect('president')}
-          >
-            President
+            <Shield size={15} /> Admin Portal
           </button>
           <button
             type="button"
             className={`dhic-role-tab-btn ${activeRoleTab === 'member' ? 'active' : ''}`}
             onClick={() => handleRoleSelect('member')}
           >
-            <User size={14} /> Member
+            <User size={15} /> Member Portal
           </button>
         </div>
 
@@ -124,7 +100,7 @@ export const LoginGateway: React.FC = () => {
           </div>
         )}
 
-        {/* DHIC Login Form */}
+        {/* Login Form */}
         <form onSubmit={handleSubmit}>
           <div className="dhic-form-group">
             <label className="dhic-form-label">Email Address / Username</label>
@@ -171,23 +147,35 @@ export const LoginGateway: React.FC = () => {
 
         {/* Quick Demo Credential Chips */}
         <div className="dhic-demo-chips-wrap">
-          <div className="dhic-demo-title">Quick Demo Login Chips (1-Click Fill)</div>
+          <div className="dhic-demo-title">Quick Demo Credentials (1-Click Fill)</div>
           <div className="dhic-demo-chips-grid">
             <button type="button" className="dhic-demo-chip" onClick={() => handleRoleSelect('admin')}>
-              🛡️ Admin
-            </button>
-            <button type="button" className="dhic-demo-chip" onClick={() => handleRoleSelect('treasurer')}>
-              💵 Treasurer
-            </button>
-            <button type="button" className="dhic-demo-chip" onClick={() => handleRoleSelect('secretary')}>
-              📋 Secretary
-            </button>
-            <button type="button" className="dhic-demo-chip" onClick={() => handleRoleSelect('president')}>
-              👑 President
+              🛡️ Admin Demo (admin@mahal.com)
             </button>
             <button type="button" className="dhic-demo-chip" onClick={() => handleRoleSelect('member')}>
-              👤 Member
+              👤 Member Demo (member@mahal.com)
             </button>
+          </div>
+        </div>
+
+        {/* Register Account Options */}
+        <div style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="font-2xs font-weight-800 text-uppercase color-subtle text-center">New to Mahallu Management? Register Account</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <Link 
+              to="/admin/signup" 
+              className="pill-btn-ghost font-xs flex-center gap-xs"
+              style={{ padding: '10px 14px', borderRadius: 9999, border: '1px solid #cbd5e1', textDecoration: 'none', color: '#01A350', fontWeight: 700, justifyContent: 'center' }}
+            >
+              <UserPlus size={14} /> Create Admin
+            </Link>
+            <Link 
+              to="/member/signup" 
+              className="pill-btn-ghost font-xs flex-center gap-xs"
+              style={{ padding: '10px 14px', borderRadius: 9999, border: '1px solid #cbd5e1', textDecoration: 'none', color: '#0746D3', fontWeight: 700, justifyContent: 'center' }}
+            >
+              <UserPlus size={14} /> Register Member
+            </Link>
           </div>
         </div>
       </div>

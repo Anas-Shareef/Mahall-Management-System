@@ -3,34 +3,18 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useOrganization } from '../../contexts/OrganizationContext';
 import { VmOneLogo } from '../../components/VmOneLogo';
-import { Shield, Mail, Lock, AlertCircle, CheckCircle, ArrowLeft, LogIn, ArrowRight } from 'lucide-react';
+import { Shield, Mail, Lock, AlertCircle, CheckCircle, ArrowLeft, LogIn, ArrowRight, UserPlus } from 'lucide-react';
 
 export const AdminLogin: React.FC = () => {
   const { loginWithEmail } = useAuth();
   const { branding } = useOrganization();
   const navigate = useNavigate();
 
-  const [activeRoleTab, setActiveRoleTab] = useState<'admin' | 'treasurer' | 'secretary' | 'president'>('admin');
   const [email, setEmail] = useState('admin@mahal.com');
   const [password, setPassword] = useState('password123');
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const roleCredentials = {
-    admin: { email: 'admin@mahal.com', label: 'Admin Portal' },
-    treasurer: { email: 'treasurer@mahal.com', label: 'Treasurer Portal' },
-    secretary: { email: 'secretary@mahal.com', label: 'Secretary Portal' },
-    president: { email: 'president@mahal.com', label: 'President Portal' },
-  };
-
-  const handleRoleSelect = (roleKey: 'admin' | 'treasurer' | 'secretary' | 'president') => {
-    setActiveRoleTab(roleKey);
-    setEmail(roleCredentials[roleKey].email);
-    setPassword('password123');
-    setErrorMsg('');
-    setSuccessMsg('');
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +24,7 @@ export const AdminLogin: React.FC = () => {
 
     try {
       await loginWithEmail(email, password);
-      setSuccessMsg('Login successful! Redirecting to workspace...');
+      setSuccessMsg('Login successful! Redirecting to admin workspace...');
       setTimeout(() => {
         navigate('/admin/dashboard');
       }, 500);
@@ -58,7 +42,7 @@ export const AdminLogin: React.FC = () => {
           <Link to="/login" className="back-gateway-link font-xs" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#64748b', textDecoration: 'none', fontWeight: 600 }}>
             <ArrowLeft size={16} /> Portal Gateway
           </Link>
-          <span className="card-top-badge admin">ADMIN AUTH</span>
+          <span className="card-top-badge admin">ADMIN PORTAL</span>
         </div>
 
         {/* Brand Header */}
@@ -70,38 +54,6 @@ export const AdminLogin: React.FC = () => {
           )}
           <h2 className="dhic-org-title">{branding.organizationName}</h2>
           <p className="dhic-org-sub">{branding.organizationNameMalayalam || 'ഒരുമ · സേവനം · വളർച്ച'}</p>
-        </div>
-
-        {/* Role Tabs */}
-        <div className="dhic-role-tabs-wrap">
-          <button
-            type="button"
-            className={`dhic-role-tab-btn ${activeRoleTab === 'admin' ? 'active' : ''}`}
-            onClick={() => handleRoleSelect('admin')}
-          >
-            <Shield size={14} /> Admin
-          </button>
-          <button
-            type="button"
-            className={`dhic-role-tab-btn ${activeRoleTab === 'treasurer' ? 'active' : ''}`}
-            onClick={() => handleRoleSelect('treasurer')}
-          >
-            Treasurer
-          </button>
-          <button
-            type="button"
-            className={`dhic-role-tab-btn ${activeRoleTab === 'secretary' ? 'active' : ''}`}
-            onClick={() => handleRoleSelect('secretary')}
-          >
-            Secretary
-          </button>
-          <button
-            type="button"
-            className={`dhic-role-tab-btn ${activeRoleTab === 'president' ? 'active' : ''}`}
-            onClick={() => handleRoleSelect('president')}
-          >
-            President
-          </button>
         </div>
 
         {/* Error / Success Banners */}
@@ -122,7 +74,7 @@ export const AdminLogin: React.FC = () => {
         {/* Login Form */}
         <form onSubmit={handleSubmit}>
           <div className="dhic-form-group">
-            <label className="dhic-form-label">Admin Email *</label>
+            <label className="dhic-form-label">Admin Email Address *</label>
             <div className="dhic-input-wrapper">
               <Mail size={18} className="dhic-input-icon" />
               <input
@@ -157,29 +109,31 @@ export const AdminLogin: React.FC = () => {
             ) : (
               <>
                 <LogIn size={18} />
-                <span>Sign In to {roleCredentials[activeRoleTab].label}</span>
+                <span>Sign In to Admin Workspace</span>
                 <ArrowRight size={16} />
               </>
             )}
           </button>
         </form>
 
-        {/* Quick Demo Credential Chips */}
-        <div className="dhic-demo-chips-wrap">
-          <div className="dhic-demo-title">Quick Demo Admin Roles</div>
-          <div className="dhic-demo-chips-grid">
-            <button type="button" className="dhic-demo-chip" onClick={() => handleRoleSelect('admin')}>
-              🛡️ Admin
-            </button>
-            <button type="button" className="dhic-demo-chip" onClick={() => handleRoleSelect('treasurer')}>
-              💵 Treasurer
-            </button>
-            <button type="button" className="dhic-demo-chip" onClick={() => handleRoleSelect('secretary')}>
-              📋 Secretary
-            </button>
-            <button type="button" className="dhic-demo-chip" onClick={() => handleRoleSelect('president')}>
-              👑 President
-            </button>
+        {/* Registration CTA Options */}
+        <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="font-2xs font-weight-800 text-uppercase color-subtle text-center">Account Options & Registration</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <Link 
+              to="/admin/signup" 
+              className="pill-btn-ghost font-xs flex-center gap-xs"
+              style={{ padding: '10px 14px', borderRadius: 9999, border: '1px solid #cbd5e1', textDecoration: 'none', color: '#01A350', fontWeight: 700, justifyContent: 'center' }}
+            >
+              <UserPlus size={14} /> Create Admin
+            </Link>
+            <Link 
+              to="/member/login" 
+              className="pill-btn-ghost font-xs flex-center gap-xs"
+              style={{ padding: '10px 14px', borderRadius: 9999, border: '1px solid #cbd5e1', textDecoration: 'none', color: '#0746D3', fontWeight: 700, justifyContent: 'center' }}
+            >
+              <Shield size={14} /> Member Portal
+            </Link>
           </div>
         </div>
       </div>
