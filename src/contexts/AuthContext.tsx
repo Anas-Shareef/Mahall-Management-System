@@ -10,6 +10,8 @@ interface UserSession {
   name: string;
   role: 'admin' | 'member';
   language: 'en' | 'ml';
+  member_id?: string | null;
+  household_id?: string | null;
 }
 
 interface SignUpData {
@@ -216,6 +218,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
 
           const validProfile = profile as Profile;
+
+          // ENFORCE MEMBER PORTAL ACCESS STATUS
+          if (validProfile.role === 'member') {
+            const allMembers = await db.members.get();
+            const memberRecord = validProfile.member_id 
+              ? allMembers.find(m => m.id === validProfile.member_id)
+              : allMembers.find(m => m.user_id === validProfile.id || (m.email && m.email.toLowerCase() === cleanEmail));
+
+            if (!memberRecord || !memberRecord.portal_access || memberRecord.portal_status === 'not_granted') {
+              throw new Error('Your Member Portal access has not been granted. Please contact your Mahall administrator.');
+            }
+            if (memberRecord.portal_status === 'suspended') {
+              throw new Error('Your Member Portal access has been suspended. Please contact your Mahall administrator.');
+            }
+            if (memberRecord.portal_status === 'revoked') {
+              throw new Error('Your Member Portal access has been revoked. Please contact your Mahall administrator.');
+            }
+            if (memberRecord.portal_status === 'pending') {
+              throw new Error('Your account activation is pending. Please check your invitation email or contact your Mahall administrator.');
+            }
+
+            const session: UserSession = {
+              id: validProfile.id,
+              email: validProfile.email,
+              phone: validProfile.phone,
+              name: memberRecord.name || validProfile.name,
+              role: 'member',
+              language: validProfile.language || 'en',
+              member_id: memberRecord.id,
+              household_id: memberRecord.household_id,
+            };
+            setUser(session);
+            localStorage.setItem('mahal_session', JSON.stringify(session));
+            return session;
+          }
+
           const session: UserSession = {
             id: validProfile.id,
             email: validProfile.email,
@@ -229,7 +267,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return session;
         }
 
-        // signInWithPassword returned no error and no user — unexpected state
         throw new Error('Login failed. Please try again.');
       }
 
@@ -261,10 +298,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return demoAdminSession;
       }
 
-      // 3. CHECK LOCAL REGISTERED PROFILES FOR OFFLINE MODE
+      // 3. CHECK LOCAL REGISTERED PROFILES / MEMBERS FOR OFFLINE MODE
+      const savedMembers = JSON.parse(localStorage.getItem('mahal_members') || '[]');
+      const memberMatch = savedMembers.find((m: any) => m.email && m.email.toLowerCase() === cleanEmail);
+      if (memberMatch) {
+        if (!memberMatch.portal_access || memberMatch.portal_status === 'not_granted') {
+          throw new Error('Your Member Portal access has not been granted. Please contact your Mahall administrator.');
+        }
+        if (memberMatch.portal_status === 'suspended') {
+          throw new Error('Your Member Portal access has been suspended. Please contact your Mahall administrator.');
+        }
+        if (memberMatch.portal_status === 'revoked') {
+          throw new Error('Your Member Portal access has been revoked. Please contact your Mahall administrator.');
+        }
+        if (memberMatch.portal_status === 'pending') {
+          throw new Error('Your account activation is pending. Please check your invitation email or contact your Mahall administrator.');
+        }
+
+        const session: UserSession = {
+          id: memberMatch.user_id || memberMatch.id,
+          email: memberMatch.email,
+          phone: memberMatch.phone,
+          name: memberMatch.name,
+          role: 'member',
+          language: 'en',
+          member_id: memberMatch.id,
+          household_id: memberMatch.household_id,
+        };
+        localStorage.setItem('mahal_session', JSON.stringify(session));
+        setUser(session);
+        return session;
+      }
+
       const savedProfiles = JSON.parse(localStorage.getItem('mahal_profiles') || '[]');
       const localMatch = savedProfiles.find((p: any) => p.email && p.email.toLowerCase() === cleanEmail);
       if (localMatch) {
+        if (localMatch.role === 'member') {
+          const m = savedMembers.find((mem: any) => mem.id === localMatch.member_id || mem.user_id === localMatch.id);
+          if (!m || !m.portal_access || m.portal_status !== 'active') {
+            throw new Error('Your Member Portal access is inactive. Please contact your Mahall administrator.');
+          }
+        }
+
         const session: UserSession = {
           id: localMatch.id,
           email: localMatch.email,
@@ -272,13 +347,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: localMatch.name,
           role: localMatch.role,
           language: localMatch.language || 'en',
+          member_id: localMatch.member_id || null,
         };
         localStorage.setItem('mahal_session', JSON.stringify(session));
         setUser(session);
         return session;
       }
 
-      throw new Error('Invalid email or password. If you do not have an account, please click "Register New Admin Account" below.');
+      throw new Error('Invalid login credentials. Please check your email/password or contact your Mahall administrator.');
     } finally {
       setLoading(false);
     }

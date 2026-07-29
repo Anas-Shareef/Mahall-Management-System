@@ -5,10 +5,12 @@ import { db } from '../../services/db';
 import type { Household, Member } from '../../services/db';
 import { 
   Plus, Edit2, Trash2, Search, Filter, Users, X, AlertCircle, 
-  CheckCircle, Phone, Mail, Home, Smartphone, UserCheck 
+  CheckCircle, Phone, Mail, Home, Smartphone, UserCheck, ShieldCheck, Eye 
 } from 'lucide-react';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { SidePanel } from '../../components/SidePanel';
+import { GrantAccessModal } from '../../components/GrantAccessModal';
+import { MemberDetailsModal } from '../../components/MemberDetailsModal';
 
 export const Members: React.FC = () => {
   const { t } = useTranslation();
@@ -24,6 +26,14 @@ export const Members: React.FC = () => {
   const [selectedHouseholdId, setSelectedHouseholdId] = useState('');
   const [selectedRelationship, setSelectedRelationship] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [selectedPortalStatus, setSelectedPortalStatus] = useState('');
+
+  // Access Control & Details Modal States
+  const [isGrantModalOpen, setIsGrantModalOpen] = useState(false);
+  const [memberForAccess, setMemberForAccess] = useState<Member | null>(null);
+
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [memberForDetails, setMemberForDetails] = useState<Member | null>(null);
 
   // Delete Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -35,6 +45,17 @@ export const Members: React.FC = () => {
 
   // Selected Member Details Panel
   const [selectedMemberDetails, setSelectedMemberDetails] = useState<Member | null>(null);
+
+  // Compute Statistics
+  const stats = useMemo(() => {
+    const totalMembers = members.length;
+    const totalHouseholds = households.length;
+    const portalGranted = members.filter((m) => m.portal_access).length;
+    const activeAccounts = members.filter((m) => m.portal_status === 'active').length;
+    const pendingInvites = members.filter((m) => m.portal_status === 'pending').length;
+
+    return { totalMembers, totalHouseholds, portalGranted, activeAccounts, pendingInvites };
+  }, [members, households]);
 
   const showToast = (type: 'success' | 'error', text: string) => {
     setToastMessage({ type, text });
@@ -122,16 +143,20 @@ export const Members: React.FC = () => {
       const matchesHousehold = selectedHouseholdId ? m.household_id === selectedHouseholdId : true;
       const matchesRelationship = selectedRelationship ? m.relationship === selectedRelationship : true;
       const matchesStatus = selectedStatus ? m.status === selectedStatus : true;
+      const matchesPortalStatus = selectedPortalStatus
+        ? (m.portal_status || 'not_granted') === selectedPortalStatus
+        : true;
 
-      return matchesSearch && matchesHousehold && matchesRelationship && matchesStatus;
+      return matchesSearch && matchesHousehold && matchesRelationship && matchesStatus && matchesPortalStatus;
     });
-  }, [members, households, searchQuery, selectedHouseholdId, selectedRelationship, selectedStatus]);
+  }, [members, households, searchQuery, selectedHouseholdId, selectedRelationship, selectedStatus, selectedPortalStatus]);
 
   const clearFilters = () => {
     setSearchQuery('');
     setSelectedHouseholdId('');
     setSelectedRelationship('');
     setSelectedStatus('');
+    setSelectedPortalStatus('');
   };
 
   return (
@@ -154,6 +179,49 @@ export const Members: React.FC = () => {
           <Plus size={16} />
           <span>{t('member.addMember')}</span>
         </button>
+      </div>
+
+      {/* STATISTICS SUMMARY CARDS */}
+      <div className="analytics-stats-grid margin-bottom-md">
+        <div className="stat-card glass-card">
+          <div className="stat-icon emerald"><Users size={20} /></div>
+          <div className="stat-content">
+            <span className="stat-label">Total Members</span>
+            <h3 className="stat-value">{stats.totalMembers}</h3>
+          </div>
+        </div>
+
+        <div className="stat-card glass-card">
+          <div className="stat-icon info"><Home size={20} /></div>
+          <div className="stat-content">
+            <span className="stat-label">Households</span>
+            <h3 className="stat-value">{stats.totalHouseholds}</h3>
+          </div>
+        </div>
+
+        <div className="stat-card glass-card">
+          <div className="stat-icon primary"><ShieldCheck size={20} /></div>
+          <div className="stat-content">
+            <span className="stat-label">Portal Granted</span>
+            <h3 className="stat-value">{stats.portalGranted}</h3>
+          </div>
+        </div>
+
+        <div className="stat-card glass-card">
+          <div className="stat-icon success"><UserCheck size={20} /></div>
+          <div className="stat-content">
+            <span className="stat-label">Active Accounts</span>
+            <h3 className="stat-value">{stats.activeAccounts}</h3>
+          </div>
+        </div>
+
+        <div className="stat-card glass-card">
+          <div className="stat-icon warning"><Smartphone size={20} /></div>
+          <div className="stat-content">
+            <span className="stat-label">Pending Invites</span>
+            <h3 className="stat-value">{stats.pendingInvites}</h3>
+          </div>
+        </div>
       </div>
 
       {/* SEARCH AND FILTER TOOLBAR */}
@@ -187,6 +255,18 @@ export const Members: React.FC = () => {
           </div>
 
           <div className="filter-select-wrapper">
+            <ShieldCheck size={15} className="select-icon" />
+            <select value={selectedPortalStatus} onChange={(e) => setSelectedPortalStatus(e.target.value)}>
+              <option value="">Portal Access: All</option>
+              <option value="not_granted">Not Granted</option>
+              <option value="pending">Pending</option>
+              <option value="active">Active</option>
+              <option value="suspended">Suspended</option>
+              <option value="revoked">Revoked</option>
+            </select>
+          </div>
+
+          <div className="filter-select-wrapper">
             <Filter size={15} className="select-icon" />
             <select value={selectedRelationship} onChange={(e) => setSelectedRelationship(e.target.value)}>
               <option value="">Relationship: All</option>
@@ -207,7 +287,7 @@ export const Members: React.FC = () => {
             </select>
           </div>
 
-          {(searchQuery || selectedHouseholdId || selectedRelationship || selectedStatus) && (
+          {(searchQuery || selectedHouseholdId || selectedRelationship || selectedStatus || selectedPortalStatus) && (
             <button className="clear-filters-link" onClick={clearFilters}>
               Clear Filters
             </button>
@@ -302,9 +382,8 @@ export const Members: React.FC = () => {
                             )}
                           </td>
                           <td>
-                            <span className={`login-status-pill ${m.user_id ? 'enabled' : 'disabled'}`}>
-                              <Smartphone size={12} />
-                              {m.user_id ? t('member.loginEnabled') : t('member.loginDisabled')}
+                            <span className={`status-badge-pill ${m.portal_status || 'not_granted'}`}>
+                              {(m.portal_status || 'not_granted').replace('_', ' ').toUpperCase()}
                             </span>
                           </td>
                           <td>
@@ -315,6 +394,28 @@ export const Members: React.FC = () => {
                           </td>
                           <td style={{ textAlign: 'right' }}>
                             <div className="actions-button-wrapper" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                className="action-icon-btn info"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setMemberForDetails(m);
+                                  setIsDetailsModalOpen(true);
+                                }}
+                                title="View Member Details"
+                              >
+                                <Eye size={15} />
+                              </button>
+                              <button
+                                className="action-icon-btn primary"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setMemberForAccess(m);
+                                  setIsGrantModalOpen(true);
+                                }}
+                                title="Grant / Manage Portal Access"
+                              >
+                                <ShieldCheck size={15} />
+                              </button>
                               <button
                                 className="action-icon-btn edit"
                                 onClick={(e) => openEditModal(m, e)}
@@ -519,6 +620,35 @@ export const Members: React.FC = () => {
         cancelText="Cancel"
         variant="danger"
         isLoading={isDeleting}
+      />
+
+      {/* GRANT PORTAL ACCESS MODAL */}
+      <GrantAccessModal
+        isOpen={isGrantModalOpen}
+        onClose={() => {
+          setIsGrantModalOpen(false);
+          setMemberForAccess(null);
+        }}
+        member={memberForAccess}
+        houseNo={households.find((h) => h.id === memberForAccess?.household_id)?.house_number}
+        onSuccess={() => {
+          showToast('success', '✓ Member Portal Access updated successfully.');
+          loadData();
+        }}
+      />
+
+      {/* MEMBER FULL DETAILS MODAL */}
+      <MemberDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={() => {
+          setIsDetailsModalOpen(false);
+          setMemberForDetails(null);
+        }}
+        member={memberForDetails}
+        onGrantAccess={(m) => {
+          setMemberForAccess(m);
+          setIsGrantModalOpen(true);
+        }}
       />
 
       {/* STYLES */}

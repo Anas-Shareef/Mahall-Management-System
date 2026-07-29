@@ -245,6 +245,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
 
   const memberLinks = [
     { to: '/member/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
+    { to: '/member/household', label: 'My Household', icon: Home },
     { to: '/member/my-subscription', label: t('nav.mySubscription'), icon: FileText },
     { to: '/member/payment-history', label: t('nav.paymentHistory'), icon: Receipt },
     { to: '/member/profile', label: t('nav.myProfile'), icon: User },

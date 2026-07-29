@@ -36,6 +36,7 @@ import MarriageForm from './pages/admin/MarriageForm';
 
 // Member Pages
 import MemberDashboard from './pages/member/Dashboard';
+import MyHousehold from './pages/member/MyHousehold';
 import MemberSubscriptionPage from './pages/member/MySubscription';
 import MemberPaymentHistory from './pages/member/PaymentHistory';
 import MemberProfile from './pages/member/Profile';
@@ -116,6 +117,7 @@ const App: React.FC = () => {
                   <DashboardLayout>
                     <Routes>
                       <Route path="dashboard" element={<MemberDashboard />} />
+                      <Route path="household" element={<MyHousehold />} />
                       <Route path="my-subscription" element={<MemberSubscriptionPage />} />
                       <Route path="payment-history" element={<MemberPaymentHistory />} />
                       <Route path="profile" element={<MemberProfile />} />

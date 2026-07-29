@@ -10,6 +10,8 @@ export const sanitizeUuid = (val: string | null | undefined): string | null => {
 
 export interface Profile {
   id: string;
+  user_id?: string;
+  member_id?: string | null;
   name: string;
   phone: string | null;
   email: string | null;
@@ -41,6 +43,8 @@ export interface Member {
   phone: string | null;
   email: string | null;
   status: 'active' | 'inactive';
+  portal_access: boolean;
+  portal_status: 'not_granted' | 'pending' | 'active' | 'suspended' | 'revoked';
   is_subscription_accountable?: boolean;
   created_at: string;
   updated_at: string;
@@ -331,6 +335,8 @@ const MOCK_MEMBERS: Member[] = [
     phone: '9876543210',
     email: 'ashraf@mahal.com',
     status: 'active',
+    portal_access: true,
+    portal_status: 'active',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
@@ -343,6 +349,8 @@ const MOCK_MEMBERS: Member[] = [
     phone: '9876543211',
     email: 'ameer@mahal.com',
     status: 'active',
+    portal_access: true,
+    portal_status: 'active',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
@@ -355,6 +363,8 @@ const MOCK_MEMBERS: Member[] = [
     phone: '9876543212',
     email: null,
     status: 'active',
+    portal_access: false,
+    portal_status: 'not_granted',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
@@ -367,6 +377,8 @@ const MOCK_MEMBERS: Member[] = [
     phone: '9876543213',
     email: null,
     status: 'active',
+    portal_access: false,
+    portal_status: 'not_granted',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
@@ -379,6 +391,8 @@ const MOCK_MEMBERS: Member[] = [
     phone: '9876543220',
     email: 'saidu@mahal.com',
     status: 'active',
+    portal_access: false,
+    portal_status: 'not_granted',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
@@ -940,6 +954,75 @@ export const db = {
       const filtered = list.filter((m) => m.id !== id);
       saveLocalData('mahal_members', filtered);
       return true;
+    },
+    grantPortalAccess: async (
+      memberId: string,
+      email: string,
+      password?: string
+    ): Promise<{ member: Member; profile: Profile }> => {
+      const cleanEmail = email.trim().toLowerCase();
+      const member = await db.members.getById(memberId);
+      if (!member) throw new Error('Member record not found');
+
+      let authUserId = member.user_id || 'user-' + Math.random().toString(36).substr(2, 9);
+
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data: authData, error } = await supabase.auth.signUp({
+            email: cleanEmail,
+            password: password || 'Mahall@12345',
+            options: {
+              data: {
+                name: member.name,
+                role: 'member',
+                member_id: member.id,
+              },
+            },
+          });
+          if (!error && authData.user) {
+            authUserId = authData.user.id;
+          }
+        } catch (authErr) {
+          console.warn('Supabase auth signup notice:', authErr);
+        }
+      }
+
+      const profile: Profile = {
+        id: authUserId,
+        user_id: authUserId,
+        member_id: member.id,
+        name: member.name,
+        email: cleanEmail,
+        phone: member.phone,
+        role: 'member',
+        language: 'en',
+        status: 'active',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      try {
+        await db.profiles.create(profile);
+      } catch (e) {}
+
+      const updatedMember = await db.members.update(memberId, {
+        user_id: authUserId,
+        email: cleanEmail,
+        portal_access: true,
+        portal_status: 'active',
+      });
+
+      return { member: updatedMember, profile };
+    },
+    updatePortalStatus: async (
+      memberId: string,
+      status: 'not_granted' | 'pending' | 'active' | 'suspended' | 'revoked'
+    ): Promise<Member> => {
+      const portal_access = status === 'active' || status === 'pending';
+      return await db.members.update(memberId, {
+        portal_access,
+        portal_status: status,
+      });
     },
   },
 

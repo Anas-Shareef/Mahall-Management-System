@@ -158,25 +158,14 @@ export const LoginGateway: React.FC = () => {
           </div>
         </div>
 
-        {/* Register Account Options */}
-        <div style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div className="font-2xs font-weight-800 text-uppercase color-subtle text-center">New to Mahallu Management? Register Account</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <Link 
-              to="/admin/signup" 
-              className="pill-btn-ghost font-xs flex-center gap-xs"
-              style={{ padding: '10px 14px', borderRadius: 9999, border: '1px solid #cbd5e1', textDecoration: 'none', color: '#01A350', fontWeight: 700, justifyContent: 'center' }}
-            >
-              <UserPlus size={14} /> Create Admin
-            </Link>
-            <Link 
-              to="/member/signup" 
-              className="pill-btn-ghost font-xs flex-center gap-xs"
-              style={{ padding: '10px 14px', borderRadius: 9999, border: '1px solid #cbd5e1', textDecoration: 'none', color: '#0746D3', fontWeight: 700, justifyContent: 'center' }}
-            >
-              <UserPlus size={14} /> Register Member
-            </Link>
-          </div>
+        {/* Portal Access Note */}
+        <div style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
+          <p className="font-xs color-subtle margin-0" style={{ fontWeight: 600, color: '#334155' }}>
+            Don't have Member Portal access yet?
+          </p>
+          <p className="font-2xs color-subtle margin-top-3xs" style={{ color: '#64748b' }}>
+            Please contact your Mahall administrator to grant online portal access.
+          </p>
         </div>
       </div>
     </div>

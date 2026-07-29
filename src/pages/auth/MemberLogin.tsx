@@ -146,12 +146,9 @@ export const MemberLogin: React.FC = () => {
           </form>
         )}
 
-        <div className="auth-footer-links">
-          <p>New Mahallu Member?</p>
-          <Link to="/member/signup" className="signup-link">
-            <UserPlus size={15} />
-            <span>Register Member Account</span>
-          </Link>
+        <div className="auth-footer-links" style={{ textAlign: 'center', marginTop: 20 }}>
+          <p style={{ fontWeight: 600, color: '#334155', margin: 0 }}>Don't have Member Portal access yet?</p>
+          <p style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Please contact your Mahall administrator to grant online portal access.</p>
         </div>
       </div>
 

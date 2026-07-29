@@ -8,6 +8,8 @@ import {
   CheckCircle, Phone, MapPin, Loader2, Download, Calendar 
 } from 'lucide-react';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { HouseholdDetailsModal } from '../../components/HouseholdDetailsModal';
+import { GrantAccessModal } from '../../components/GrantAccessModal';
 
 export const Households: React.FC = () => {
   const { t } = useTranslation();
@@ -27,6 +29,13 @@ export const Households: React.FC = () => {
   const [selectedYearId, setSelectedYearId] = useState<string>('all');
 
   const [isExporting, setIsExporting] = useState(false);
+
+  // Household Details Modal & Access Modal States
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [householdForDetails, setHouseholdForDetails] = useState<Household | null>(null);
+
+  const [isGrantModalOpen, setIsGrantModalOpen] = useState(false);
+  const [memberForAccess, setMemberForAccess] = useState<Member | null>(null);
 
   // Delete Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -674,6 +683,36 @@ export const Households: React.FC = () => {
         cancelText="Cancel"
         variant="danger"
         isLoading={isDeleting}
+      />
+
+      {/* HOUSEHOLD DETAILS MODAL */}
+      <HouseholdDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={() => {
+          setIsDetailsModalOpen(false);
+          setHouseholdForDetails(null);
+        }}
+        household={householdForDetails}
+        onGrantAccess={(m) => {
+          setMemberForAccess(m);
+          setIsGrantModalOpen(true);
+        }}
+        onRefresh={loadData}
+      />
+
+      {/* GRANT PORTAL ACCESS MODAL */}
+      <GrantAccessModal
+        isOpen={isGrantModalOpen}
+        onClose={() => {
+          setIsGrantModalOpen(false);
+          setMemberForAccess(null);
+        }}
+        member={memberForAccess}
+        houseNo={households.find((h) => h.id === memberForAccess?.household_id)?.house_number}
+        onSuccess={() => {
+          showToast('success', '✓ Member Portal Access updated successfully.');
+          loadData();
+        }}
       />
 
       {/* STYLES */}
