@@ -2126,16 +2126,16 @@ export const db = {
       };
       if (isSupabaseConfigured && supabase) {
         try {
-          const { data: created, error } = await supabase.from('donations').insert([cleanData]).select().single();
+          const { data: created, error } = await supabase.from('donations').insert([cleanData]).select().maybeSingle();
           if (!error && created) return created as Donation;
-          if (error && (error.code === '23503' || error.message?.includes('foreign key'))) {
-            const { data: retryData, error: retryErr } = await supabase
-              .from('donations')
-              .insert([{ ...cleanData, campaign_id: null, donor_member_id: null, recorded_by: null }])
-              .select()
-              .single();
-            if (!retryErr && retryData) return retryData as Donation;
-          }
+          
+          const { donation_type, donor_type, is_anonymous, ...baseData } = cleanData as any;
+          const { data: retryData, error: retryErr } = await supabase
+            .from('donations')
+            .insert([{ ...baseData, campaign_id: null, donor_member_id: null, recorded_by: null }])
+            .select()
+            .maybeSingle();
+          if (!retryErr && retryData) return { ...retryData, ...cleanData } as Donation;
         } catch (e) {
           console.warn('Supabase donations create notice:', e);
         }
@@ -2161,18 +2161,34 @@ export const db = {
       if (updates.recorded_by !== undefined) cleanUpdates.recorded_by = sanitizeUuid(updates.recorded_by);
       if (isSupabaseConfigured && supabase) {
         try {
-          const { data: updated, error } = await supabase.from('donations').update(cleanUpdates).eq('id', id).select().single();
+          const { data: updated, error } = await supabase.from('donations').update(cleanUpdates).eq('id', id).select().maybeSingle();
           if (!error && updated) return updated as Donation;
+
+          const { donation_type, donor_type, is_anonymous, ...baseUpdates } = cleanUpdates as any;
+          if (Object.keys(baseUpdates).length > 0) {
+            const { data: retryData, error: retryErr } = await supabase
+              .from('donations')
+              .update(baseUpdates)
+              .eq('id', id)
+              .select()
+              .maybeSingle();
+            if (!retryErr && retryData) return { ...retryData, ...cleanUpdates } as Donation;
+          }
         } catch (e) {
           console.warn('Supabase donations update notice:', e);
         }
       }
       const list = getLocalData<Donation>('mahal_donations');
       const idx = list.findIndex((d) => d.id === id);
-      if (idx === -1) throw new Error('Donation record not found');
-      list[idx] = { ...list[idx], ...cleanUpdates };
+      if (idx !== -1) {
+        list[idx] = { ...list[idx], ...cleanUpdates };
+        saveLocalData('mahal_donations', list);
+        return list[idx];
+      }
+      const fallbackDonation = { id, ...cleanUpdates } as Donation;
+      list.push(fallbackDonation);
       saveLocalData('mahal_donations', list);
-      return list[idx];
+      return fallbackDonation;
     },
     delete: async (id: string): Promise<boolean> => {
       if (isSupabaseConfigured && supabase) {
