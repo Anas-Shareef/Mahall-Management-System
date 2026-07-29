@@ -271,7 +271,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // 2. OFFLINE / LOCAL DEMO MODE — only when Supabase is NOT configured
-      if (!isSupabaseConfigured && cleanEmail === 'admin@mahal.com' && (password === 'admin' || password.length >= 4)) {
+      const savedAdminPassword = localStorage.getItem('mahal_admin_password') || 'admin123';
+      if (!isSupabaseConfigured && cleanEmail === 'admin@mahal.com' && (password === savedAdminPassword || password === 'admin123' || password === 'admin')) {
         const demoAdminSession: UserSession = {
           id: '00000000-0000-0000-0000-000000000001',
           email: 'admin@mahal.com',

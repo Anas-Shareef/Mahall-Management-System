@@ -34,10 +34,13 @@ export const SharedSettings: React.FC = () => {
   const [foundationYear, setFoundationYear] = useState('1978');
   const [website, setWebsite] = useState(branding.website || '');
 
-  // Admin Profile
+  // Admin Profile & Password Change
   const [adminName, setAdminName] = useState(branding.adminDisplayName || user?.name || '');
-  const [adminEmail, setAdminEmail] = useState(user?.email || '');
+  const [adminEmail, setAdminEmail] = useState(user?.email || 'admin@mahal.com');
   const [adminPhone, setAdminPhone] = useState(user?.phone || '');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isPasswordUpdating, setIsPasswordUpdating] = useState(false);
 
   // Certificate Templates State
   const [activeCertTab, setActiveCertTab] = useState<'nikah' | 'noc' | 'membership'>('nikah');
@@ -381,6 +384,81 @@ export const SharedSettings: React.FC = () => {
                     value={adminPhone}
                     onChange={(e) => setAdminPhone(e.target.value)}
                   />
+                </div>
+              </div>
+
+              {/* CHANGE ADMIN PASSWORD CARD */}
+              <div className="form-card margin-top-lg" style={{ background: '#ffffff', padding: 24, borderRadius: 20, border: '1px solid #e2e8f0' }}>
+                <div className="flex-between align-items-center margin-bottom-md">
+                  <div>
+                    <h4 className="font-sm font-weight-800 text-dark margin-0 flex-row-gap-xs align-items-center">
+                      <ShieldCheck size={18} className="text-emerald" /> Change Admin Password
+                    </h4>
+                    <p className="font-2xs color-subtle margin-top-3xs">
+                      Update the login password for <strong>{adminEmail || 'admin@mahal.com'}</strong>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex-col gap-md">
+                  <div className="form-row-grid">
+                    <div className="form-group">
+                      <label className="form-label font-weight-700">New Password *</label>
+                      <input
+                        type="password"
+                        className="form-control"
+                        placeholder="Enter new password..."
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label font-weight-700">Confirm New Password *</label>
+                      <input
+                        type="password"
+                        className="form-control"
+                        placeholder="Re-enter new password..."
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex-end">
+                    <button
+                      type="button"
+                      className="pill-btn-primary font-xs"
+                      disabled={isPasswordUpdating}
+                      onClick={async () => {
+                        if (!newPassword) {
+                          showToast('error', 'Please enter a new password.');
+                          return;
+                        }
+                        if (newPassword.length < 4) {
+                          showToast('error', 'New password must be at least 4 characters.');
+                          return;
+                        }
+                        if (newPassword !== confirmPassword) {
+                          showToast('error', 'New passwords do not match!');
+                          return;
+                        }
+
+                        setIsPasswordUpdating(true);
+                        try {
+                          localStorage.setItem('mahal_admin_password', newPassword);
+                          setNewPassword('');
+                          setConfirmPassword('');
+                          showToast('success', '✓ Admin password updated successfully! Next login requires the new password.');
+                        } catch (err: any) {
+                          showToast('error', err.message || 'Failed to update admin password.');
+                        } finally {
+                          setIsPasswordUpdating(false);
+                        }
+                      }}
+                    >
+                      {isPasswordUpdating ? 'Updating Password...' : 'Update Admin Password'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

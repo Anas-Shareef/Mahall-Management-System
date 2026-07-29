@@ -11,7 +11,7 @@ export const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('admin@mahal.com');
-  const [password, setPassword] = useState('password123');
+  const [password, setPassword] = useState('admin123');
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);

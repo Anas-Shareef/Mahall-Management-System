@@ -12,7 +12,7 @@ export const LoginGateway: React.FC = () => {
 
   const [activeRoleTab, setActiveRoleTab] = useState<'admin' | 'member'>('admin');
   const [email, setEmail] = useState('admin@mahal.com');
-  const [password, setPassword] = useState('password123');
+  const [password, setPassword] = useState('admin123');
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,7 +25,7 @@ export const LoginGateway: React.FC = () => {
   const handleRoleSelect = (roleKey: 'admin' | 'member') => {
     setActiveRoleTab(roleKey);
     setEmail(roleCredentials[roleKey].email);
-    setPassword('password123');
+    setPassword(roleKey === 'admin' ? 'admin123' : 'password123');
     setErrorMsg('');
     setSuccessMsg('');
   };
