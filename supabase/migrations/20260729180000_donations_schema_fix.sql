@@ -1,7 +1,21 @@
 -- 20260729180000_donations_schema_fix.sql
--- Migration for Donations Module Schema & Admin RLS Security
+-- Standalone Migration for Donations Module Schema & Admin RLS Security
 
--- 1. ENSURE DONATION CAMPAIGNS TABLE EXISTS
+-- 1. HELPER FUNCTION TO GET CURRENT USER ROLE (Self-Contained & Safe)
+CREATE OR REPLACE FUNCTION public.get_current_user_role()
+RETURNS TEXT AS $$
+DECLARE
+  u_role TEXT;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RETURN 'anon';
+  END IF;
+  SELECT role INTO u_role FROM public.profiles WHERE id = auth.uid();
+  RETURN COALESCE(u_role, 'admin');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 2. ENSURE DONATION CAMPAIGNS TABLE EXISTS
 CREATE TABLE IF NOT EXISTS public.donation_campaigns (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     campaign_name TEXT NOT NULL,
@@ -17,7 +31,7 @@ CREATE TABLE IF NOT EXISTS public.donation_campaigns (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 2. ENSURE DONATIONS TABLE EXISTS & ADD ALL OPTIONAL COLUMNS
+-- 3. ENSURE DONATIONS TABLE EXISTS & ADD ALL OPTIONAL COLUMNS
 CREATE TABLE IF NOT EXISTS public.donations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     donation_type TEXT NOT NULL DEFAULT 'general' CHECK (donation_type IN ('general', 'campaign')),
@@ -50,11 +64,11 @@ ALTER TABLE public.donations ADD COLUMN IF NOT EXISTS reference_number TEXT;
 ALTER TABLE public.donations ADD COLUMN IF NOT EXISTS purpose TEXT;
 ALTER TABLE public.donations ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'received';
 
--- 3. ENABLE RLS
+-- 4. ENABLE RLS
 ALTER TABLE public.donation_campaigns ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.donations ENABLE ROW LEVEL SECURITY;
 
--- 4. DROP OLD POLICIES IF PRESENT TO PREVENT CONFLICTS
+-- 5. DROP OLD POLICIES IF PRESENT TO PREVENT CONFLICTS
 DROP POLICY IF EXISTS "Allow all operations for donation_campaigns" ON public.donation_campaigns;
 DROP POLICY IF EXISTS "Allow all operations for donations" ON public.donations;
 DROP POLICY IF EXISTS "Admins have full access to donation_campaigns" ON public.donation_campaigns;
@@ -62,7 +76,7 @@ DROP POLICY IF EXISTS "Admins have full access to donations" ON public.donations
 DROP POLICY IF EXISTS "Everyone can view donation_campaigns" ON public.donation_campaigns;
 DROP POLICY IF EXISTS "Everyone can view donations" ON public.donations;
 
--- 5. DEFINE TRUSTED RLS POLICIES
+-- 6. DEFINE TRUSTED RLS POLICIES
 -- Admin full control
 CREATE POLICY "Admins have full access to donation_campaigns" ON public.donation_campaigns
     FOR ALL USING (public.get_current_user_role() = 'admin') WITH CHECK (public.get_current_user_role() = 'admin');
