@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../services/db';
 import type { DonationCampaign, Member } from '../../services/db';
 import { 
@@ -9,6 +10,7 @@ import {
 import { FormCard } from '../../components/FormCard';
 
 export const DonationForm: React.FC = () => {
+  const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEditMode = Boolean(id);
@@ -134,7 +136,7 @@ export const DonationForm: React.FC = () => {
         receipt_number: receiptNumber.trim() || `REC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
         reference_number: referenceNumber.trim() || null,
         notes: notes.trim() || null,
-        recorded_by: null,
+        recorded_by: user?.id || null,
         is_anonymous: donorType === 'anonymous'
       };
 

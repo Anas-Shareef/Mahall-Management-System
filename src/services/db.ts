@@ -2126,6 +2126,39 @@ export const db = {
       };
 
       if (isSupabaseConfigured && supabase) {
+        // Try full payload first
+        const fullPayload: any = {
+          donation_type: cleanData.donation_type || 'general',
+          campaign_id: cleanData.campaign_id,
+          donor_type: cleanData.donor_type || 'external',
+          donor_member_id: cleanData.donor_member_id,
+          donor_name: cleanData.donor_name || 'Anonymous',
+          donor_phone: cleanData.donor_phone,
+          donor_email: cleanData.donor_email,
+          is_anonymous: cleanData.is_anonymous || false,
+          amount: cleanData.amount || 0,
+          payment_method: cleanData.payment_method || 'cash',
+          donation_date: cleanData.donation_date || new Date().toISOString().split('T')[0],
+          receipt_number: cleanData.receipt_number,
+          reference_number: cleanData.reference_number,
+          notes: cleanData.notes,
+          recorded_by: cleanData.recorded_by,
+        };
+
+        try {
+          const { data: created, error } = await supabase.from('donations').insert([fullPayload]).select().maybeSingle();
+          if (!error && created) {
+            const result = { ...cleanData, ...created } as Donation;
+            const list = getLocalData<Donation>('mahal_donations');
+            list.push(result);
+            saveLocalData('mahal_donations', list);
+            return result;
+          }
+        } catch (e) {
+          console.warn('Supabase donations full insert notice:', e);
+        }
+
+        // Retry with base payload if full insert encountered schema mismatch
         const basePayload: any = {
           donor_name: cleanData.donor_name || 'Anonymous',
           amount: cleanData.amount || 0,
@@ -2151,7 +2184,7 @@ export const db = {
             return result;
           }
         } catch (e) {
-          console.warn('Supabase donations create notice:', e);
+          console.warn('Supabase donations base insert notice:', e);
         }
       }
 
