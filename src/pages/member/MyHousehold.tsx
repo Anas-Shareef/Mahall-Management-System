@@ -58,7 +58,7 @@ export const MyHousehold: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      await db.notifications.sendNotification(
+      await db.notifications.createBroadcast(
         {
           title_en: `Correction Request from House #${household?.house_number}`,
           title_ml: `വീട്ടു വിവര തിരുത്തൽ അപേക്ഷ (House #${household?.house_number})`,

@@ -22,12 +22,9 @@ export const MemberDetailsModal: React.FC<MemberDetailsModalProps> = ({
   const [householdMembers, setHouseholdMembers] = useState<Member[]>([]);
   const [subscriptions, setSubscriptions] = useState<MemberSubscription[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [loading, setLoading] = useState(false);
-
   useEffect(() => {
     if (member) {
       const loadMemberDetails = async () => {
-        setLoading(true);
         try {
           const [house, hMembers, subs, pays] = await Promise.all([
             db.households.getById(member.household_id),
@@ -41,8 +38,6 @@ export const MemberDetailsModal: React.FC<MemberDetailsModalProps> = ({
           setPayments(pays);
         } catch (err) {
           console.error('Error loading member details:', err);
-        } finally {
-          setLoading(false);
         }
       };
 
