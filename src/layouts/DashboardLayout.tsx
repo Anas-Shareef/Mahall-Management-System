@@ -22,7 +22,6 @@ import {
   X,
   Languages,
   ChevronDown,
-  ChevronRight,
   Edit2,
   HeartHandshake,
   UserX,
@@ -257,40 +256,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     { to: '/member/settings', label: t('nav.settings'), icon: Settings },
   ];
 
-  // Dynamic Breadcrumb Generator for Top Navbar
-  const getBreadcrumbs = () => {
-    const segments = location.pathname.split('/').filter(Boolean);
-    const crumbs: { label: string; path: string }[] = [];
-    let currentPath = '';
-
-    segments.forEach((seg) => {
-      currentPath += `/${seg}`;
-      if (seg === 'admin' || seg === 'member') return; // Skip role prefix
-      // Skip raw UUIDs/IDs from top navbar breadcrumbs
-      if (seg.length > 12 || /^[0-9a-fA-F-]{10,}$/.test(seg)) return;
-
-      let label = seg.charAt(0).toUpperCase() + seg.slice(1);
-      if (seg === 'households') label = t('nav.households');
-      else if (seg === 'members') label = t('nav.members');
-      else if (seg === 'donations') label = t('nav.donations');
-      else if (seg === 'deaths') label = t('nav.deaths');
-      else if (seg === 'marriages') label = t('nav.marriages');
-      else if (seg === 'subscriptions') label = t('nav.subscriptions');
-      else if (seg === 'payments') label = t('nav.payments');
-      else if (seg === 'notifications') label = t('nav.notifications');
-      else if (seg === 'gallery') label = t('nav.gallery');
-      else if (seg === 'reports') label = t('nav.reports');
-      else if (seg === 'settings') label = t('nav.settings');
-      else if (seg === 'dashboard') label = t('nav.dashboard');
-      else if (seg === 'new') label = 'Add New';
-      else if (seg === 'edit') label = 'Edit';
-
-      crumbs.push({ label, path: currentPath });
-    });
-
-    return crumbs;
-  };
-
+  // Dynamic Page Title Generator for Top Navbar
   const getCleanPageTitle = () => {
     const path = location.pathname;
     if (path.includes('/dashboard')) return t('nav.dashboard');
