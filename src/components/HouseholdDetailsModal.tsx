@@ -18,19 +18,16 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
   onClose,
   household,
   onGrantAccess,
-  onRefresh,
 }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'members' | 'subscriptions' | 'payments'>('members');
   const [members, setMembers] = useState<Member[]>([]);
   const [memberSubscriptions, setMemberSubscriptions] = useState<{ member: Member; sub: MemberSubscription | null }[]>([]);
   const [householdPayments, setHouseholdPayments] = useState<Payment[]>([]);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (household) {
       const loadHouseholdDetails = async () => {
-        setLoading(true);
         try {
           const [hMembers, allSubs, allPayments] = await Promise.all([
             db.members.getByHousehold(household.id),
@@ -53,8 +50,6 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
           setHouseholdPayments(hPayments);
         } catch (err) {
           console.error('Error loading household details:', err);
-        } finally {
-          setLoading(false);
         }
       };
 
@@ -75,7 +70,7 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title={`Household #H-${household.house_number}`}
-      subtitle={`Owner: ${household.house_owner_name} • ${household.address || 'Mahallu Central'}`}
+      subtitle={`Owner: ${household.house_owner_name} • ${household.address || 'Mahallu Central'} • ${portalUsersCount} Active Portal User(s)`}
       icon={<Home size={22} className="text-emerald" />}
       size="lg"
       footer={

@@ -697,7 +697,6 @@ export const Households: React.FC = () => {
           setMemberForAccess(m);
           setIsGrantModalOpen(true);
         }}
-        onRefresh={loadData}
       />
 
       {/* GRANT PORTAL ACCESS MODAL */}
