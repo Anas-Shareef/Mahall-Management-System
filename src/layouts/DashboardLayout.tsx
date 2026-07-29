@@ -407,6 +407,17 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
           </div>
 
           <div className="header-right-tools">
+            {/* Global Spotlight Search Trigger (Desktop only) */}
+            <button 
+              className="spotlight-header-trigger desktop-only"
+              onClick={() => setIsSpotlightOpen(true)}
+              title="Search database (Ctrl+K)"
+            >
+              <Search size={15} />
+              <span className="spotlight-placeholder">Search database...</span>
+              <kbd className="shortcut-kbd">Ctrl+K</kbd>
+            </button>
+
             {/* Notification Bell */}
             <div className="notif-bell-wrap">
               <button
@@ -458,7 +469,15 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
               )}
             </div>
 
-            {/* Profile User Icon & Chevron Dropdown (Matching Image 1: User Icon + ChevronDown) */}
+            {/* Role Status Pill (Desktop only) */}
+            <div className="header-balance-pill desktop-only">
+              <span className="balance-label">Role status</span>
+              <span className="balance-amount">
+                {user?.role === 'admin' ? 'Admin Portal' : 'Member Portal'}
+              </span>
+            </div>
+
+            {/* Profile User Icon & Chevron Dropdown */}
             <div className="profile-pill-wrap">
               <button
                 className="clean-user-icon-btn"
