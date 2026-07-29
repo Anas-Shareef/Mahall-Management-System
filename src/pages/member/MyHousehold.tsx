@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../services/db';
 import type { Household, Member } from '../../services/db';
-import { Home, Users, Phone, MapPin, Send, CheckCircle, AlertCircle } from 'lucide-react';
+import { Send, CheckCircle, AlertCircle } from 'lucide-react';
 import { Modal } from '../../components/Modal';
 
 export const MyHousehold: React.FC = () => {
@@ -58,15 +58,16 @@ export const MyHousehold: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      await db.notifications.create({
-        recipient_id: 'admin-broadcast',
-        recipient_role: 'admin',
-        title_en: `Correction Request from House #${household?.house_number}`,
-        title_ml: `വീട്ടു വിവര തിരുത്തൽ അപേക്ഷ (House #${household?.house_number})`,
-        message_en: `${user?.name || 'Member'}: ${correctionNote}`,
-        message_ml: `${user?.name || 'Member'}: ${correctionNote}`,
-        type: 'alert',
-      });
+      await db.notifications.sendNotification(
+        {
+          title_en: `Correction Request from House #${household?.house_number}`,
+          title_ml: `വീട്ടു വിവര തിരുത്തൽ അപേക്ഷ (House #${household?.house_number})`,
+          message_en: `${user?.name || 'Member'}: ${correctionNote}`,
+          message_ml: `${user?.name || 'Member'}: ${correctionNote}`,
+          type: 'alert',
+        },
+        'all'
+      );
 
       setToastMessage({ type: 'success', text: '✓ Correction request sent to Mahall Admin successfully.' });
       setIsCorrectionModalOpen(false);

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from './Modal';
 import { db } from '../services/db';
 import type { Household, Member, MemberSubscription, Payment } from '../services/db';
-import { Home, Users, FileText, Receipt, ShieldCheck, Plus, Eye, DollarSign } from 'lucide-react';
+import { Home, Users, FileText, Receipt, ShieldCheck, Plus, DollarSign } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface HouseholdDetailsModalProps {

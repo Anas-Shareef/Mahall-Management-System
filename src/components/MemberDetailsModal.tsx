@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from './Modal';
 import { db } from '../services/db';
 import type { Member, Household, MemberSubscription, Payment } from '../services/db';
-import { User, Home, FileText, Receipt, ShieldCheck, Calendar, Phone, Mail, Award, CheckCircle } from 'lucide-react';
+import { User, Home, FileText, Receipt, ShieldCheck } from 'lucide-react';
 
 interface MemberDetailsModalProps {
   isOpen: boolean;

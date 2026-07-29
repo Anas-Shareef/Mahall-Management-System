@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { User, Smartphone, Key, AlertCircle, CheckCircle, ArrowLeft, UserPlus } from 'lucide-react';
+import { User, Smartphone, Key, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
 
 export const MemberLogin: React.FC = () => {
   const { t, language, setLanguage } = useTranslation();

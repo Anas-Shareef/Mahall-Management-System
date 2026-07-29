@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useOrganization } from '../../contexts/OrganizationContext';
 import { VmOneLogo } from '../../components/VmOneLogo';
-import { Mail, Lock, Shield, User, LogIn, AlertCircle, CheckCircle, ArrowRight, UserPlus } from 'lucide-react';
+import { Mail, Lock, Shield, User, LogIn, AlertCircle, CheckCircle, ArrowRight } from 'lucide-react';
 
 export const LoginGateway: React.FC = () => {
   const { loginWithEmail } = useAuth();

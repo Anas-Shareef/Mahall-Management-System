@@ -96,6 +96,8 @@ export const MemberForm: React.FC = () => {
         phone: phone.trim() || null,
         email: email.trim() || null,
         status,
+        portal_access: false,
+        portal_status: 'not_granted' as const,
         is_subscription_accountable: isSubscriptionAccountable
       };
 
