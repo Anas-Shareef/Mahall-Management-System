@@ -4415,9 +4415,43 @@ select.custom-select-pill:focus,
     grid-template-columns: 1fr 1fr !important;
     gap: 10px !important;
   }
-  .album-footer-btn {
+.album-footer-btn {
     width: 100% !important;
   }
+}
+
+/* ── CLEAN NAVBAR PAGE TITLE (MATCHING IMAGE 1) ── */
+.header-left-title {
+  display: flex !important;
+  align-items: center !important;
+}
+
+.navbar-page-title {
+  font-size: 22px !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.02em !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.2 !important;
+}
+
+.clean-user-icon-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 8px !important;
+  cursor: pointer !important;
+  color: #1e293b !important;
+  border-radius: 9999px !important;
+  transition: all 0.2s ease !important;
+}
+
+.clean-user-icon-btn:hover {
+  background: #f1f5f9 !important;
+  color: #01A350 !important;
 }
 
 

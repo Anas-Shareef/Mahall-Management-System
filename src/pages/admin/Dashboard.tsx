@@ -302,22 +302,7 @@ export const Dashboard: React.FC = () => {
       )}
 
       {/* PAGE HEADER & QUICK ACTIONS */}
-      <div className="dashboard-header-bar">
-        <div>
-          <h3 className="dashboard-title">
-            {t('dashboard.welcome')}, {user?.name || 'Administrator'} ({(user?.role as string)?.toUpperCase() || 'ADMIN'})
-          </h3>
-          <p className="dashboard-subtitle">
-            {(user?.role as string) === 'treasurer'
-              ? t('dashboard.subtitle_treasurer')
-              : (user?.role as string) === 'secretary'
-              ? t('dashboard.subtitle_secretary')
-              : (user?.role as string) === 'president'
-              ? t('dashboard.subtitle_president')
-              : t('dashboard.subtitle_admin')}
-          </p>
-        </div>
-
+      <div className="dashboard-header-bar" style={{ justifyContent: 'flex-end', marginBottom: 20 }}>
         <div className="dashboard-actions-group">
           <YearFilter
             selectedYearId={selectedYearId}

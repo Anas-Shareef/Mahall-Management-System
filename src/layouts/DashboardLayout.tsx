@@ -290,6 +290,25 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
 
     return crumbs;
   };
+
+  const getCleanPageTitle = () => {
+    const path = location.pathname;
+    if (path.includes('/dashboard')) return t('nav.dashboard');
+    if (path.includes('/households')) return t('nav.households');
+    if (path.includes('/members')) return t('nav.members');
+    if (path.includes('/subscriptions') || path.includes('/my-subscription')) return t('nav.subscriptions');
+    if (path.includes('/payments') || path.includes('/payment-history')) return t('nav.payments');
+    if (path.includes('/donations')) return t('nav.donations');
+    if (path.includes('/deaths')) return t('nav.deaths');
+    if (path.includes('/marriages')) return t('nav.marriages');
+    if (path.includes('/notifications')) return t('nav.notifications');
+    if (path.includes('/gallery')) return t('nav.gallery');
+    if (path.includes('/reports')) return t('nav.reports');
+    if (path.includes('/settings')) return t('nav.settings');
+    if (path.includes('/profile')) return t('nav.myProfile');
+    return 'Dashboard';
+  };
+
   const filteredMenuGroups = useMemo(() => {
     const role = (user?.role as string) || 'admin';
     if (!user || role === 'admin' || role === 'super_admin') {
@@ -420,43 +439,13 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
 
       {/* MAIN CONTAINER */}
       <div className="main-viewport">
-        {/* HEADER NAVBAR */}
+        {/* HEADER NAVBAR (EXACT MATCH TO ATTACHED IMAGE 1) */}
         <header className="header-bar">
-          <div className="header-left-breadcrumbs">
-            <button className="mobile-toggle-btn" onClick={() => setIsMobileMenuOpen(true)} aria-label="Open navigation menu">
-              <Menu size={20} />
-            </button>
-            <nav className="navbar-breadcrumbs" aria-label="Breadcrumb">
-              <Link to={user?.role === 'admin' ? '/admin/dashboard' : '/member/dashboard'} className="crumb-home-link" title="Home">
-                <Home size={16} />
-              </Link>
-              {getBreadcrumbs().map((crumb, idx) => (
-                <React.Fragment key={crumb.path}>
-                  <ChevronRight size={14} className="crumb-separator" />
-                  {idx === getBreadcrumbs().length - 1 ? (
-                    <span className="crumb-current">{crumb.label}</span>
-                  ) : (
-                    <Link to={crumb.path} className="crumb-link">{crumb.label}</Link>
-                  )}
-                </React.Fragment>
-              ))}
-            </nav>
+          <div className="header-left-title">
+            <h1 className="navbar-page-title">{getCleanPageTitle()}</h1>
           </div>
 
           <div className="header-right-tools">
-            {/* Global Spotlight Search Trigger */}
-            <button 
-              className="spotlight-header-trigger"
-              onClick={() => setIsSpotlightOpen(true)}
-              title="Search database (Ctrl+K)"
-            >
-              <Search size={15} />
-              <span className="spotlight-placeholder">Search database...</span>
-              <kbd className="shortcut-kbd">Ctrl+K</kbd>
-            </button>
-
-
-
             {/* Notification Bell */}
             <div className="notif-bell-wrap">
               <button
@@ -464,7 +453,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                 onClick={() => setIsNotificationOpen(!isNotificationOpen)}
                 aria-label="Open notifications"
               >
-                <Bell size={18} />
+                <Bell size={20} />
                 {unreadCount > 0 && <span className="notif-dot-badge"></span>}
               </button>
 
@@ -508,22 +497,14 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
               )}
             </div>
 
-            {/* Role Status Pill */}
-            <div className="header-balance-pill desktop-only-pill">
-              <span className="balance-label">Role status</span>
-              <span className="balance-amount">
-                {user?.role === 'admin' ? 'Admin Portal' : 'Member Portal'}
-              </span>
-            </div>
-
-            {/* Profile Avatar Pill & Dropdown */}
+            {/* Profile User Icon & Chevron Dropdown (Matching Image 1: User Icon + ChevronDown) */}
             <div className="profile-pill-wrap">
               <button
-                className="profile-pill-trigger"
+                className="clean-user-icon-btn"
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                 aria-label="User menu"
               >
-                <div className="user-avatar-img">{userInitials}</div>
+                <User size={20} className="text-dark" />
                 <ChevronDown size={14} className="profile-chevron" />
               </button>
 
