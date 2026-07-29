@@ -64,7 +64,7 @@ export const MyHousehold: React.FC = () => {
           title_ml: `വീട്ടു വിവര തിരുത്തൽ അപേക്ഷ (House #${household?.house_number})`,
           message_en: `${user?.name || 'Member'}: ${correctionNote}`,
           message_ml: `${user?.name || 'Member'}: ${correctionNote}`,
-          type: 'alert',
+          type: 'announcement',
         },
         'all'
       );
