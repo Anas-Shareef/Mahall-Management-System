@@ -535,17 +535,17 @@ export const Gallery: React.FC = () => {
         icon={<ImageIcon size={20} />}
         size="lg"
         footer={
-          <div className="flex-between width-100 align-items-center gap-md">
-            <button className="pill-btn-danger font-xs" onClick={() => selectedAlbum && handleDeleteAlbum(selectedAlbum)}>
-              <Trash2 size={14} /> Delete Album
+          <div className="album-modal-footer-wrap">
+            <button className="album-footer-btn danger" onClick={() => selectedAlbum && handleDeleteAlbum(selectedAlbum)}>
+              <Trash2 size={15} /> Delete Album
             </button>
-            <div className="flex-row-gap-xs align-items-center">
+            <div className="album-footer-actions-right">
               {selectedAlbum && (
-                <button className="pill-btn-primary font-xs flex-row-gap-xs" onClick={() => handleDownloadAlbum(selectedAlbum)}>
-                  <Download size={14} /> Download Photos
+                <button className="album-footer-btn primary" onClick={() => handleDownloadAlbum(selectedAlbum)}>
+                  <Download size={15} /> Download Photos
                 </button>
               )}
-              <button className="pill-btn-secondary font-xs" onClick={() => setSelectedAlbum(null)}>
+              <button className="album-footer-btn secondary" onClick={() => setSelectedAlbum(null)}>
                 Close
               </button>
             </div>
@@ -554,7 +554,7 @@ export const Gallery: React.FC = () => {
       >
         {selectedAlbum && (
           <div className="flex-col gap-md">
-            <p className="font-sm color-subtle">{selectedAlbum.description || 'Programme event gallery photographs'}</p>
+            <p className="font-sm color-subtle margin-0">{selectedAlbum.description || 'Programme event gallery photographs'}</p>
 
             <div className="gallery-photo-grid">
               {albumImages.length === 0 ? (
@@ -562,7 +562,13 @@ export const Gallery: React.FC = () => {
               ) : (
                 albumImages.map((img) => (
                   <div key={img.id} className="photo-preview-chip shadow-sm">
-                    <img src={img.image_url} alt={img.caption || 'Gallery photo'} />
+                    <img 
+                      src={img.image_url} 
+                      alt={img.caption || 'Gallery photo'} 
+                      loading="lazy" 
+                      decoding="async" 
+                      style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 12, objectFit: 'cover' }}
+                    />
                   </div>
                 ))
               )}

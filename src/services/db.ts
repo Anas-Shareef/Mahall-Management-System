@@ -703,33 +703,31 @@ export const db = {
   // HOUSEHOLDS
   households: {
     get: async (): Promise<Household[]> => {
-      if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase.from('households').select('*').order('house_number');
-        if (error) throw error;
-        return data as Household[];
-      }
-      return getLocalData<Household>('mahal_households').sort((a, b) =>
+      const localItems = getLocalData<Household>('mahal_households').sort((a, b) =>
         a.house_number.localeCompare(b.house_number, undefined, { numeric: true, sensitivity: 'base' })
       );
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data, error } = await supabase.from('households').select('*').order('house_number');
+          if (!error && data && data.length > 0) return data as Household[];
+        } catch (err) {
+          console.warn('Supabase households fetch notice:', err);
+        }
+      }
+      return localItems;
     },
     getById: async (id: string): Promise<Household | null> => {
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase.from('households').select('*').eq('id', id).single();
-        if (error) throw error;
-        return data as Household;
+        try {
+          const { data, error } = await supabase.from('households').select('*').eq('id', id).single();
+          if (!error && data) return data as Household;
+        } catch (err) {
+          console.warn('Supabase household fetch notice:', err);
+        }
       }
       return getLocalData<Household>('mahal_households').find((h) => h.id === id) || null;
     },
     create: async (household: Omit<Household, 'id' | 'created_at' | 'updated_at'>): Promise<Household> => {
-      if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase
-          .from('households')
-          .insert([household])
-          .select()
-          .single();
-        if (error) throw error;
-        return data as Household;
-      }
       const list = getLocalData<Household>('mahal_households');
       const newHousehold: Household = {
         ...household,
@@ -737,47 +735,71 @@ export const db = {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
-      // Check unique house number
       if (list.some((h) => h.house_number === household.house_number)) {
         throw new Error('House number already exists');
       }
       list.push(newHousehold);
       saveLocalData('mahal_households', list);
+
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('households')
+            .insert([household])
+            .select()
+            .single();
+          if (!error && data) {
+            const idx = list.findIndex(h => h.id === newHousehold.id);
+            if (idx !== -1) list[idx] = data as Household;
+            saveLocalData('mahal_households', list);
+            return data as Household;
+          }
+        } catch (err) {
+          console.warn('Supabase insert household notice:', err);
+        }
+      }
       return newHousehold;
     },
     update: async (id: string, updates: Partial<Household>): Promise<Household> => {
-      if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase
-          .from('households')
-          .update(updates)
-          .eq('id', id)
-          .select()
-          .single();
-        if (error) throw error;
-        return data as Household;
-      }
       const list = getLocalData<Household>('mahal_households');
       const idx = list.findIndex((h) => h.id === id);
-      if (idx === -1) throw new Error('Household not found');
-      // Unique check
-      if (updates.house_number && updates.house_number !== list[idx].house_number) {
-        if (list.some((h) => h.house_number === updates.house_number)) {
-          throw new Error('House number already exists');
+      if (idx !== -1) {
+        if (updates.house_number && updates.house_number !== list[idx].house_number) {
+          if (list.some((h) => h.house_number === updates.house_number)) {
+            throw new Error('House number already exists');
+          }
+        }
+        list[idx] = { ...list[idx], ...updates, updated_at: new Date().toISOString() };
+        saveLocalData('mahal_households', list);
+      }
+
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('households')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+          if (!error && data) return data as Household;
+        } catch (err) {
+          console.warn('Supabase update household notice:', err);
         }
       }
-      list[idx] = { ...list[idx], ...updates, updated_at: new Date().toISOString() };
-      saveLocalData('mahal_households', list);
-      return list[idx];
+      return list[idx] || ({ ...updates, id } as Household);
     },
     delete: async (id: string): Promise<boolean> => {
-      if (isSupabaseConfigured && supabase) {
-        const { error } = await supabase.from('households').delete().eq('id', id);
-        if (error) throw error;
-        return true;
-      }
       const list = getLocalData<Household>('mahal_households');
       const filtered = list.filter((h) => h.id !== id);
       saveLocalData('mahal_households', filtered);
+
+      if (isSupabaseConfigured && supabase) {
+        try {
+          await supabase.from('households').delete().eq('id', id);
+        } catch (err) {
+          console.warn('Supabase delete household notice:', err);
+        }
+      }
       return true;
     },
   },
