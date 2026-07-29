@@ -10,7 +10,7 @@ import {
   Download, Edit2, Trash2, User,
   Printer, RefreshCw, HeartHandshake,
   TrendingUp, CalendarDays, Target, Award, QrCode, ChevronLeft, ChevronRight,
-  Wallet
+  Wallet, FileSpreadsheet, Upload
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { Modal } from '../../components/Modal';
@@ -24,6 +24,7 @@ export const Donations: React.FC = () => {
 
   // Primary Sub-Tab State ('all' | 'general' | 'campaigns')
   const [activeTab, setActiveTab] = useState<'all' | 'general' | 'campaigns'>('all');
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Data States
   const [years, setYears] = useState<SubscriptionYear[]>([]);
@@ -317,11 +318,15 @@ export const Donations: React.FC = () => {
       <div className="page-header flex-between margin-bottom">
         <div>
           <h1 className="page-title">Donation Records</h1>
-          <p className="page-subtitle">Manage general donations, special campaign collections, receipts, and Supabase audit logs.</p>
+          <p className="page-subtitle">Manage donations, campaigns & official receipts.</p>
         </div>
 
         <div className="header-cta-group flex-row-gap-sm">
-          <button className="pill-btn-ghost font-xs" onClick={exportCSV}>
+          <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={() => setIsImportModalOpen(true)}>
+            <FileSpreadsheet size={15} className="text-emerald" />
+            <span>Import Data</span>
+          </button>
+          <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={exportCSV}>
             <Download size={15} />
             <span>Export CSV</span>
           </button>
@@ -1096,6 +1101,76 @@ export const Donations: React.FC = () => {
         .pill-btn-danger { padding: 8px 16px !important; border-radius: 9999px !important; background: #fee2e2 !important; border: 1px solid #fca5a5 !important; color: #991b1b !important; font-weight: 700 !important; font-size: 12.5px !important; cursor: pointer !important; display: inline-flex !important; align-items: center !important; gap: 6px !important; transition: all 0.2s ease !important; }
         .icon-btn-ghost.danger:hover { background: #fee2e2 !important; color: #ef4444 !important; }
       `}</style>
+
+      {/* IMPORT EXCEL / CSV MODAL */}
+      <Modal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        title="Import Donation Records"
+        subtitle="Batch import donation records using Excel or CSV file."
+        icon={<FileSpreadsheet size={20} className="text-emerald" />}
+        size="md"
+        footer={
+          <div className="flex-between width-100 align-items-center">
+            <button
+              type="button"
+              className="pill-btn-ghost font-xs flex-row-gap-xs"
+              onClick={() => {
+                const csvHeader = 'receipt_number,donor_name,donor_phone,donor_email,amount,payment_method,donation_date,notes\n';
+                const csvSample = 'REC-2026-1001,Ashraf Ali,9876543210,ashraf@example.com,5000,upi,2026-07-28,General Donation\nREC-2026-1002,Mohammed K,9876543211,,2500,cash,2026-07-29,Masjid Carpet Fund\n';
+                const blob = new Blob([csvHeader + csvSample], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'donation_records_sample_template.csv';
+                a.click();
+                showToast('success', 'Sample template downloaded!');
+              }}
+            >
+              <Download size={14} /> Download Sample Template
+            </button>
+            <button
+              type="button"
+              className="pill-btn-primary font-xs"
+              onClick={() => {
+                showToast('success', 'Demo mode: Please upload file using the formatted template.');
+                setIsImportModalOpen(false);
+              }}
+            >
+              Import File
+            </button>
+          </div>
+        }
+      >
+        <div className="flex-col gap-md">
+          <div className="form-card bg-emerald-soft" style={{ padding: '16px', borderRadius: '12px' }}>
+            <div className="flex-row-gap-sm align-items-center">
+              <FileSpreadsheet size={24} className="text-emerald" />
+              <div>
+                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>Excel / CSV Import Format</h4>
+                <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#475569' }}>
+                  Ensure your file includes columns: <code>receipt_number</code>, <code>donor_name</code>, <code>amount</code>, <code>payment_method</code>, <code>donation_date</code>.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              border: '2px dashed #cbd5e1',
+              borderRadius: '14px',
+              padding: '32px 16px',
+              textAlign: 'center',
+              background: '#f8fafc',
+              cursor: 'pointer',
+            }}
+          >
+            <Upload size={32} style={{ color: '#00966b', marginBottom: '8px' }} />
+            <h5 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>Click or Drag & Drop Excel/CSV File</h5>
+            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b' }}>Supports .xlsx, .xls, .csv files (Max 5MB)</p>
+          </div>
+        </div>
+      </Modal>
 
       {/* CONFIRMATION DELETE MODAL */}
       <ConfirmModal

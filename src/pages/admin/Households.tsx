@@ -301,7 +301,7 @@ export const Households: React.FC = () => {
       <div className="page-header-actions">
         <div>
           <h3>{t('household.householdsTitle')}</h3>
-          <p className="page-subtitle">Manage Mahallu households, ward directories, and member financial balances.</p>
+          <p className="page-subtitle">Manage households, ward directories & family balances.</p>
         </div>
         
         <div className="header-cta-group">

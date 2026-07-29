@@ -6,7 +6,7 @@ import {
   UserX, Plus, Search, Trash2, Edit2, Eye, CheckCircle, AlertCircle, 
   X, Calendar, CalendarDays, FileWarning, Download, 
   Filter, ChevronRight, User, Printer, RefreshCw, FileText,
-  Home, Building2, ChevronLeft, Award, QrCode
+  Home, Building2, ChevronLeft, Award, QrCode, FileSpreadsheet, Upload
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { Modal } from '../../components/Modal';
@@ -17,6 +17,7 @@ import { useOrganization } from '../../contexts/OrganizationContext';
 export const Deaths: React.FC = () => {
   const navigate = useNavigate();
   const { branding } = useOrganization();
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Data States
   const [deaths, setDeaths] = useState<DeathRecord[]>([]);
@@ -285,17 +286,21 @@ export const Deaths: React.FC = () => {
       <div className="page-header flex-between margin-bottom">
         <div>
           <h1 className="page-title">Death Records</h1>
-          <p className="page-subtitle">Manage deceased member records, family links, death certificates, and Supabase audit logs.</p>
+          <p className="page-subtitle">Manage deceased member records & death certificates.</p>
         </div>
 
         <div className="header-cta-group flex-row-gap-sm">
-          <button className="pill-btn-ghost font-xs" onClick={exportCSV}>
+          <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={() => setIsImportModalOpen(true)}>
+            <FileSpreadsheet size={15} className="text-emerald" />
+            <span>Import Data</span>
+          </button>
+          <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={exportCSV}>
             <Download size={15} />
             <span>Export CSV</span>
           </button>
           <button className="add-btn primary-btn" onClick={openAddDrawer}>
             <Plus size={16} />
-            <span>Record Death</span>
+            <span>+ Record Death</span>
           </button>
         </div>
       </div>
@@ -1064,6 +1069,76 @@ export const Deaths: React.FC = () => {
         .pill-btn-danger { padding: 8px 16px !important; border-radius: 9999px !important; background: #fee2e2 !important; border: 1px solid #fca5a5 !important; color: #991b1b !important; font-weight: 700 !important; font-size: 12.5px !important; cursor: pointer !important; display: inline-flex !important; align-items: center !important; gap: 6px !important; transition: all 0.2s ease !important; }
         .icon-btn-ghost.danger:hover { background: #fee2e2 !important; color: #ef4444 !important; }
       `}</style>
+
+      {/* IMPORT EXCEL / CSV MODAL */}
+      <Modal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        title="Import Death Records"
+        subtitle="Batch import death records using Excel or CSV file."
+        icon={<FileSpreadsheet size={20} className="text-emerald" />}
+        size="md"
+        footer={
+          <div className="flex-between width-100 align-items-center">
+            <button
+              type="button"
+              className="pill-btn-ghost font-xs flex-row-gap-xs"
+              onClick={() => {
+                const csvHeader = 'deceased_name,date_of_death,burial_date,place_of_death,age,gender,cause_of_death,notes\n';
+                const csvSample = 'Abdullah Kutty,2026-07-25,2026-07-25,Mahallu Hospital,78,male,Natural Causes,Sample Note\n';
+                const blob = new Blob([csvHeader + csvSample], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'death_records_sample_template.csv';
+                a.click();
+                showToast('success', 'Sample template downloaded!');
+              }}
+            >
+              <Download size={14} /> Download Sample Template
+            </button>
+            <button
+              type="button"
+              className="pill-btn-primary font-xs"
+              onClick={() => {
+                showToast('success', 'Demo mode: Please upload file using the formatted template.');
+                setIsImportModalOpen(false);
+              }}
+            >
+              Import File
+            </button>
+          </div>
+        }
+      >
+        <div className="flex-col gap-md">
+          <div className="form-card bg-emerald-soft" style={{ padding: '16px', borderRadius: '12px' }}>
+            <div className="flex-row-gap-sm align-items-center">
+              <FileSpreadsheet size={24} className="text-emerald" />
+              <div>
+                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>Excel / CSV Import Format</h4>
+                <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#475569' }}>
+                  Ensure your file includes columns: <code>deceased_name</code>, <code>date_of_death</code>, <code>age</code>, <code>gender</code>.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              border: '2px dashed #cbd5e1',
+              borderRadius: '14px',
+              padding: '32px 16px',
+              textAlign: 'center',
+              background: '#f8fafc',
+              cursor: 'pointer',
+            }}
+          >
+            <Upload size={32} style={{ color: '#00966b', marginBottom: '8px' }} />
+            <h5 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>Click or Drag & Drop Excel/CSV File</h5>
+            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b' }}>Supports .xlsx, .xls, .csv files (Max 5MB)</p>
+          </div>
+        </div>
+      </Modal>
 
       {/* CONFIRMATION DELETE MODAL */}
       <ConfirmModal

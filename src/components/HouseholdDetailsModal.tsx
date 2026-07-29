@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal } from './Modal';
+import { SidePanel } from './SidePanel';
 import { db } from '../services/db';
 import type { Household, Member, MemberSubscription, Payment } from '../services/db';
 import { Home, Users, FileText, Receipt, ShieldCheck, Plus, DollarSign } from 'lucide-react';
@@ -66,7 +66,7 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
   const portalUsersCount = members.filter((m) => m.portal_access).length;
 
   return (
-    <Modal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       title={`Household #H-${household.house_number}`}
@@ -253,7 +253,7 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
           </div>
         )}
       </div>
-    </Modal>
+    </SidePanel>
   );
 };
 

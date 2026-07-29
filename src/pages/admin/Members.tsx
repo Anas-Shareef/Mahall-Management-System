@@ -173,7 +173,7 @@ export const Members: React.FC = () => {
       <div className="page-header-actions">
         <div>
           <h3>{t('member.membersTitle')}</h3>
-          <p className="page-subtitle">Manage Mahallu household members, relationship records, and member portal access.</p>
+          <p className="page-subtitle">Manage household members & portal access.</p>
         </div>
         <button className="add-btn primary-btn" onClick={openAddModal}>
           <Plus size={16} />

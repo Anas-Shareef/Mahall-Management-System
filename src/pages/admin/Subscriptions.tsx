@@ -324,7 +324,7 @@ export const Subscriptions: React.FC = () => {
       <div className="page-header-actions">
         <div>
           <h3>{t('subscription.subscriptionTitle')}</h3>
-          <p className="page-subtitle">Scalable year-based subscription ledgers, rolling arrears & payment allocation.</p>
+          <p className="page-subtitle">Manage year-based subscription ledgers & payment history.</p>
         </div>
 
         <div className="header-cta-group">
@@ -361,31 +361,61 @@ export const Subscriptions: React.FC = () => {
         </div>
       </div>
 
-      {/* PRIMARY NAVIGATION TABS */}
-      <div className="subscription-nav-tabs">
-        <button
-          className={`tab-pill-btn ${activeTab === 'overview' ? 'active' : ''}`}
-          onClick={() => setActiveTab('overview')}
-        >
-          <Layers size={16} />
-          <span>Overview & Stats</span>
-        </button>
+      {/* PRIMARY NAVIGATION TABS & DROPDOWN SELECTOR */}
+      <div className="subscription-nav-tabs-wrapper margin-bottom-md flex-between align-items-center flex-wrap gap-md">
+        <div className="tab-dropdown-container flex-row-gap-xs align-items-center">
+          <label htmlFor="subscription-view-select" className="font-xs font-weight-700 color-subtle">
+            Select View:
+          </label>
+          <div className="custom-tab-select-wrapper">
+            <select
+              id="subscription-view-select"
+              className="form-control tab-dropdown-select font-weight-700"
+              value={activeTab}
+              onChange={(e) => setActiveTab(e.target.value as 'overview' | 'ledgers' | 'years')}
+              style={{
+                borderRadius: 14,
+                padding: '10px 16px',
+                border: '1.5px solid #00966b',
+                background: '#ffffff',
+                color: '#00966b',
+                fontWeight: 700,
+                fontSize: 14,
+                cursor: 'pointer',
+              }}
+            >
+              <option value="overview">📊 Overview & Stats</option>
+              <option value="ledgers">👥 Member Ledgers</option>
+              <option value="years">📅 Subscription Years</option>
+            </select>
+          </div>
+        </div>
 
-        <button
-          className={`tab-pill-btn ${activeTab === 'ledgers' ? 'active' : ''}`}
-          onClick={() => setActiveTab('ledgers')}
-        >
-          <UserCheck size={16} />
-          <span>Member Ledgers</span>
-        </button>
+        <div className="subscription-nav-tabs desktop-pills-only">
+          <button
+            className={`tab-pill-btn ${activeTab === 'overview' ? 'active' : ''}`}
+            onClick={() => setActiveTab('overview')}
+          >
+            <Layers size={16} />
+            <span>Overview & Stats</span>
+          </button>
 
-        <button
-          className={`tab-pill-btn ${activeTab === 'years' ? 'active' : ''}`}
-          onClick={() => setActiveTab('years')}
-        >
-          <Calendar size={16} />
-          <span>Subscription Years</span>
-        </button>
+          <button
+            className={`tab-pill-btn ${activeTab === 'ledgers' ? 'active' : ''}`}
+            onClick={() => setActiveTab('ledgers')}
+          >
+            <UserCheck size={16} />
+            <span>Member Ledgers</span>
+          </button>
+
+          <button
+            className={`tab-pill-btn ${activeTab === 'years' ? 'active' : ''}`}
+            onClick={() => setActiveTab('years')}
+          >
+            <Calendar size={16} />
+            <span>Subscription Years</span>
+          </button>
+        </div>
       </div>
 
       {/* ════════════════════════════════════════════════
@@ -793,9 +823,9 @@ export const Subscriptions: React.FC = () => {
         size="lg"
       >
         {ledgerMember && (
-          <div className="flex-col gap-md">
+          <div className="flex-col padding-bottom-xl" style={{ gap: '28px' }}>
             {/* ACCOUNTABILITY TOGGLE */}
-            <div className="accountability-toggle-card">
+            <div className="accountability-toggle-card" style={{ marginBottom: '24px' }}>
               <div>
                 <span className="toggle-title">Subscription Accountability</span>
                 <p className="toggle-desc">
@@ -824,9 +854,11 @@ export const Subscriptions: React.FC = () => {
             </div>
 
             {/* YEAR-BY-YEAR OBLIGATIONS BREAKDOWN */}
-            <div className="drawer-section">
+            <div className="drawer-section" style={{ marginBottom: '28px' }}>
               <div className="drawer-section-head">
-                <h5>Yearly Subscription History</h5>
+                <h5 style={{ fontSize: '15px', fontWeight: 800, color: '#1e293b', marginBottom: '12px' }}>
+                  YEARLY SUBSCRIPTION HISTORY
+                </h5>
               </div>
 
               <div className="table-responsive">
@@ -871,9 +903,11 @@ export const Subscriptions: React.FC = () => {
             </div>
 
             {/* ARREAR ADJUSTMENTS AUDIT TRAIL */}
-            <div className="drawer-section">
-              <div className="drawer-section-head flex-between">
-                <h5>Auditable Arrear Adjustments</h5>
+            <div className="drawer-section" style={{ marginBottom: '28px' }}>
+              <div className="drawer-section-head flex-between align-items-center margin-bottom-sm">
+                <h5 style={{ fontSize: '15px', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                  AUDITABLE ARREAR ADJUSTMENTS
+                </h5>
                 <button
                   className="add-btn secondary-btn compact-btn"
                   onClick={() => {
@@ -888,7 +922,7 @@ export const Subscriptions: React.FC = () => {
                 </button>
               </div>
 
-              <div className="arrears-history-list">
+              <div className="arrears-history-list" style={{ marginTop: '12px' }}>
                 {arrearsList.filter((a) => a.member_id === ledgerMember.id).length === 0 ? (
                   <div className="empty-small-text">No manual arrear adjustments logged.</div>
                 ) : (
@@ -913,12 +947,14 @@ export const Subscriptions: React.FC = () => {
             </div>
 
             {/* LINKED PAYMENT TRANSACTIONS */}
-            <div className="drawer-section">
-              <div className="drawer-section-head">
-                <h5>Payment History Receipts</h5>
+            <div className="drawer-section" style={{ marginBottom: '28px' }}>
+              <div className="drawer-section-head margin-bottom-sm">
+                <h5 style={{ fontSize: '15px', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                  PAYMENT HISTORY RECEIPTS
+                </h5>
               </div>
 
-              <div className="arrears-history-list">
+              <div className="arrears-history-list" style={{ marginTop: '12px' }}>
                 {payments.filter((p) => p.member_id === ledgerMember.id).length === 0 ? (
                   <div className="empty-small-text">No payment receipts logged for this member yet.</div>
                 ) : (

@@ -395,13 +395,13 @@ export const Reports: React.FC = () => {
       )}
 
       {/* PAGE HEADER */}
-      <div className="page-header-actions">
+      <div className="page-header-actions reports-header-mobile-wrap">
         <div>
           <h3>{t('reports.reportsTitle')}</h3>
-          <p className="page-subtitle">Consolidated financial analytics, member ledgers, payment logs & arrears reports.</p>
+          <p className="page-subtitle">Consolidated analytics, payment logs & arrears reports.</p>
         </div>
 
-        <div className="header-cta-group">
+        <div className="header-cta-group reports-cta-mobile flex-row-gap-sm">
           <YearFilter
             selectedYearId={selectedYearId}
             onChange={setSelectedYearId}
@@ -1247,9 +1247,10 @@ export const Reports: React.FC = () => {
         }
 
         @media (max-width: 768px) {
-          .page-header-actions { flex-direction: column; align-items: stretch; gap: 12px; }
-          .header-cta-group { flex-direction: column; align-items: stretch; }
-          .year-selector-pill { justify-content: space-between; }
+          .reports-header-mobile-wrap { flex-direction: column; align-items: flex-start; gap: 14px; text-align: center; }
+          .reports-header-mobile-wrap > div { width: 100%; text-align: center; }
+          .reports-cta-mobile { display: flex; flex-direction: column; width: 100%; gap: 10px; align-items: center; justify-content: center; }
+          .reports-cta-mobile button, .reports-cta-mobile .year-selector-pill { width: 100%; max-width: 340px; justify-content: center; text-align: center; margin: 0 auto; }
         }
 
         @media (max-width: 640px) {

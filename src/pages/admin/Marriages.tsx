@@ -168,12 +168,9 @@ export const Marriages: React.FC = () => {
       {/* Header Bar */}
       <div className="canvas-header-bar margin-bottom">
         <div className="canvas-title-group">
-          <div className="canvas-title-icon-box">
-            <Heart size={20} color="#ffffff" />
-          </div>
           <div>
-            <h2 className="canvas-page-title">Marriage Information</h2>
-            <p className="summary-card-sub">Manage marriage records and matrimonial information of the Mahall community.</p>
+            <h2 className="canvas-page-title">Marriage Records</h2>
+            <p className="canvas-page-subtitle">Manage marriage records & matrimonial register.</p>
           </div>
         </div>
 

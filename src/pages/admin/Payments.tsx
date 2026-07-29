@@ -371,7 +371,7 @@ export const Payments: React.FC = () => {
       <div className="page-header-actions">
         <div>
           <h3>{t('payment.paymentsTitle')}</h3>
-          <p className="page-subtitle">Record offline receipts, track member transactions, and issue payment entries.</p>
+          <p className="page-subtitle">Record offline receipts & track payment entries.</p>
         </div>
 
         <div className="header-cta-group">
