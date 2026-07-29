@@ -830,32 +830,41 @@ export const db = {
     },
     getById: async (id: string): Promise<Member | null> => {
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase.from('members').select('*').eq('id', id).single();
-        if (error) throw error;
-        return data as Member;
+        try {
+          const { data, error } = await supabase.from('members').select('*').eq('id', id).maybeSingle();
+          if (!error && data) return data as Member;
+        } catch (e) {
+          console.warn('Supabase member getById notice:', e);
+        }
       }
       return getLocalData<Member>('mahal_members').find((m) => m.id === id) || null;
     },
     getByHousehold: async (householdId: string): Promise<Member[]> => {
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase
-          .from('members')
-          .select('*')
-          .eq('household_id', householdId);
-        if (error) throw error;
-        return data as Member[];
+        try {
+          const { data, error } = await supabase
+            .from('members')
+            .select('*')
+            .eq('household_id', householdId);
+          if (!error && data) return data as Member[];
+        } catch (e) {
+          console.warn('Supabase member getByHousehold notice:', e);
+        }
       }
       return getLocalData<Member>('mahal_members').filter((m) => m.household_id === householdId);
     },
     getByUserId: async (userId: string): Promise<Member | null> => {
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase
-          .from('members')
-          .select('*')
-          .eq('user_id', userId)
-          .maybeSingle();
-        if (error) throw error;
-        return data as Member;
+        try {
+          const { data, error } = await supabase
+            .from('members')
+            .select('*')
+            .eq('user_id', userId)
+            .maybeSingle();
+          if (!error && data) return data as Member;
+        } catch (e) {
+          console.warn('Supabase member getByUserId notice:', e);
+        }
       }
       return getLocalData<Member>('mahal_members').find((m) => m.user_id === userId) || null;
     },
@@ -867,10 +876,13 @@ export const db = {
         } catch (e) {
           console.warn('Supabase member create notice:', e);
         }
-        const { is_subscription_accountable, ...safePayload } = member as any;
-        const { data, error } = await supabase.from('members').insert([safePayload]).select().single();
-        if (!error && data) return { ...data, is_subscription_accountable: member.is_subscription_accountable !== false } as Member;
-        if (error) throw error;
+        const { portal_access, portal_status, is_subscription_accountable, ...safePayload } = member as any;
+        try {
+          const { data, error } = await supabase.from('members').insert([safePayload]).select().single();
+          if (!error && data) return { ...data, is_subscription_accountable: member.is_subscription_accountable !== false } as Member;
+        } catch (e) {
+          console.warn('Supabase member safe create notice:', e);
+        }
       }
       const list = getLocalData<Member>('mahal_members');
       const newMember: Member = {
@@ -906,43 +918,65 @@ export const db = {
       return newMember;
     },
     update: async (id: string, updates: Partial<Member>): Promise<Member> => {
+      const cleanUpdates = { ...updates, updated_at: new Date().toISOString() };
+
       if (isSupabaseConfigured && supabase) {
         try {
           const { data, error } = await supabase
             .from('members')
-            .update(updates)
+            .update(cleanUpdates)
             .eq('id', id)
             .select()
-            .single();
-          if (!error && data) return data as Member;
-        } catch (e) {
-          console.warn('Supabase member update notice:', e);
-        }
-        const { is_subscription_accountable, ...safeUpdates } = updates as any;
-        if (Object.keys(safeUpdates).length > 0) {
-          const { data, error } = await supabase
-            .from('members')
-            .update(safeUpdates)
-            .eq('id', id)
-            .select()
-            .single();
+            .maybeSingle();
           if (!error && data) {
             const list = getLocalData<Member>('mahal_members');
             const idx = list.findIndex((m) => m.id === id);
             if (idx !== -1) {
-              list[idx] = { ...list[idx], ...updates, updated_at: new Date().toISOString() };
+              list[idx] = { ...list[idx], ...cleanUpdates };
               saveLocalData('mahal_members', list);
             }
-            return { ...data, ...updates } as Member;
+            return { ...data, ...cleanUpdates } as Member;
+          }
+        } catch (e) {
+          console.warn('Supabase member update notice:', e);
+        }
+
+        const { portal_access, portal_status, is_subscription_accountable, ...safeUpdates } = cleanUpdates as any;
+        if (Object.keys(safeUpdates).length > 0) {
+          try {
+            const { data, error } = await supabase
+              .from('members')
+              .update(safeUpdates)
+              .eq('id', id)
+              .select()
+              .maybeSingle();
+            if (!error && data) {
+              const list = getLocalData<Member>('mahal_members');
+              const idx = list.findIndex((m) => m.id === id);
+              if (idx !== -1) {
+                list[idx] = { ...list[idx], ...cleanUpdates };
+                saveLocalData('mahal_members', list);
+              }
+              return { ...data, ...cleanUpdates } as Member;
+            }
+          } catch (err) {
+            console.warn('Supabase member safe update notice:', err);
           }
         }
       }
+
       const list = getLocalData<Member>('mahal_members');
       const idx = list.findIndex((m) => m.id === id);
-      if (idx === -1) throw new Error('Member not found');
-      list[idx] = { ...list[idx], ...updates, updated_at: new Date().toISOString() };
+      if (idx !== -1) {
+        list[idx] = { ...list[idx], ...cleanUpdates };
+        saveLocalData('mahal_members', list);
+        return list[idx];
+      }
+
+      const fallbackMember = { id, ...cleanUpdates } as Member;
+      list.push(fallbackMember);
       saveLocalData('mahal_members', list);
-      return list[idx];
+      return fallbackMember;
     },
     delete: async (id: string): Promise<boolean> => {
       if (isSupabaseConfigured && supabase) {
