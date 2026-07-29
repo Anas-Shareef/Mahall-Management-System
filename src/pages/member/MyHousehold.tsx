@@ -65,6 +65,7 @@ export const MyHousehold: React.FC = () => {
           message_en: `${user?.name || 'Member'}: ${correctionNote}`,
           message_ml: `${user?.name || 'Member'}: ${correctionNote}`,
           type: 'announcement',
+          created_by: user?.id || null,
         },
         'all'
       );
