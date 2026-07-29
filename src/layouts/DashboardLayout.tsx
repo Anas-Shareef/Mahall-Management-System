@@ -68,11 +68,6 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
   const [tempAdminName, setTempAdminName] = useState(adminName);
 
   const activeDisplayName = adminName || user?.name || 'Admin User';
-  const userInitials = useMemo(() => {
-    const parts = activeDisplayName.trim().split(' ');
-    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-    return activeDisplayName.slice(0, 2).toUpperCase();
-  }, [activeDisplayName]);
 
   // Global Command Spotlight Search State
   const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
