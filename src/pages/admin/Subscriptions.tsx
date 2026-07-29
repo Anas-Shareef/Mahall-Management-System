@@ -361,61 +361,58 @@ export const Subscriptions: React.FC = () => {
         </div>
       </div>
 
-      {/* PRIMARY NAVIGATION TABS & DROPDOWN SELECTOR */}
-      <div className="subscription-nav-tabs-wrapper margin-bottom-md flex-between align-items-center flex-wrap gap-md">
-        <div className="tab-dropdown-container flex-row-gap-xs align-items-center">
-          <label htmlFor="subscription-view-select" className="font-xs font-weight-700 color-subtle">
-            Select View:
-          </label>
-          <div className="custom-tab-select-wrapper">
-            <select
-              id="subscription-view-select"
-              className="form-control tab-dropdown-select font-weight-700"
-              value={activeTab}
-              onChange={(e) => setActiveTab(e.target.value as 'overview' | 'ledgers' | 'years')}
-              style={{
-                borderRadius: 14,
-                padding: '10px 16px',
-                border: '1.5px solid #00966b',
-                background: '#ffffff',
-                color: '#00966b',
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: 'pointer',
-              }}
-            >
-              <option value="overview">📊 Overview & Stats</option>
-              <option value="ledgers">👥 Member Ledgers</option>
-              <option value="years">📅 Subscription Years</option>
-            </select>
-          </div>
-        </div>
+      {/* MOBILE-ONLY VIEW SELECTOR DROPDOWN */}
+      <div className="mobile-subscriptions-select-container margin-bottom-md">
+        <label htmlFor="mobile-sub-view-select" className="font-xs font-weight-700 color-subtle display-block margin-bottom-xs">
+          Select View:
+        </label>
+        <select
+          id="mobile-sub-view-select"
+          className="form-control font-weight-700 text-emerald"
+          value={activeTab}
+          onChange={(e) => setActiveTab(e.target.value as 'overview' | 'ledgers' | 'years')}
+          style={{
+            borderRadius: 12,
+            padding: '12px 16px',
+            border: '1.5px solid #00966b',
+            background: '#ffffff',
+            color: '#00966b',
+            fontWeight: 700,
+            fontSize: '14px',
+            width: '100%',
+          }}
+        >
+          <option value="overview">📊 Overview & Stats</option>
+          <option value="ledgers">👥 Member Ledgers</option>
+          <option value="years">📅 Subscription Years</option>
+        </select>
+      </div>
 
-        <div className="subscription-nav-tabs desktop-pills-only">
-          <button
-            className={`tab-pill-btn ${activeTab === 'overview' ? 'active' : ''}`}
-            onClick={() => setActiveTab('overview')}
-          >
-            <Layers size={16} />
-            <span>Overview & Stats</span>
-          </button>
+      {/* DESKTOP & TABLET SELECTION CARDS / TABS ONLY */}
+      <div className="subscription-nav-tabs desktop-subscriptions-tabs-only margin-bottom-md">
+        <button
+          className={`tab-pill-btn ${activeTab === 'overview' ? 'active' : ''}`}
+          onClick={() => setActiveTab('overview')}
+        >
+          <Layers size={16} />
+          <span>Overview & Stats</span>
+        </button>
 
-          <button
-            className={`tab-pill-btn ${activeTab === 'ledgers' ? 'active' : ''}`}
-            onClick={() => setActiveTab('ledgers')}
-          >
-            <UserCheck size={16} />
-            <span>Member Ledgers</span>
-          </button>
+        <button
+          className={`tab-pill-btn ${activeTab === 'ledgers' ? 'active' : ''}`}
+          onClick={() => setActiveTab('ledgers')}
+        >
+          <UserCheck size={16} />
+          <span>Member Ledgers</span>
+        </button>
 
-          <button
-            className={`tab-pill-btn ${activeTab === 'years' ? 'active' : ''}`}
-            onClick={() => setActiveTab('years')}
-          >
-            <Calendar size={16} />
-            <span>Subscription Years</span>
-          </button>
-        </div>
+        <button
+          className={`tab-pill-btn ${activeTab === 'years' ? 'active' : ''}`}
+          onClick={() => setActiveTab('years')}
+        >
+          <Calendar size={16} />
+          <span>Subscription Years</span>
+        </button>
       </div>
 
       {/* ════════════════════════════════════════════════
@@ -1424,11 +1421,18 @@ export const Subscriptions: React.FC = () => {
         .years-table-header p { font-size: 12.5px; color: #6b7280; }
         .year-badge { background: #ecfdf5; color: #00966b; font-weight: 800; font-size: 13px; padding: 4px 10px; border-radius: var(--radius-pill); border: 1px solid #a7f3d0; }
 
+        .mobile-subscriptions-select-container { display: none; }
+        .desktop-subscriptions-tabs-only { display: flex; gap: 10px; flex-wrap: wrap; }
+
         /* RESPONSIVE */
         @media (max-width: 991px) {
-          .stats-dashboard-grid { grid-template-columns: repeat(2, 1fr); }
+          .stats-dashboard-grid, .report-stats-grid { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 768px) {
+          .mobile-subscriptions-select-container { display: block; }
+          .desktop-subscriptions-tabs-only { display: none !important; }
+          .stats-dashboard-grid, .report-stats-grid { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+          .stat-metric-card, .report-stat-card { padding: 12px !important; }
           .page-header-actions { flex-direction: column; align-items: stretch; gap: 12px; }
           .header-cta-group { flex-direction: column; align-items: stretch; }
           .year-selector-pill { justify-content: space-between; }
@@ -1438,7 +1442,7 @@ export const Subscriptions: React.FC = () => {
         @media (max-width: 640px) {
           .desktop-view-only { display: none; }
           .mobile-cards-directory { display: flex; }
-          .stats-dashboard-grid { grid-template-columns: 1fr; }
+          .stats-dashboard-grid, .report-stats-grid { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
           .modal-overlay { padding: 0; align-items: flex-end; }
           .modal-dialog-card { border-radius: 20px 20px 0 0; max-height: 90vh; }
         }

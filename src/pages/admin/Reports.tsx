@@ -481,8 +481,41 @@ export const Reports: React.FC = () => {
         </div>
       </div>
 
-      {/* CATEGORIZED SUB-TABS */}
-      <div className="reports-nav-tabs">
+      {/* MOBILE-ONLY REPORT CATEGORY DROPDOWN */}
+      <div className="mobile-reports-select-container margin-bottom-md">
+        <label htmlFor="mobile-report-tab-select" className="font-xs font-weight-700 color-subtle display-block margin-bottom-xs">
+          Select Report Category:
+        </label>
+        <select
+          id="mobile-report-tab-select"
+          className="form-control font-weight-700 text-emerald"
+          value={activeTab}
+          onChange={(e) => {
+            setActiveTab(e.target.value as any);
+            setSearchQuery('');
+          }}
+          style={{
+            borderRadius: 12,
+            padding: '12px 16px',
+            border: '1.5px solid #00966b',
+            background: '#ffffff',
+            fontWeight: 700,
+            fontSize: '14px',
+            width: '100%',
+          }}
+        >
+          <option value="collection">📊 Collection & Financial</option>
+          <option value="donations">💳 Donation Reports</option>
+          <option value="household">🏠 Household Summary</option>
+          <option value="member">👥 Member Registry</option>
+          <option value="deaths">⚠️ Death Records Report</option>
+          <option value="marriages">💍 Marriage Records Report</option>
+          <option value="payments">🧾 Payment Receipts</option>
+        </select>
+      </div>
+
+      {/* DESKTOP & TABLET CATEGORIZED SUB-TABS */}
+      <div className="reports-nav-tabs desktop-reports-tabs-only">
         <button
           className={`tab-pill-btn ${activeTab === 'collection' ? 'active' : ''}`}
           onClick={() => { setActiveTab('collection'); setSearchQuery(''); }}
@@ -1240,6 +1273,9 @@ export const Reports: React.FC = () => {
         .no-data-cell { text-align: center; color: #9ca3af; padding: 40px !important; font-size: 13.5px; }
         .margin-bottom { margin-bottom: 16px; }
 
+        .mobile-reports-select-container { display: none; }
+        .desktop-reports-tabs-only { display: flex; flex-wrap: wrap; gap: 8px; }
+
         /* RESPONSIVE */
         @media (max-width: 991px) {
           .reports-kpi-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1247,6 +1283,8 @@ export const Reports: React.FC = () => {
         }
 
         @media (max-width: 768px) {
+          .mobile-reports-select-container { display: block; }
+          .desktop-reports-tabs-only { display: none !important; }
           .reports-header-mobile-wrap { flex-direction: column; align-items: flex-start; gap: 14px; text-align: center; }
           .reports-header-mobile-wrap > div { width: 100%; text-align: center; }
           .reports-cta-mobile { display: flex; flex-direction: column; width: 100%; gap: 10px; align-items: center; justify-content: center; }

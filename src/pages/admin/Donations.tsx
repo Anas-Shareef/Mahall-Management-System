@@ -836,72 +836,67 @@ export const Donations: React.FC = () => {
         }
       >
         {receiptRecord && (
-          <div className="certificate-modal-container printable-certificate">
-            <div className="certificate-header-seal">
-              <div className="flex-row-gap-xs">
-                <HeartHandshake size={32} className="text-success" />
+          <div className="receipt-rectangular-card printable-certificate" style={{ border: '2px solid #00966b', borderRadius: '16px', padding: '24px', background: '#ffffff' }}>
+            <div className="flex-between align-items-center margin-bottom-md pb-sm" style={{ borderBottom: '2px solid #e2e8f0' }}>
+              <div className="flex-row-gap-xs align-items-center">
+                <HeartHandshake size={28} className="text-emerald" />
                 <div>
-                  <div className="font-weight-800 font-sm text-dark">{branding.organizationName.toUpperCase()}</div>
-                  <div className="font-xs color-subtle">{branding.organizationNameMalayalam || 'OFFICIAL COMMUNITY DONATIONS REGISTRY'}</div>
+                  <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>{branding.organizationName.toUpperCase()}</div>
+                  <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>MAHALL MANAGEMENT SYSTEM — FINANCIAL RECEIPT</div>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="font-xs font-weight-700 text-success">RECEIPT NO.</div>
-                <div className="font-weight-800 font-sm text-dark">{receiptRecord.receipt_number || `REC-${receiptRecord.id.substring(0, 6)}`}</div>
+              <div className="text-right" style={{ background: '#f0fdf4', padding: '6px 14px', borderRadius: '9999px', border: '1px solid #a7f3d0' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#00966b', display: 'block' }}>RECEIPT NO</span>
+                <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{receiptRecord.receipt_number || `REC-${receiptRecord.id.substring(0, 6)}`}</span>
               </div>
             </div>
 
-            <div className="certificate-title-box">
-              <h2>Donation Receipt</h2>
-              <p>Official record of contribution received</p>
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: 0 }}>OFFICIAL DONATION RECEIPT</h3>
+              <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0' }}>Certified Record of Contribution Received</p>
             </div>
 
-            <table className="certificate-details-table">
-              <tbody>
-                <tr>
-                  <td className="label">Donor Name</td>
-                  <td className="value">{receiptRecord.donor_name || 'Anonymous Donor'}</td>
-                </tr>
-                <tr>
-                  <td className="label">Donor Type</td>
-                  <td className="value">{receiptRecord.donor_type ? receiptRecord.donor_type.toUpperCase() : 'EXTERNAL'}</td>
-                </tr>
-                <tr>
-                  <td className="label">Donation Amount</td>
-                  <td className="value text-success font-weight-800 font-sm">{formatCurrency(receiptRecord.amount)}</td>
-                </tr>
-                <tr>
-                  <td className="label">Category / Campaign</td>
-                  <td className="value">{receiptRecord.donation_type === 'campaign' ? (campaigns.find(c => c.id === receiptRecord.campaign_id)?.campaign_name || 'Special Campaign') : 'General Donation'}</td>
-                </tr>
-                <tr>
-                  <td className="label">Payment Method</td>
-                  <td className="value">{receiptRecord.payment_method ? receiptRecord.payment_method.toUpperCase() : 'UPI'}</td>
-                </tr>
-                <tr>
-                  <td className="label">Donation Date</td>
-                  <td className="value">{receiptRecord.donation_date}</td>
-                </tr>
-                {receiptRecord.reference_number && (
-                  <tr>
-                    <td className="label">Ref / Txn ID</td>
-                    <td className="value">{receiptRecord.reference_number}</td>
+            <div className="receipt-details-table-box" style={{ background: '#f8fafc', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <tbody>
+                  <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <td style={{ padding: '8px 4px', color: '#64748b', fontWeight: 600 }}>Donor Name</td>
+                    <td style={{ padding: '8px 4px', textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>{receiptRecord.donor_name || 'Anonymous Donor'}</td>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                  <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <td style={{ padding: '8px 4px', color: '#64748b', fontWeight: 600 }}>Donor Category</td>
+                    <td style={{ padding: '8px 4px', textAlign: 'right', fontWeight: 700 }}>{receiptRecord.donor_type ? receiptRecord.donor_type.toUpperCase() : 'EXTERNAL'}</td>
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#f0fdf4' }}>
+                    <td style={{ padding: '10px 4px', color: '#00966b', fontWeight: 800 }}>Donation Amount</td>
+                    <td style={{ padding: '10px 4px', textAlign: 'right', fontWeight: 900, fontSize: '16px', color: '#00966b' }}>{formatCurrency(receiptRecord.amount)}</td>
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <td style={{ padding: '8px 4px', color: '#64748b', fontWeight: 600 }}>Category / Campaign</td>
+                    <td style={{ padding: '8px 4px', textAlign: 'right', fontWeight: 700 }}>{receiptRecord.donation_type === 'campaign' ? (campaigns.find(c => c.id === receiptRecord.campaign_id)?.campaign_name || 'Special Campaign') : 'General Donation'}</td>
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <td style={{ padding: '8px 4px', color: '#64748b', fontWeight: 600 }}>Payment Method</td>
+                    <td style={{ padding: '8px 4px', textAlign: 'right', fontWeight: 700 }}>{receiptRecord.payment_method ? receiptRecord.payment_method.toUpperCase() : 'UPI'}</td>
+                  </tr>
+                  <tr>
+                    <td style={{ padding: '8px 4px', color: '#64748b', fontWeight: 600 }}>Date Received</td>
+                    <td style={{ padding: '8px 4px', textAlign: 'right', fontWeight: 700 }}>{receiptRecord.donation_date}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
 
-            <div className="certificate-footer-signatures">
-              <div className="flex-row-gap-xs">
-                <QrCode size={40} className="color-subtle" />
-                <div className="font-xs color-subtle">
-                  Verified Financial Record<br />
-                  Txn Hash: {receiptRecord.id.substring(0, 12)}
+            <div className="flex-between align-items-center">
+              <div className="flex-row-gap-xs align-items-center">
+                <QrCode size={38} className="text-emerald" />
+                <div style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.3 }}>
+                  <strong>Verified System Entry</strong><br />
+                  Hash: {receiptRecord.id.substring(0, 14)}
                 </div>
               </div>
-
-              <div className="signature-line">
-                <div className="signature-line-border">TREASURER / ACCOUNTANT</div>
+              <div style={{ textAlign: 'center', borderTop: '1.5px solid #0f172a', paddingTop: '4px', minWidth: '130px' }}>
+                <span style={{ fontSize: '10px', fontWeight: 800, color: '#0f172a', letterSpacing: '0.05em' }}>TREASURER / ACCOUNTANT</span>
               </div>
             </div>
           </div>

@@ -168,8 +168,36 @@ export const SharedSettings: React.FC = () => {
         </div>
       </div>
 
-      {/* HORIZONTAL PILL TAB NAVIGATION BAR (GENEROUS BOTTOM SPACING - MATCHING IMAGE 2 & 3) */}
-      <div className="settings-horizontal-tabs-bar" style={{ marginBottom: 32 }}>
+      {/* MOBILE-ONLY SETTINGS SECTION DROPDOWN */}
+      <div className="mobile-settings-select-container margin-bottom-md">
+        <label htmlFor="mobile-settings-select" className="font-xs font-weight-700 color-subtle display-block margin-bottom-xs">
+          Select Settings Category:
+        </label>
+        <select
+          id="mobile-settings-select"
+          className="form-control font-weight-700 text-emerald"
+          value={activeSection}
+          onChange={(e) => setActiveSection(e.target.value as SettingsSection)}
+          style={{
+            borderRadius: 12,
+            padding: '12px 16px',
+            border: '1.5px solid #00966b',
+            background: '#ffffff',
+            fontWeight: 700,
+            fontSize: '14px',
+            width: '100%',
+          }}
+        >
+          <option value="organization">🏛️ Mahall Profile</option>
+          <option value="administrator">👤 Administrator Account</option>
+          <option value="certificates">📜 Certificate Templates</option>
+          <option value="notifications">🔔 Notifications & Alerts</option>
+          <option value="backup">💾 Backup & Data Export</option>
+        </select>
+      </div>
+
+      {/* DESKTOP & TABLET HORIZONTAL PILL TAB NAVIGATION BAR */}
+      <div className="settings-horizontal-tabs-bar desktop-settings-tabs-only" style={{ marginBottom: 32 }}>
         <button
           className={`settings-pill-tab ${activeSection === 'organization' ? 'active' : ''}`}
           onClick={() => setActiveSection('organization')}
@@ -699,6 +727,22 @@ export const SharedSettings: React.FC = () => {
           </div>
         </div>
       )}
+      {/* RESPONSIVE STYLES */}
+      <style>{`
+        .mobile-settings-select-container { display: none; }
+        .desktop-settings-tabs-only { display: flex; flex-wrap: wrap; gap: 8px; }
+
+        @media (max-width: 768px) {
+          .mobile-settings-select-container { display: block; }
+          .desktop-settings-tabs-only { display: none !important; }
+          .shared-settings-container { padding: 14px !important; }
+          .settings-section-card { padding: 18px !important; border-radius: 16px !important; }
+          .form-row-grid { grid-template-columns: 1fr !important; gap: 14px !important; }
+          .dashed-upload-dropzone { flex-direction: column; text-align: center; gap: 12px; }
+          .setting-option-card { flex-direction: column; align-items: flex-start; gap: 12px; }
+          .setting-option-card button { width: 100%; justify-content: center; }
+        }
+      `}</style>
     </div>
   );
 };
