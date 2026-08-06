@@ -172,14 +172,19 @@ export const Members: React.FC = () => {
     return members.filter((m) => {
       const house = households.find((h) => h.id === m.household_id);
       const q = searchQuery.toLowerCase().trim();
-      
+      const cleanQ = q.replace(/^h-?/, '');
+
       const matchesSearch =
         !q ||
         m.name.toLowerCase().includes(q) ||
         (m.phone && m.phone.includes(q)) ||
         (m.email && m.email.toLowerCase().includes(q)) ||
         (m.relationship && m.relationship.toLowerCase().includes(q)) ||
-        (house && (house.house_number.toLowerCase().includes(q) || house.house_owner_name.toLowerCase().includes(q)));
+        (house && (
+          house.house_number.toLowerCase().includes(q) ||
+          house.house_number.toLowerCase().includes(cleanQ) ||
+          house.house_owner_name.toLowerCase().includes(q)
+        ));
 
       const matchesHousehold = selectedHouseholdId ? m.household_id === selectedHouseholdId : true;
       const matchesRelationship = selectedRelationship ? m.relationship === selectedRelationship : true;
