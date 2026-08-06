@@ -226,55 +226,47 @@ export const Marriages: React.FC = () => {
 
       {/* OVERVIEW STATS CARDS ROW */}
       <div className="stats-dashboard-grid-4 margin-bottom-md">
-        <div className="summary-metric-card shadow-sm">
-          <div className="metric-header">
-            <div className="metric-icon-bg emerald">
-              <Heart size={20} />
-            </div>
-            <span className="metric-badge-tag success">Registry</span>
+        <div className="stat-metric-card shadow-sm">
+          <div className="metric-icon-box emerald">
+            <Heart size={22} />
           </div>
-          <div className="metric-body">
-            <h3 className="metric-number-display">{totalMarriagesCount}</h3>
-            <span className="metric-title-label">Total Marriage Records</span>
+          <div className="metric-info">
+            <span className="metric-label">Total Marriage Records</span>
+            <h3 className="metric-value">{totalMarriagesCount}</h3>
+            <span className="metric-sub">Registered matrimony records</span>
           </div>
         </div>
 
-        <div className="summary-metric-card shadow-sm">
-          <div className="metric-header">
-            <div className="metric-icon-bg success">
-              <CheckCircle2 size={20} />
-            </div>
-            <span className="metric-badge-tag success">Verified</span>
+        <div className="stat-metric-card shadow-sm">
+          <div className="metric-icon-box blue">
+            <CheckCircle2 size={22} />
           </div>
-          <div className="metric-body">
-            <h3 className="metric-number-display text-emerald">{completedMarriagesCount}</h3>
-            <span className="metric-title-label">Completed Nikahs</span>
+          <div className="metric-info">
+            <span className="metric-label">Completed Nikahs</span>
+            <h3 className="metric-value text-success">{completedMarriagesCount}</h3>
+            <span className="metric-sub">Verified community records</span>
           </div>
         </div>
 
-        <div className="summary-metric-card shadow-sm">
-          <div className="metric-header">
-            <div className="metric-icon-bg primary">
-              <Users size={20} />
-            </div>
-            <span className="metric-badge-tag primary">External</span>
+        <div className="stat-metric-card shadow-sm">
+          <div className="metric-icon-box purple">
+            <Users size={22} />
           </div>
-          <div className="metric-body">
-            <h3 className="metric-number-display">{externalBridesCount}</h3>
-            <span className="metric-title-label">External Bride Links</span>
+          <div className="metric-info">
+            <span className="metric-label">External Bride Links</span>
+            <h3 className="metric-value text-primary">{externalBridesCount}</h3>
+            <span className="metric-sub">External bride entries</span>
           </div>
         </div>
 
-        <div className="summary-metric-card shadow-sm">
-          <div className="metric-header">
-            <div className="metric-icon-bg warning">
-              <Calendar size={20} />
-            </div>
-            <span className="metric-badge-tag warning">{new Date().getFullYear()}</span>
+        <div className="stat-metric-card shadow-sm">
+          <div className="metric-icon-box amber">
+            <Calendar size={22} />
           </div>
-          <div className="metric-body">
-            <h3 className="metric-number-display">{currentYearMarriagesCount}</h3>
-            <span className="metric-title-label">This Year Nikahs</span>
+          <div className="metric-info">
+            <span className="metric-label">This Year Nikahs</span>
+            <h3 className="metric-value">{currentYearMarriagesCount}</h3>
+            <span className="metric-sub">{new Date().getFullYear()} registrations</span>
           </div>
         </div>
       </div>
@@ -343,7 +335,7 @@ export const Marriages: React.FC = () => {
         ) : (
           <>
             <div className="table-responsive desktop-view-only">
-              <table className="households-table">
+              <table className="marriages-table">
                 <thead>
                   <tr>
                     <th style={{ width: 40 }} onClick={(e) => e.stopPropagation()}>
@@ -368,7 +360,7 @@ export const Marriages: React.FC = () => {
                     return (
                       <tr 
                         key={m.id} 
-                        className={`household-row ${isSelected ? 'selected' : ''}`}
+                        className={`marriage-row ${isSelected ? 'selected' : ''}`}
                         onClick={() => { setSelectedMarriage(m); setIsDetailsOpen(true); }}
                       >
                         <td onClick={(e) => e.stopPropagation()}>
@@ -545,6 +537,47 @@ export const Marriages: React.FC = () => {
         variant="danger"
         isLoading={isDeleting}
       />
+
+      {/* EMBEDDED STYLES FOR PERFECT ALIGNMENT & DESIGN CONSISTENCY */}
+      <style>{`
+        .marriages-page { display: flex; flex-direction: column; gap: 20px; width: 100%; box-sizing: border-box; }
+        .page-header-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; width: 100%; box-sizing: border-box; }
+        .page-subtitle { font-size: 13px; color: #6b7280; margin-top: 2px; }
+        .header-cta-group { display: flex; align-items: center; gap: 12px; }
+
+        .filter-bar { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; gap: 14px; background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-xl); flex-wrap: wrap; width: 100%; box-sizing: border-box; }
+        .search-box { position: relative; display: flex; align-items: center; flex: 1; min-width: 260px; }
+        .search-box input { width: 100%; padding: 11px 36px 11px 42px; border: 1px solid var(--border-color); border-radius: var(--radius-pill); background: #f9fafb; color: #111827; font-size: 13.5px; transition: var(--transition-all); }
+        .filter-selectors-grid { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .filter-select-wrapper select { padding: 10px 36px 10px 18px; border: 1px solid var(--border-color); border-radius: var(--radius-pill); background: #f9fafb; color: #374151; font-weight: 600; font-size: 13px; }
+
+        .table-container-card { background: #ffffff; border-radius: var(--radius-xl); border: 1px solid var(--border-color); overflow: hidden; }
+        .table-responsive { width: 100%; overflow-x: auto; }
+        .marriages-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .marriages-table th { font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; padding: 14px 16px; background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
+        .marriages-table td { padding: 14px 16px; font-size: 13.5px; border-bottom: 1px solid #f3f4f6; color: #111827; vertical-align: middle; }
+        .marriage-row { cursor: pointer; transition: var(--transition-all); }
+        .marriage-row:hover { background-color: #f9fafb; }
+        .marriage-row.selected { background-color: #ecfdf5; }
+
+        .member-badge { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; width: fit-content; margin-top: 2px; }
+        .external-badge { background: #f3f4f6; color: #4b5563; border: 1px solid #e5e7eb; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; width: fit-content; margin-top: 2px; }
+
+        .area-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; color: #4b5563; background: #f9fafb; padding: 4px 10px; border-radius: 8px; border: 1px solid #e5e7eb; white-space: nowrap; }
+        .house-badge { font-weight: 800; color: #00966b; background: #ecfdf5; padding: 4px 10px; border-radius: 8px; border: 1px solid #a7f3d0; font-size: 12.5px; display: inline-block; white-space: nowrap; }
+        .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px; font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+        .status-pill.active { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+        .status-pill.active .dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981; }
+        .status-pill.inactive { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .status-pill.inactive .dot { width: 6px; height: 6px; border-radius: 50%; background: #ef4444; }
+
+        .actions-button-wrapper { display: flex; align-items: center; gap: 6px; }
+        .action-icon-btn { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px solid #e5e7eb; background: #ffffff; color: #6b7280; cursor: pointer; transition: all 0.2s ease; }
+        .action-icon-btn:hover { background: #f3f4f6; color: #111827; }
+        .action-icon-btn.view:hover { background: #ecfdf5; color: #00966b; border-color: #a7f3d0; }
+        .action-icon-btn.edit:hover { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+        .action-icon-btn.delete:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+      `}</style>
 
       {/* EXCEL / CSV IMPORT MODAL WITH STRUCTURE GUIDE & PARSED PREVIEW */}
       <ExcelImportModal
