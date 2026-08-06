@@ -1229,15 +1229,60 @@ export const Members: React.FC = () => {
         }
         .report-export-btn:hover { background: #f0fdf4; }
 
-        /* RESPONSIVE STYLES FOR SAMSUNG GALAXY S8 & SMARTPHONES */
+        .members-page .stats-dashboard-grid {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 12px;
+          margin-bottom: 20px;
+        }
+
+        .members-page .stat-metric-card {
+          padding: 14px 16px;
+          min-width: 0;
+        }
+
+        .members-page .metric-value {
+          font-size: 20px;
+        }
+
+        @media (max-width: 1200px) {
+          .members-page .stats-dashboard-grid {
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+          }
+          .members-page .stat-metric-card {
+            padding: 12px 10px;
+            gap: 10px;
+          }
+          .members-page .metric-icon-box {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+          }
+          .members-page .metric-label {
+            font-size: 10px;
+          }
+          .members-page .metric-value {
+            font-size: 17px;
+          }
+          .members-page .metric-sub {
+            font-size: 10px;
+          }
+        }
+
+        /* RESPONSIVE STYLES FOR TABLETS & SMARTPHONES */
         @media (max-width: 991px) {
+          .members-page .stats-dashboard-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+          }
           .members-content-split { flex-direction: column; }
           .details-panel-card { width: 100%; position: relative; top: 0; }
         }
 
         @media (max-width: 768px) {
-          .analytics-stats-grid { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
-          .stat-card { padding: 12px !important; }
+          .members-page .stats-dashboard-grid { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+          .members-page .stat-metric-card { padding: 12px !important; }
           .page-header-actions { flex-direction: column; align-items: stretch; gap: 12px; }
           .add-btn.primary-btn { width: 100%; justify-content: center; }
 
