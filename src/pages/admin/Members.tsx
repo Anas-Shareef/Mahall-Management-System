@@ -6,12 +6,13 @@ import type { Household, Member } from '../../services/db';
 import { 
   Plus, Edit2, Trash2, Search, Filter, Users, X, AlertCircle, 
   CheckCircle, Phone, Mail, Home, Smartphone, UserCheck, ShieldCheck,
-  Download, Loader2
+  Download, Loader2, FileSpreadsheet, Upload
 } from 'lucide-react';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { SidePanel } from '../../components/SidePanel';
 import { GrantAccessModal } from '../../components/GrantAccessModal';
 import { MemberDetailsModal } from '../../components/MemberDetailsModal';
+import { Modal } from '../../components/Modal';
 
 export const Members: React.FC = () => {
   const { t } = useTranslation();
@@ -36,6 +37,51 @@ export const Members: React.FC = () => {
 
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [memberForDetails, setMemberForDetails] = useState<Member | null>(null);
+
+  // CSV Import State
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+  const downloadMemberSampleCSV = () => {
+    const csvHeader = 'name,phone,email,gender,dob,household_number,relationship,blood_group,occupation,status\n';
+    const csvSample = 'Muhammed Fayis,9876543210,fayis@example.com,male,1995-04-12,H-1,Head of Family,O+,Software Engineer,active\nFathima Suhra,9876543211,suhra@example.com,female,1998-08-20,H-1,Wife,B+,Teacher,active\n';
+    const blob = new Blob([csvHeader + csvSample], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'members_sample_template.csv';
+    a.click();
+    showToast('success', 'Sample CSV template downloaded!');
+  };
+
+  const exportCSV = () => {
+    if (filteredMembers.length === 0) {
+      showToast('error', 'No member records to export');
+      return;
+    }
+    const headers = ['Name', 'Phone', 'Email', 'Gender', 'House Number', 'Relationship', 'Portal Status', 'Status'];
+    const rows = filteredMembers.map((m) => {
+      const house = households.find((h) => h.id === m.household_id);
+      return [
+        m.name,
+        m.phone || 'N/A',
+        m.email || 'N/A',
+        m.gender || 'N/A',
+        house ? `H-${house.house_number}` : 'N/A',
+        m.relationship || 'Member',
+        m.portal_status || 'not_granted',
+        m.status,
+      ];
+    });
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `members_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('success', 'Members exported to CSV');
+  };
 
   // Delete Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -228,10 +274,20 @@ const formatHouseNumber = (raw?: string | null): string => {
           <h3>{t('member.membersTitle')}</h3>
           <p className="page-subtitle">Manage household members & portal access.</p>
         </div>
-        <button className="add-btn primary-btn" onClick={openAddModal}>
-          <Plus size={16} />
-          <span>{t('member.addMember')}</span>
-        </button>
+        <div className="header-cta-group flex-row-gap-sm">
+          <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={() => setIsImportModalOpen(true)}>
+            <FileSpreadsheet size={15} className="text-emerald" />
+            <span>Import Data</span>
+          </button>
+          <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={exportCSV} title="Export CSV Report">
+            <Download size={15} />
+            <span>Export CSV</span>
+          </button>
+          <button className="add-btn primary-btn" onClick={openAddModal}>
+            <Plus size={16} />
+            <span>{t('member.addMember')}</span>
+          </button>
+        </div>
       </div>
 
       {/* STATISTICS SUMMARY CARDS (MATCHING SUBSCRIPTIONS DESIGN) */}
@@ -1323,6 +1379,78 @@ const formatHouseNumber = (raw?: string | null): string => {
           }
         }
       `}</style>
+
+      {/* IMPORT EXCEL / CSV MODAL */}
+      <Modal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        title="Import Member Directory"
+        subtitle="Batch import member records using Excel or CSV file."
+        icon={<FileSpreadsheet size={20} className="text-emerald" />}
+        size="md"
+        footer={
+          <div className="flex-between width-100 align-items-center">
+            <button
+              type="button"
+              className="pill-btn-ghost font-xs flex-row-gap-xs"
+              onClick={downloadMemberSampleCSV}
+            >
+              <Download size={14} /> Download Sample Template
+            </button>
+            <button
+              type="button"
+              className="pill-btn-primary font-xs"
+              onClick={() => {
+                showToast('success', 'Demo mode: Upload formatted CSV matching sample template.');
+                setIsImportModalOpen(false);
+              }}
+            >
+              Import File
+            </button>
+          </div>
+        }
+      >
+        <div className="flex-col gap-md">
+          <div className="form-card bg-emerald-soft" style={{ padding: '16px', borderRadius: '12px' }}>
+            <div className="flex-row-gap-sm align-items-center">
+              <FileSpreadsheet size={24} className="text-emerald" />
+              <div>
+                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>Excel / CSV Import Format</h4>
+                <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#475569' }}>
+                  Ensure your file includes columns: <code>name</code>, <code>phone</code>, <code>email</code>, <code>gender</code>, <code>household_number</code>, <code>relationship</code>.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              border: '2px dashed #cbd5e1',
+              borderRadius: '14px',
+              padding: '32px 20px',
+              textAlign: 'center',
+              background: '#f8fafc',
+              cursor: 'pointer',
+            }}
+            onClick={() => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = '.csv, .xlsx, .xls';
+              input.onchange = (e: any) => {
+                const file = e.target?.files?.[0];
+                if (file) {
+                  showToast('success', `Selected file: ${file.name}`);
+                }
+              };
+              input.click();
+            }}
+          >
+            <Upload size={32} className="text-muted margin-bottom-xs" />
+            <div className="font-weight-700 font-sm text-dark">Click to browse or drag & drop CSV file</div>
+            <span className="font-xs color-subtle">Supports .csv and .xlsx spreadsheets up to 10MB</span>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

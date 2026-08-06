@@ -5,12 +5,14 @@ import { db } from '../../services/db';
 import type { Household, Member, MemberSubscription, SubscriptionYear } from '../../services/db';
 import { 
   Plus, Edit2, Trash2, Search, Filter, Home, Users, X, AlertCircle, 
-  CheckCircle, CheckCircle2, TrendingUp, Phone, MapPin, Loader2, Download, Calendar 
+  CheckCircle, CheckCircle2, TrendingUp, Phone, MapPin, Loader2, Download, Calendar,
+  FileSpreadsheet, Upload
 } from 'lucide-react';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { HouseholdDetailsModal } from '../../components/HouseholdDetailsModal';
 import { GrantAccessModal } from '../../components/GrantAccessModal';
 import { SidePanel } from '../../components/SidePanel';
+import { Modal } from '../../components/Modal';
 
 // Helper to safely format house numbers without double H- prefix
 const formatHouseNumber = (raw?: string | null): string => {
@@ -44,6 +46,21 @@ export const Households: React.FC = () => {
 
   const [isGrantModalOpen, setIsGrantModalOpen] = useState(false);
   const [memberForAccess, setMemberForAccess] = useState<Member | null>(null);
+
+  // CSV Import State
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+  const downloadHouseholdSampleCSV = () => {
+    const csvHeader = 'house_number,house_owner_name,primary_contact_phone,cluster_or_area,status,address\n';
+    const csvSample = '1,Abubakar Siddique,9876543210,East Ward,active,Near Juma Masjid\n2,Usman Ghani,9876543211,West Ward,active,Central Street H-2\n';
+    const blob = new Blob([csvHeader + csvSample], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'households_sample_template.csv';
+    a.click();
+    showToast('success', 'Sample CSV template downloaded!');
+  };
 
   // Delete Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -339,6 +356,14 @@ export const Households: React.FC = () => {
         </div>
         
         <div className="header-cta-group">
+          <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={() => setIsImportModalOpen(true)}>
+            <FileSpreadsheet size={15} className="text-emerald" />
+            <span>Import Data</span>
+          </button>
+          <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={handleDownloadReport} title="Export CSV Report">
+            <Download size={15} />
+            <span>Export CSV</span>
+          </button>
           <button className="add-btn primary-btn" onClick={openAddModal}>
             <Plus size={16} />
             <span>{t('household.addHousehold')}</span>
@@ -1421,6 +1446,78 @@ export const Households: React.FC = () => {
           }
         }
       `}</style>
+
+      {/* IMPORT EXCEL / CSV MODAL */}
+      <Modal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        title="Import Household Records"
+        subtitle="Batch import household directory using Excel or CSV file."
+        icon={<FileSpreadsheet size={20} className="text-emerald" />}
+        size="md"
+        footer={
+          <div className="flex-between width-100 align-items-center">
+            <button
+              type="button"
+              className="pill-btn-ghost font-xs flex-row-gap-xs"
+              onClick={downloadHouseholdSampleCSV}
+            >
+              <Download size={14} /> Download Sample Template
+            </button>
+            <button
+              type="button"
+              className="pill-btn-primary font-xs"
+              onClick={() => {
+                showToast('success', 'Demo mode: Upload formatted CSV matching sample template.');
+                setIsImportModalOpen(false);
+              }}
+            >
+              Import File
+            </button>
+          </div>
+        }
+      >
+        <div className="flex-col gap-md">
+          <div className="form-card bg-emerald-soft" style={{ padding: '16px', borderRadius: '12px' }}>
+            <div className="flex-row-gap-sm align-items-center">
+              <FileSpreadsheet size={24} className="text-emerald" />
+              <div>
+                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>Excel / CSV Import Format</h4>
+                <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#475569' }}>
+                  Ensure your file includes columns: <code>house_number</code>, <code>house_owner_name</code>, <code>primary_contact_phone</code>, <code>cluster_or_area</code>, <code>status</code>.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              border: '2px dashed #cbd5e1',
+              borderRadius: '14px',
+              padding: '32px 20px',
+              textAlign: 'center',
+              background: '#f8fafc',
+              cursor: 'pointer',
+            }}
+            onClick={() => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = '.csv, .xlsx, .xls';
+              input.onchange = (e: any) => {
+                const file = e.target?.files?.[0];
+                if (file) {
+                  showToast('success', `Selected file: ${file.name}`);
+                }
+              };
+              input.click();
+            }}
+          >
+            <Upload size={32} className="text-muted margin-bottom-xs" />
+            <div className="font-weight-700 font-sm text-dark">Click to browse or drag & drop CSV file</div>
+            <span className="font-xs color-subtle">Supports .csv and .xlsx spreadsheets up to 10MB</span>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

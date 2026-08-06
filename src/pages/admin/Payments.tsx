@@ -5,10 +5,11 @@ import { db, sanitizeUuid } from '../../services/db';
 import type { Household, Member, MemberSubscription, Payment, SubscriptionYear } from '../../services/db';
 import { 
   Plus, Edit2, Trash2, Search, Filter, Receipt, X, AlertCircle, 
-  CheckCircle, Download, Loader2, Home 
+  CheckCircle, Download, Loader2, Home, FileSpreadsheet, Upload
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { SidePanel } from '../../components/SidePanel';
+import { Modal } from '../../components/Modal';
 
 export const Payments: React.FC = () => {
   const { t } = useTranslation();
@@ -31,7 +32,20 @@ export const Payments: React.FC = () => {
   // Add / Edit Payment Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
-  const [currentPaymentId, setCurrentPaymentId] = useState<string | null>(null);
+  // CSV Import State
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+  const downloadPaymentSampleCSV = () => {
+    const csvHeader = 'receipt_number,member_name,household_number,amount,payment_date,payment_method,transaction_id,category,status\n';
+    const csvSample = 'PAY-2026-001,Abubakar Siddique,H-1,1200,2026-07-28,upi,TXN98765432,Annual Subscription,completed\nPAY-2026-002,Usman Ghani,H-2,500,2026-07-29,cash,,Monthly Fee,completed\n';
+    const blob = new Blob([csvHeader + csvSample], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'payments_sample_template.csv';
+    a.click();
+    showToast('success', 'Sample CSV template downloaded!');
+  };
 
   // Payment Form Fields
   const [formHouseholdId, setFormHouseholdId] = useState('');
@@ -374,7 +388,15 @@ export const Payments: React.FC = () => {
           <p className="page-subtitle">Record offline receipts & track payment entries.</p>
         </div>
 
-        <div className="header-cta-group">
+        <div className="header-cta-group flex-row-gap-sm">
+          <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={() => setIsImportModalOpen(true)}>
+            <FileSpreadsheet size={15} className="text-emerald" />
+            <span>Import Data</span>
+          </button>
+          <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={handleDownloadReport} title="Export CSV Report">
+            <Download size={15} />
+            <span>Export CSV</span>
+          </button>
           <button className="add-btn primary-btn" onClick={openRecordModal}>
             <Plus size={16} />
             <span>{t('payment.recordPayment')}</span>
@@ -1427,6 +1449,78 @@ export const Payments: React.FC = () => {
           }
         }
       `}</style>
+
+      {/* IMPORT EXCEL / CSV MODAL */}
+      <Modal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        title="Import Payment Receipts"
+        subtitle="Batch import payment entries using Excel or CSV file."
+        icon={<FileSpreadsheet size={20} className="text-emerald" />}
+        size="md"
+        footer={
+          <div className="flex-between width-100 align-items-center">
+            <button
+              type="button"
+              className="pill-btn-ghost font-xs flex-row-gap-xs"
+              onClick={downloadPaymentSampleCSV}
+            >
+              <Download size={14} /> Download Sample Template
+            </button>
+            <button
+              type="button"
+              className="pill-btn-primary font-xs"
+              onClick={() => {
+                showToast('success', 'Demo mode: Upload formatted CSV matching sample template.');
+                setIsImportModalOpen(false);
+              }}
+            >
+              Import File
+            </button>
+          </div>
+        }
+      >
+        <div className="flex-col gap-md">
+          <div className="form-card bg-emerald-soft" style={{ padding: '16px', borderRadius: '12px' }}>
+            <div className="flex-row-gap-sm align-items-center">
+              <FileSpreadsheet size={24} className="text-emerald" />
+              <div>
+                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>Excel / CSV Import Format</h4>
+                <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#475569' }}>
+                  Ensure your file includes columns: <code>receipt_number</code>, <code>member_name</code>, <code>amount</code>, <code>payment_date</code>, <code>payment_method</code>.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              border: '2px dashed #cbd5e1',
+              borderRadius: '14px',
+              padding: '32px 20px',
+              textAlign: 'center',
+              background: '#f8fafc',
+              cursor: 'pointer',
+            }}
+            onClick={() => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = '.csv, .xlsx, .xls';
+              input.onchange = (e: any) => {
+                const file = e.target?.files?.[0];
+                if (file) {
+                  showToast('success', `Selected file: ${file.name}`);
+                }
+              };
+              input.click();
+            }}
+          >
+            <Upload size={32} className="text-muted margin-bottom-xs" />
+            <div className="font-weight-700 font-sm text-dark">Click to browse or drag & drop CSV file</div>
+            <span className="font-xs color-subtle">Supports .csv and .xlsx spreadsheets up to 10MB</span>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
