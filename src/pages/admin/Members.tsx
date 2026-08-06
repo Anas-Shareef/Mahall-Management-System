@@ -1414,6 +1414,7 @@ const formatHouseNumber = (raw?: string | null): string => {
 
             await db.members.create({
               name: row.name || 'Member',
+              user_id: null,
               household_id: targetHouseId,
               phone: row.phone || null,
               email: row.email || null,

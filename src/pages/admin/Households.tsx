@@ -1475,7 +1475,6 @@ export const Households: React.FC = () => {
             await db.households.create({
               house_number: row.house_number || row.houseno || String(Math.floor(Math.random() * 900) + 100),
               house_owner_name: row.house_owner_name || row.ownername || row.name || 'House Owner',
-              primary_contact_phone: row.primary_contact_phone || row.phone || null,
               area: row.area || row.cluster || 'General',
               status: (row.status?.toLowerCase() === 'inactive' ? 'inactive' : 'active'),
               address: row.address || null,

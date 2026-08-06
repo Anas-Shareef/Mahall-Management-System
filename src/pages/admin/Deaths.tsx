@@ -1087,7 +1087,6 @@ export const Deaths: React.FC = () => {
           for (const row of parsedRows) {
             await db.deaths.create({
               member_id: null,
-              household_id: null,
               deceased_name: row.deceased_name || 'Deceased Member',
               date_of_death: row.date_of_death || new Date().toISOString().split('T')[0],
               time_of_death: row.time_of_death || null,

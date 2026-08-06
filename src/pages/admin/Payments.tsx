@@ -1483,7 +1483,6 @@ export const Payments: React.FC = () => {
             const targetHouseholdId = matchingMember ? matchingMember.household_id : (households[0]?.id || 'house-1');
 
             await db.payments.create({
-              receipt_number: row.receipt_number || `PAY-${Date.now().toString().slice(-6)}`,
               member_id: targetMemberId,
               household_id: targetHouseholdId,
               subscription_year_id: years[0]?.id || 'year-2026',

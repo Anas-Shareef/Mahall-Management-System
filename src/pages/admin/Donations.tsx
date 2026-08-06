@@ -1206,7 +1206,7 @@ export const Donations: React.FC = () => {
               donation_date: row.donation_date || new Date().toISOString().split('T')[0],
               category: row.category || 'General Donation',
               notes: row.notes || 'Batch imported',
-              status: 'completed',
+              status: 'received',
               created_by: 'admin',
             });
           }

@@ -494,7 +494,7 @@ export const Marriages: React.FC = () => {
               witness_1_name: row.witness_1_name || null,
               witness_2_name: row.witness_2_name || null,
               mahr_details: row.mahr_details || 'As agreed',
-              status: 'registered',
+              status: 'completed',
               certificate_issued: false,
               certificate_number: null,
               created_by: 'admin',
