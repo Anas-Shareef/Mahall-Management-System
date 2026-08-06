@@ -1204,6 +1204,25 @@ export const db = {
 
       return newYear;
     },
+    update: async (id: string, updates: Partial<SubscriptionYear>): Promise<SubscriptionYear> => {
+      const cleanUpdates = { ...updates, updated_at: new Date().toISOString() };
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase
+          .from('subscription_years')
+          .update(cleanUpdates)
+          .eq('id', id)
+          .select()
+          .single();
+        if (error) throw error;
+        return data as SubscriptionYear;
+      }
+      const list = getLocalData<SubscriptionYear>('mahal_years');
+      const idx = list.findIndex((y) => y.id === id);
+      if (idx === -1) throw new Error('Subscription year not found');
+      list[idx] = { ...list[idx], ...cleanUpdates };
+      saveLocalData('mahal_years', list);
+      return list[idx];
+    },
     delete: async (id: string): Promise<boolean> => {
       if (isSupabaseConfigured && supabase) {
         const { error } = await supabase.from('subscription_years').delete().eq('id', id);

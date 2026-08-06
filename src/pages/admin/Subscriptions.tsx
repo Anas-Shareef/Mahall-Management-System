@@ -50,6 +50,7 @@ export const Subscriptions: React.FC = () => {
 
   // Configure Year Modal State
   const [isYearModalOpen, setIsYearModalOpen] = useState(false);
+  const [editingYear, setEditingYear] = useState<SubscriptionYear | null>(null);
   const [yearVal, setYearVal] = useState<number>(new Date().getFullYear());
   const [defaultFee, setDefaultFee] = useState<number>(1200);
   const [startDate, setStartDate] = useState('');
@@ -195,6 +196,7 @@ export const Subscriptions: React.FC = () => {
 
   // Open Configure Year Modal
   const openConfigureYearModal = () => {
+    setEditingYear(null);
     const existingYears = years.map((y) => y.year);
     const nextYear = existingYears.length > 0 ? Math.max(...existingYears) + 1 : new Date().getFullYear();
 
@@ -207,12 +209,23 @@ export const Subscriptions: React.FC = () => {
     setIsYearModalOpen(true);
   };
 
-  // Save Configure Year Form
+  const openEditYearModal = (y: SubscriptionYear) => {
+    setEditingYear(y);
+    setYearVal(y.year);
+    setDefaultFee(y.default_fee);
+    setStartDate(y.start_date || `${y.year}-01-01`);
+    setEndDate(y.end_date || `${y.year}-12-31`);
+    setYearStatus(y.status);
+    setYearError('');
+    setIsYearModalOpen(true);
+  };
+
+  // Save Configure / Edit Year Form
   const handleSaveYear = async (e: React.FormEvent) => {
     e.preventDefault();
     setYearError('');
 
-    if (years.some((y) => y.year === yearVal)) {
+    if (!editingYear && years.some((y) => y.year === yearVal)) {
       setYearError(`⚠ Subscription year ${yearVal} already exists. Please choose a different year.`);
       return;
     }
@@ -220,20 +233,30 @@ export const Subscriptions: React.FC = () => {
     setIsSavingYear(true);
 
     try {
-      const newYearRecord = await db.years.create({
-        year: yearVal,
-        default_fee: Number(defaultFee),
-        start_date: startDate || `${yearVal}-01-01`,
-        end_date: endDate || `${yearVal}-12-31`,
-        status: yearStatus,
-      });
+      if (editingYear) {
+        await db.years.update(editingYear.id, {
+          year: yearVal,
+          default_fee: Number(defaultFee),
+          start_date: startDate || `${yearVal}-01-01`,
+          end_date: endDate || `${yearVal}-12-31`,
+          status: yearStatus,
+        });
+        showToast('success', `✓ Subscription year ${yearVal} updated successfully.`);
+      } else {
+        const newYearRecord = await db.years.create({
+          year: yearVal,
+          default_fee: Number(defaultFee),
+          start_date: startDate || `${yearVal}-01-01`,
+          end_date: endDate || `${yearVal}-12-31`,
+          status: yearStatus,
+        });
+        showToast('success', `✓ Subscription year ${yearVal} configured successfully.`);
+        setSelectedYearId(newYearRecord.id);
+      }
 
-      showToast('success', `✓ Subscription year ${yearVal} configured successfully.`);
       setIsYearModalOpen(false);
-
-      // Reload dataset and auto-select new year
+      setEditingYear(null);
       await loadData();
-      setSelectedYearId(newYearRecord.id);
     } catch (err: any) {
       setYearError(err.message || 'Failed to save subscription year.');
     } finally {
@@ -873,6 +896,13 @@ export const Subscriptions: React.FC = () => {
                       <td style={{ textAlign: 'right' }}>
                         <div className="actions-button-wrapper" onClick={(e) => e.stopPropagation()}>
                           <button
+                            className="action-icon-btn edit"
+                            onClick={() => openEditYearModal(y)}
+                            title="Edit Subscription Year Details"
+                          >
+                            <Edit2 size={15} />
+                          </button>
+                          <button
                             className="action-icon-btn primary"
                             onClick={() => handleGenerateLedger(y.id)}
                             title="Generate Subscription Ledger for this year"
@@ -1145,8 +1175,8 @@ export const Subscriptions: React.FC = () => {
       <Modal
         isOpen={isYearModalOpen}
         onClose={() => setIsYearModalOpen(false)}
-        title="Configure Subscription Year"
-        subtitle="Define annual rate once for database-driven obligations."
+        title={editingYear ? 'Edit Subscription Year' : 'Configure Subscription Year'}
+        subtitle={editingYear ? 'Update annual rate and active period for this subscription year.' : 'Define annual rate once for database-driven obligations.'}
         icon={<Calendar size={20} />}
         size="md"
         footer={
@@ -1165,7 +1195,7 @@ export const Subscriptions: React.FC = () => {
               className="pill-btn-primary"
               disabled={isSavingYear}
             >
-              {isSavingYear ? 'Configuring...' : 'Configure Year'}
+              {isSavingYear ? 'Saving...' : editingYear ? 'Update Year' : 'Configure Year'}
             </button>
           </>
         }

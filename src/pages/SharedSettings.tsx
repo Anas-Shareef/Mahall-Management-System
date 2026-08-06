@@ -389,7 +389,7 @@ export const SharedSettings: React.FC = () => {
                     <div className="dropzone-title">Click to replace logo</div>
                     <div className="dropzone-subtitle">SVG, PNG or WEBP, 300×100px</div>
                   </div>
-                  <input id="logo-upload-input" type="file" accept="image/*" className="display-none" onChange={handleLogoUpload} />
+                  <input id="logo-upload-input" type="file" accept="image/*" className="display-none" style={{ display: 'none' }} onChange={handleLogoUpload} />
                 </label>
 
                 {/* OFFICIAL STAMP / SEAL UPLOAD DROPZONE */}
@@ -401,7 +401,7 @@ export const SharedSettings: React.FC = () => {
                     <div className="dropzone-title">Official Stamp / Seal</div>
                     <div className="dropzone-subtitle">Used on printed certificates • SVG or PNG</div>
                   </div>
-                  <input id="seal-upload-input" type="file" accept="image/*" className="display-none" onChange={handleSealUpload} />
+                  <input id="seal-upload-input" type="file" accept="image/*" className="display-none" style={{ display: 'none' }} onChange={handleSealUpload} />
                 </label>
               </div>
 
