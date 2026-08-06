@@ -485,8 +485,8 @@ export const Donations: React.FC = () => {
             )}
           </div>
 
-          {/* Desktop Filter Chips */}
-          <div className="filter-selectors-grid desktop-filters-only">
+          {/* Filter Selectors Grid */}
+          <div className="filter-selectors-grid">
             <YearFilter selectedYearId={selectedYearId} onChange={setSelectedYearId} showAllOption={true} />
 
             <div className="filter-select-wrapper">

@@ -4509,6 +4509,59 @@ select.custom-select-pill:focus,
   flex-wrap: wrap !important;
 }
 
+@media (max-width: 768px) {
+  .filter-bar {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 14px 16px !important;
+    gap: 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .filter-bar .search-box {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: none !important;
+    box-sizing: border-box !important;
+  }
+
+  .filter-bar .search-box input {
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .filter-selectors-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .filter-select-wrapper {
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .filter-select-wrapper select {
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .filter-selectors-grid .clear-filters-link,
+  .filter-selectors-grid .btn-cancel {
+    grid-column: span 2 !important;
+    text-align: center !important;
+    justify-content: center !important;
+  }
+}
+
 .filter-select-wrapper {
   position: relative !important;
   display: inline-flex !important;

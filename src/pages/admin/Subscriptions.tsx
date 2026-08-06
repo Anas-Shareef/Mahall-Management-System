@@ -1527,7 +1527,7 @@ export const Subscriptions: React.FC = () => {
           .page-header-actions { flex-direction: column; align-items: stretch; gap: 12px; }
           .header-cta-group { flex-direction: column; align-items: stretch; }
           .year-selector-pill { justify-content: space-between; }
-          .filter-selectors-grid { grid-template-columns: 1fr; width: 100%; }
+          .filter-selectors-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; }
           .filter-select-wrapper select { width: 100%; }
         }
         @media (max-width: 640px) {

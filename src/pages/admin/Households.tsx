@@ -1472,7 +1472,7 @@ export const Households: React.FC = () => {
           .mobile-cards-directory { display: flex; }
 
           .filter-selectors-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(2, 1fr);
           }
 
           .form-row-grid { grid-template-columns: 1fr; }
