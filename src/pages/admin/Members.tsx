@@ -222,45 +222,60 @@ export const Members: React.FC = () => {
         </button>
       </div>
 
-      {/* STATISTICS SUMMARY CARDS */}
-      <div className="analytics-stats-grid margin-bottom-md">
-        <div className="stat-card glass-card">
-          <div className="stat-icon emerald"><Users size={20} /></div>
-          <div className="stat-content">
-            <span className="stat-label">Total Members</span>
-            <h3 className="stat-value">{stats.totalMembers}</h3>
+      {/* STATISTICS SUMMARY CARDS (MATCHING SUBSCRIPTIONS DESIGN) */}
+      <div className="stats-dashboard-grid margin-bottom-md">
+        <div className="stat-metric-card shadow-sm">
+          <div className="metric-icon-box emerald">
+            <Users size={22} />
+          </div>
+          <div className="metric-info">
+            <span className="metric-label">Total Members</span>
+            <h3 className="metric-value">{stats.totalMembers}</h3>
+            <span className="metric-sub">Registered in Mahallu</span>
           </div>
         </div>
 
-        <div className="stat-card glass-card">
-          <div className="stat-icon info"><Home size={20} /></div>
-          <div className="stat-content">
-            <span className="stat-label">Households</span>
-            <h3 className="stat-value">{stats.totalHouseholds}</h3>
+        <div className="stat-metric-card shadow-sm">
+          <div className="metric-icon-box blue">
+            <Home size={22} />
+          </div>
+          <div className="metric-info">
+            <span className="metric-label">Households</span>
+            <h3 className="metric-value">{stats.totalHouseholds}</h3>
+            <span className="metric-sub">Active house units</span>
           </div>
         </div>
 
-        <div className="stat-card glass-card">
-          <div className="stat-icon primary"><ShieldCheck size={20} /></div>
-          <div className="stat-content">
-            <span className="stat-label">Portal Granted</span>
-            <h3 className="stat-value">{stats.portalGranted}</h3>
+        <div className="stat-metric-card shadow-sm">
+          <div className="metric-icon-box purple">
+            <ShieldCheck size={22} />
+          </div>
+          <div className="metric-info">
+            <span className="metric-label">Portal Granted</span>
+            <h3 className="metric-value text-primary">{stats.portalGranted}</h3>
+            <span className="metric-sub">Access enabled</span>
           </div>
         </div>
 
-        <div className="stat-card glass-card">
-          <div className="stat-icon success"><UserCheck size={20} /></div>
-          <div className="stat-content">
-            <span className="stat-label">Active Accounts</span>
-            <h3 className="stat-value">{stats.activeAccounts}</h3>
+        <div className="stat-metric-card shadow-sm">
+          <div className="metric-icon-box green">
+            <UserCheck size={22} />
+          </div>
+          <div className="metric-info">
+            <span className="metric-label">Active Accounts</span>
+            <h3 className="metric-value text-success">{stats.activeAccounts}</h3>
+            <span className="metric-sub">Logged in members</span>
           </div>
         </div>
 
-        <div className="stat-card glass-card">
-          <div className="stat-icon warning"><Smartphone size={20} /></div>
-          <div className="stat-content">
-            <span className="stat-label">Pending Invites</span>
-            <h3 className="stat-value">{stats.pendingInvites}</h3>
+        <div className="stat-metric-card shadow-sm">
+          <div className="metric-icon-box amber">
+            <Smartphone size={22} />
+          </div>
+          <div className="metric-info">
+            <span className="metric-label">Pending Invites</span>
+            <h3 className="metric-value text-warning">{stats.pendingInvites}</h3>
+            <span className="metric-sub">Awaiting activation</span>
           </div>
         </div>
       </div>
