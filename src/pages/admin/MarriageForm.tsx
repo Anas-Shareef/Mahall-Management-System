@@ -267,6 +267,25 @@ export const MarriageForm: React.FC = () => {
           <div className="form-grid-2col padding-md">
             <div className="form-group full-width">
               <label className="form-label">Search & Select Groom from Member Database</label>
+              <div className="margin-bottom-xs">
+                <select
+                  className="form-control"
+                  value={groomMemberId}
+                  onChange={(e) => {
+                    const selected = members.find((m) => m.id === e.target.value);
+                    if (selected) handleSelectGroom(selected);
+                    else { setGroomMemberId(''); setGroomName(''); }
+                  }}
+                >
+                  <option value="">-- Select Groom from Dropdown --</option>
+                  {members.filter(m => m.gender === 'male' || !m.gender).map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} ({m.phone || 'No phone'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="search-box margin-bottom-xs">
                 <Search size={16} className="search-icon" />
                 <input
@@ -346,6 +365,25 @@ export const MarriageForm: React.FC = () => {
           <div className="form-grid-2col padding-md">
             <div className="form-group full-width">
               <label className="form-label">Search & Select Bride from Member Database</label>
+              <div className="margin-bottom-xs">
+                <select
+                  className="form-control"
+                  value={brideMemberId}
+                  onChange={(e) => {
+                    const selected = members.find((m) => m.id === e.target.value);
+                    if (selected) handleSelectBride(selected);
+                    else { setBrideMemberId(''); setBrideName(''); }
+                  }}
+                >
+                  <option value="">-- Select Bride from Dropdown --</option>
+                  {members.filter(m => m.gender === 'female' || !m.gender).map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} ({m.phone || 'No phone'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="search-box margin-bottom-xs">
                 <Search size={16} className="search-icon" />
                 <input

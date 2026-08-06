@@ -4544,21 +4544,36 @@ select.custom-select-pill:focus,
   transform: translateY(-50%) !important;
   color: #00966b !important;
   pointer-events: none !important;
-  z-index: 2 !important;
+  z-index: 10 !important;
   width: 16px !important;
   height: 16px !important;
 }
 
 .input-with-icon input,
 .input-with-icon select,
+.input-with-icon .form-control,
 .input-icon-wrapper input,
 .input-icon-wrapper select,
+.input-icon-wrapper .form-control,
 .field-with-icon input,
+.field-with-icon select,
+.field-with-icon .form-control,
 .input-group-icon input,
+.input-group-icon select,
+.input-group-icon .form-control,
 .dhic-input-wrapper input,
 .dhic-input-wrapper select,
-.dhic-input {
-  padding-left: 42px !important;
+.dhic-input-wrapper .form-control,
+.dhic-input,
+.form-group .input-with-icon input,
+.form-group .input-with-icon .form-control,
+.form-group .input-icon-wrapper input,
+.form-group .input-icon-wrapper .form-control,
+.modal-body .input-with-icon input,
+.modal-body .input-with-icon .form-control,
+.drawer-body .input-with-icon input,
+.drawer-body .input-with-icon .form-control {
+  padding-left: 44px !important;
 }
 
 /* SEARCH BOX INPUT WITH ICON */
@@ -4578,13 +4593,17 @@ select.custom-select-pill:focus,
   transform: translateY(-50%) !important;
   color: #9ca3af !important;
   pointer-events: none !important;
-  z-index: 2 !important;
+  z-index: 10 !important;
   width: 16px !important;
   height: 16px !important;
 }
 
-.search-box input {
-  padding-left: 42px !important;
+.search-box input,
+.search-box select,
+.search-box .form-control,
+.form-group .search-box input,
+.form-group .search-box .form-control {
+  padding-left: 44px !important;
   padding-right: 36px !important;
 }
 
