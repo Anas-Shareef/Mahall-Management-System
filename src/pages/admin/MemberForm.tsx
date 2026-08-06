@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db } from '../../services/db';
-import type { Household } from '../../services/db';
+import type { Household, Member } from '../../services/db';
 import { 
   User, Phone, Mail, CheckCircle, AlertCircle, 
   ArrowLeft, Save, Loader2, Home, ShieldCheck 
 } from 'lucide-react';
 import { FormCard } from '../../components/FormCard';
+import { GrantAccessModal } from '../../components/GrantAccessModal';
 
 export const MemberForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +22,7 @@ export const MemberForm: React.FC = () => {
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
 
   // Form Fields
+  const [currentMember, setCurrentMember] = useState<Member | null>(null);
   const [householdId, setHouseholdId] = useState('');
   const [name, setName] = useState('');
   const [relationship, setRelationship] = useState('Head of Family');
@@ -28,6 +30,9 @@ export const MemberForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
   const [isSubscriptionAccountable, setIsSubscriptionAccountable] = useState(true);
+
+  // Portal Access Modal State
+  const [isGrantModalOpen, setIsGrantModalOpen] = useState(false);
 
   const showToast = (type: 'success' | 'error', text: string) => {
     setToastMessage({ type, text });
@@ -48,6 +53,7 @@ export const MemberForm: React.FC = () => {
         const allMembers = await db.members.get();
         const current = allMembers.find((m) => m.id === id);
         if (current) {
+          setCurrentMember(current);
           setHouseholdId(current.household_id || '');
           setName(current.name || '');
           setRelationship(current.relationship || 'Head of Family');
@@ -150,6 +156,17 @@ export const MemberForm: React.FC = () => {
         </div>
 
         <div className="flex-row-gap-xs">
+          {isEditMode && currentMember && (
+            <button 
+              type="button" 
+              className="pill-btn-secondary font-xs flex-row-gap-xs" 
+              onClick={() => setIsGrantModalOpen(true)}
+              title="Grant or Manage Member Portal Access"
+            >
+              <ShieldCheck size={16} className="text-emerald" />
+              <span>Grant Portal Access</span>
+            </button>
+          )}
           <button 
             type="button" 
             className="pill-btn-ghost" 
@@ -312,9 +329,48 @@ export const MemberForm: React.FC = () => {
                 </span>
               </div>
             </FormCard>
+
+            {/* CARD 5: PORTAL ACCESS MANAGEMENT */}
+            {isEditMode && currentMember && (
+              <FormCard
+                title="Member Portal Access"
+                subtitle="Manage member login credentials & authentication status."
+                icon={ShieldCheck}
+              >
+                <div className="flex-col gap-xs">
+                  <div className="flex-between align-items-center">
+                    <span className="font-xs color-subtle font-weight-600">Access Status:</span>
+                    <span className={`status-badge-pill ${currentMember.portal_status || 'not_granted'}`}>
+                      {(currentMember.portal_status || 'not_granted').replace('_', ' ').toUpperCase()}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="pill-btn-primary width-100 margin-top-md flex-row-gap-xs justify-content-center font-xs"
+                    onClick={() => setIsGrantModalOpen(true)}
+                  >
+                    <ShieldCheck size={16} />
+                    <span>Grant / Manage Portal Access</span>
+                  </button>
+                </div>
+              </FormCard>
+            )}
           </div>
         </div>
       </form>
+
+      {/* GRANT PORTAL ACCESS MODAL */}
+      <GrantAccessModal
+        isOpen={isGrantModalOpen}
+        onClose={() => setIsGrantModalOpen(false)}
+        member={currentMember}
+        houseNo={households.find(h => h.id === householdId)?.house_number || ''}
+        onSuccess={() => {
+          showToast('success', '✓ Portal access credentials updated successfully!');
+          loadInitialData();
+        }}
+      />
     </div>
   );
 };
