@@ -278,7 +278,7 @@ export const MarriageForm: React.FC = () => {
                   }}
                 >
                   <option value="">-- Select Groom from Dropdown --</option>
-                  {members.filter(m => m.gender === 'male' || !m.gender).map((m) => (
+                  {members.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name} ({m.phone || 'No phone'})
                     </option>
@@ -376,7 +376,7 @@ export const MarriageForm: React.FC = () => {
                   }}
                 >
                   <option value="">-- Select Bride from Dropdown --</option>
-                  {members.filter(m => m.gender === 'female' || !m.gender).map((m) => (
+                  {members.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name} ({m.phone || 'No phone'})
                     </option>
