@@ -13,6 +13,7 @@ import { HouseholdDetailsModal } from '../../components/HouseholdDetailsModal';
 import { GrantAccessModal } from '../../components/GrantAccessModal';
 import { SidePanel } from '../../components/SidePanel';
 import { Modal } from '../../components/Modal';
+import { ExcelImportModal } from '../../components/ExcelImportModal';
 
 // Helper to safely format house numbers without double H- prefix
 const formatHouseNumber = (raw?: string | null): string => {
@@ -1447,77 +1448,44 @@ export const Households: React.FC = () => {
         }
       `}</style>
 
-      {/* IMPORT EXCEL / CSV MODAL */}
-      <Modal
+      {/* EXCEL / CSV IMPORT MODAL WITH STRUCTURE GUIDE & PARSED PREVIEW */}
+      <ExcelImportModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
-        title="Import Household Records"
-        subtitle="Batch import household directory using Excel or CSV file."
-        icon={<FileSpreadsheet size={20} className="text-emerald" />}
-        size="md"
-        footer={
-          <div className="flex-between width-100 align-items-center">
-            <button
-              type="button"
-              className="pill-btn-ghost font-xs flex-row-gap-xs"
-              onClick={downloadHouseholdSampleCSV}
-            >
-              <Download size={14} /> Download Sample Template
-            </button>
-            <button
-              type="button"
-              className="pill-btn-primary font-xs"
-              onClick={() => {
-                showToast('success', 'Demo mode: Upload formatted CSV matching sample template.');
-                setIsImportModalOpen(false);
-              }}
-            >
-              Import File
-            </button>
-          </div>
-        }
-      >
-        <div className="flex-col gap-md">
-          <div className="form-card bg-emerald-soft" style={{ padding: '16px', borderRadius: '12px' }}>
-            <div className="flex-row-gap-sm align-items-center">
-              <FileSpreadsheet size={24} className="text-emerald" />
-              <div>
-                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>Excel / CSV Import Format</h4>
-                <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#475569' }}>
-                  Ensure your file includes columns: <code>house_number</code>, <code>house_owner_name</code>, <code>primary_contact_phone</code>, <code>cluster_or_area</code>, <code>status</code>.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              border: '2px dashed #cbd5e1',
-              borderRadius: '14px',
-              padding: '32px 20px',
-              textAlign: 'center',
-              background: '#f8fafc',
-              cursor: 'pointer',
-            }}
-            onClick={() => {
-              const input = document.createElement('input');
-              input.type = 'file';
-              input.accept = '.csv, .xlsx, .xls';
-              input.onchange = (e: any) => {
-                const file = e.target?.files?.[0];
-                if (file) {
-                  showToast('success', `Selected file: ${file.name}`);
-                }
-              };
-              input.click();
-            }}
-          >
-            <Upload size={32} className="text-muted margin-bottom-xs" />
-            <div className="font-weight-700 font-sm text-dark">Click to browse or drag & drop CSV file</div>
-            <span className="font-xs color-subtle">Supports .csv and .xlsx spreadsheets up to 10MB</span>
-          </div>
-        </div>
-      </Modal>
+        title="Upload Households from Excel / CSV"
+        subtitle="Import multiple household records at once using an Excel or CSV file"
+        moduleName="Households"
+        sampleCsvFilename="households_sample_template.csv"
+        columns={[
+          { key: 'house_number', label: 'House No', description: 'Unique House Number (e.g., H-12)', example: '12' },
+          { key: 'house_owner_name', label: 'Owner Name', description: 'Primary family head / owner name', example: 'MUHAMMED SINAD' },
+          { key: 'primary_contact_phone', label: 'Phone', description: '10-digit contact mobile number', example: '9876543210' },
+          { key: 'area', label: 'Cluster', description: 'Mahall ward or cluster area', example: 'East Ward' },
+          { key: 'status', label: 'Status', description: 'Must be "active" or "inactive"', example: 'active' },
+        ]}
+        sampleRow={{
+          house_number: '12',
+          house_owner_name: 'MUHAMMED SINAD',
+          primary_contact_phone: '9876543210',
+          area: 'East Ward',
+          status: 'active',
+        }}
+        onImport={async (parsedRows) => {
+          for (const row of parsedRows) {
+            await db.households.create({
+              house_number: row.house_number || row.houseno || String(Math.floor(Math.random() * 900) + 100),
+              house_owner_name: row.house_owner_name || row.ownername || row.name || 'House Owner',
+              primary_contact_phone: row.primary_contact_phone || row.phone || null,
+              area: row.area || row.cluster || 'General',
+              status: (row.status?.toLowerCase() === 'inactive' ? 'inactive' : 'active'),
+              address: row.address || null,
+              members_count: 0,
+            });
+          }
+          showToast('success', `✓ Successfully imported ${parsedRows.length} households!`);
+          loadData();
+        }}
+      />
     </div>
   );
 };

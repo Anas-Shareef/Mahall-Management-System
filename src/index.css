@@ -4619,6 +4619,322 @@ select.custom-select-pill:focus,
   padding-right: 36px !important;
 }
 
+/* ── EXCEL / CSV IMPORT MODAL STYLES (MATCHING ALTHASANUD EXCEL UPLOAD DESIGN) ── */
+.excel-import-dialog {
+  background: #ffffff !important;
+  border-radius: 20px !important;
+  width: 100% !important;
+  max-width: 680px !important;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.15) !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: 90vh !important;
+}
+
+.excel-import-header {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  padding: 20px 24px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.excel-import-title-group {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.excel-import-icon-box {
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 12px !important;
+  background: #ecfdf5 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.excel-import-title {
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  margin: 0 !important;
+}
+
+.excel-import-subtitle {
+  font-size: 13px !important;
+  color: #64748b !important;
+  margin: 2px 0 0 0 !important;
+}
+
+.excel-import-close-btn {
+  background: transparent !important;
+  border: none !important;
+  color: #94a3b8 !important;
+  padding: 6px !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+}
+
+.excel-import-close-btn:hover {
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+}
+
+.excel-import-body {
+  padding: 20px 24px !important;
+  overflow-y: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+}
+
+/* STRUCTURE GUIDE CARD (IMAGE 1 DESIGN) */
+.excel-structure-guide-card {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 14px !important;
+  padding: 18px 20px !important;
+}
+
+.guide-card-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  margin-bottom: 6px !important;
+}
+
+.guide-subtitle-text {
+  font-size: 13px !important;
+  color: #64748b !important;
+  margin-bottom: 14px !important;
+}
+
+.excel-sample-table-wrap {
+  overflow-x: auto !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  background: #ffffff !important;
+  margin-bottom: 14px !important;
+}
+
+.excel-sample-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  font-size: 12.5px !important;
+}
+
+.excel-sample-table th {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  font-weight: 700 !important;
+  padding: 10px 14px !important;
+  text-align: left !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.excel-sample-table td {
+  padding: 10px 14px !important;
+  color: #1e293b !important;
+  font-weight: 600 !important;
+}
+
+.excel-guide-rules-list {
+  padding-left: 18px !important;
+  margin: 0 0 14px 0 !important;
+  font-size: 12.5px !important;
+  color: #475569 !important;
+  line-height: 1.6 !important;
+}
+
+.excel-guide-rules-list li strong {
+  color: #1e293b !important;
+}
+
+.excel-download-example-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  padding: 8px 16px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #334155 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.excel-download-example-btn:hover {
+  background: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+}
+
+/* FILE PICKER ROW & VALID BADGE */
+.excel-file-picker-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.excel-select-file-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  padding: 10px 18px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #00966b !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.excel-select-file-btn:hover {
+  background: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+}
+
+.excel-valid-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: #ecfdf5 !important;
+  border: 1px solid #a7f3d0 !important;
+  color: #00966b !important;
+  padding: 6px 14px !important;
+  border-radius: 9999px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+}
+
+/* PREVIEW SECTION (IMAGE 2 DESIGN) */
+.excel-preview-section {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+}
+
+.excel-preview-title {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  margin: 0 !important;
+}
+
+.excel-preview-table-wrap {
+  overflow-x: auto !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  max-height: 260px !important;
+}
+
+.excel-preview-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  font-size: 12.5px !important;
+}
+
+.excel-preview-table th {
+  background: #f8fafc !important;
+  color: #64748b !important;
+  font-weight: 700 !important;
+  padding: 10px 14px !important;
+  text-align: left !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.excel-preview-table td {
+  padding: 10px 14px !important;
+  color: #1e293b !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.excel-status-check {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 50% !important;
+  background: #ecfdf5 !important;
+  color: #00966b !important;
+}
+
+.excel-parse-error-box {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 12px 16px !important;
+  background: #fef2f2 !important;
+  border: 1px solid #fecdd3 !important;
+  border-radius: 10px !important;
+  color: #e11d48 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+
+/* FOOTER */
+.excel-import-footer {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  padding: 16px 24px !important;
+  border-top: 1px solid #f1f5f9 !important;
+  background: #ffffff !important;
+}
+
+.excel-footer-cancel-btn {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  padding: 9px 20px !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  color: #475569 !important;
+  cursor: pointer !important;
+}
+
+.excel-footer-cancel-btn:hover {
+  background: #f8fafc !important;
+}
+
+.excel-footer-upload-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: #00966b !important;
+  border: none !important;
+  border-radius: 10px !important;
+  padding: 9px 22px !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 14px rgba(0, 150, 107, 0.25) !important;
+  transition: all 0.2s ease !important;
+}
+
+.excel-footer-upload-btn:hover:not(:disabled) {
+  background: #007a57 !important;
+}
+
+.excel-footer-upload-btn:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+}
+
 
 
 

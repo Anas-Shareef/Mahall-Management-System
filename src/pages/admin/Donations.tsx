@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { Modal } from '../../components/Modal';
+import { ExcelImportModal } from '../../components/ExcelImportModal';
 import { SidePanel } from '../../components/SidePanel';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useOrganization } from '../../contexts/OrganizationContext';
@@ -1171,75 +1172,48 @@ export const Donations: React.FC = () => {
         .icon-btn-ghost.danger:hover { background: #fee2e2 !important; color: #ef4444 !important; }
       `}</style>
 
-      {/* IMPORT EXCEL / CSV MODAL */}
-      <Modal
+      {/* EXCEL / CSV IMPORT MODAL WITH STRUCTURE GUIDE & PARSED PREVIEW */}
+      <ExcelImportModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
-        title="Import Donation Records"
-        subtitle="Batch import donation records using Excel or CSV file."
-        icon={<FileSpreadsheet size={20} className="text-emerald" />}
-        size="md"
-        footer={
-          <div className="flex-between width-100 align-items-center">
-            <button
-              type="button"
-              className="pill-btn-ghost font-xs flex-row-gap-xs"
-              onClick={() => {
-                const csvHeader = 'receipt_number,donor_name,donor_phone,donor_email,amount,payment_method,donation_date,notes\n';
-                const csvSample = 'REC-2026-1001,Ashraf Ali,9876543210,ashraf@example.com,5000,upi,2026-07-28,General Donation\nREC-2026-1002,Mohammed K,9876543211,,2500,cash,2026-07-29,Masjid Carpet Fund\n';
-                const blob = new Blob([csvHeader + csvSample], { type: 'text/csv' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'donation_records_sample_template.csv';
-                a.click();
-                showToast('success', 'Sample template downloaded!');
-              }}
-            >
-              <Download size={14} /> Download Sample Template
-            </button>
-            <button
-              type="button"
-              className="pill-btn-primary font-xs"
-              onClick={() => {
-                showToast('success', 'Demo mode: Please upload file using the formatted template.');
-                setIsImportModalOpen(false);
-              }}
-            >
-              Import File
-            </button>
-          </div>
-        }
-      >
-        <div className="flex-col gap-md">
-          <div className="form-card bg-emerald-soft" style={{ padding: '16px', borderRadius: '12px' }}>
-            <div className="flex-row-gap-sm align-items-center">
-              <FileSpreadsheet size={24} className="text-emerald" />
-              <div>
-                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>Excel / CSV Import Format</h4>
-                <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#475569' }}>
-                  Ensure your file includes columns: <code>receipt_number</code>, <code>donor_name</code>, <code>amount</code>, <code>payment_method</code>, <code>donation_date</code>.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              border: '2px dashed #cbd5e1',
-              borderRadius: '14px',
-              padding: '32px 16px',
-              textAlign: 'center',
-              background: '#f8fafc',
-              cursor: 'pointer',
-            }}
-          >
-            <Upload size={32} style={{ color: '#00966b', marginBottom: '8px' }} />
-            <h5 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>Click or Drag & Drop Excel/CSV File</h5>
-            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b' }}>Supports .xlsx, .xls, .csv files (Max 5MB)</p>
-          </div>
-        </div>
-      </Modal>
+        title="Upload Donations from Excel / CSV"
+        subtitle="Import multiple donation entries at once using an Excel or CSV file"
+        moduleName="Donations"
+        sampleCsvFilename="donations_sample_template.csv"
+        columns={[
+          { key: 'receipt_number', label: 'Receipt No', description: 'Unique donation receipt number', example: 'REC-2026-1001' },
+          { key: 'donor_name', label: 'Donor Name', description: 'Name of the donor or contributor', example: 'MUHAMMED SINAD' },
+          { key: 'amount', label: 'Amount', description: 'Donation amount in numbers', example: '15000' },
+          { key: 'donation_date', label: 'Date', description: 'Format YYYY-MM-DD', example: '2026-07-28' },
+          { key: 'payment_method', label: 'Method', description: 'Cash / UPI / Bank Transfer / etc.', example: 'cash' },
+        ]}
+        sampleRow={{
+          receipt_number: 'REC-2026-1001',
+          donor_name: 'MUHAMMED SINAD',
+          amount: '15000',
+          donation_date: '2026-07-28',
+          payment_method: 'cash',
+        }}
+        onImport={async (parsedRows) => {
+          for (const row of parsedRows) {
+            await db.donations.create({
+              receipt_number: row.receipt_number || `REC-${Date.now().toString().slice(-6)}`,
+              donor_name: row.donor_name || 'Anonymous Donor',
+              donor_phone: row.donor_phone || row.phone || null,
+              donor_email: row.donor_email || row.email || null,
+              amount: parseFloat(row.amount) || 500,
+              payment_method: (['cash', 'upi', 'bank_transfer'].includes(row.payment_method?.toLowerCase()) ? row.payment_method.toLowerCase() : 'cash') as any,
+              donation_date: row.donation_date || new Date().toISOString().split('T')[0],
+              category: row.category || 'General Donation',
+              notes: row.notes || 'Batch imported',
+              status: 'completed',
+              created_by: 'admin',
+            });
+          }
+          showToast('success', `✓ Successfully imported ${parsedRows.length} donations!`);
+          loadData();
+        }}
+      />
 
       {/* CONFIRMATION DELETE MODAL */}
       <ConfirmModal

@@ -10,6 +10,7 @@ import {
 import { YearFilter } from '../../components/YearFilter';
 import { SidePanel } from '../../components/SidePanel';
 import { Modal } from '../../components/Modal';
+import { ExcelImportModal } from '../../components/ExcelImportModal';
 
 export const Payments: React.FC = () => {
   const { t } = useTranslation();
@@ -1451,77 +1452,54 @@ export const Payments: React.FC = () => {
         }
       `}</style>
 
-      {/* IMPORT EXCEL / CSV MODAL */}
-      <Modal
+      {/* EXCEL / CSV IMPORT MODAL WITH STRUCTURE GUIDE & PARSED PREVIEW */}
+      <ExcelImportModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
-        title="Import Payment Receipts"
-        subtitle="Batch import payment entries using Excel or CSV file."
-        icon={<FileSpreadsheet size={20} className="text-emerald" />}
-        size="md"
-        footer={
-          <div className="flex-between width-100 align-items-center">
-            <button
-              type="button"
-              className="pill-btn-ghost font-xs flex-row-gap-xs"
-              onClick={downloadPaymentSampleCSV}
-            >
-              <Download size={14} /> Download Sample Template
-            </button>
-            <button
-              type="button"
-              className="pill-btn-primary font-xs"
-              onClick={() => {
-                showToast('success', 'Demo mode: Upload formatted CSV matching sample template.');
-                setIsImportModalOpen(false);
-              }}
-            >
-              Import File
-            </button>
-          </div>
-        }
-      >
-        <div className="flex-col gap-md">
-          <div className="form-card bg-emerald-soft" style={{ padding: '16px', borderRadius: '12px' }}>
-            <div className="flex-row-gap-sm align-items-center">
-              <FileSpreadsheet size={24} className="text-emerald" />
-              <div>
-                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>Excel / CSV Import Format</h4>
-                <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#475569' }}>
-                  Ensure your file includes columns: <code>receipt_number</code>, <code>member_name</code>, <code>amount</code>, <code>payment_date</code>, <code>payment_method</code>.
-                </p>
-              </div>
-            </div>
-          </div>
+        title="Upload Payments from Excel / CSV"
+        subtitle="Import multiple payment transactions at once using an Excel or CSV file"
+        moduleName="Payments"
+        sampleCsvFilename="payments_sample_template.csv"
+        columns={[
+          { key: 'receipt_number', label: 'Receipt No', description: 'Unique payment reference number', example: 'PAY-2026-001' },
+          { key: 'member_name', label: 'Member Name', description: 'Name of the paying member', example: 'MUHAMMED SINAD' },
+          { key: 'amount', label: 'Amount', description: 'Payment amount in numbers', example: '15000' },
+          { key: 'payment_date', label: 'Date', description: 'Format YYYY-MM-DD', example: '2026-07-28' },
+          { key: 'payment_method', label: 'Method', description: 'Cash / UPI / Bank Transfer / etc.', example: 'cash' },
+        ]}
+        sampleRow={{
+          receipt_number: 'PAY-2026-001',
+          member_name: 'MUHAMMED SINAD',
+          amount: '15000',
+          payment_date: '2026-07-28',
+          payment_method: 'cash',
+        }}
+        onImport={async (parsedRows) => {
+          for (const row of parsedRows) {
+            const matchingMember = members.find(
+              (m) => m.name.toLowerCase().trim() === row.member_name?.toLowerCase().trim()
+            );
+            const targetMemberId = matchingMember ? matchingMember.id : (members[0]?.id || 'member-1');
+            const targetHouseholdId = matchingMember ? matchingMember.household_id : (households[0]?.id || 'house-1');
 
-          <div
-            style={{
-              border: '2px dashed #cbd5e1',
-              borderRadius: '14px',
-              padding: '32px 20px',
-              textAlign: 'center',
-              background: '#f8fafc',
-              cursor: 'pointer',
-            }}
-            onClick={() => {
-              const input = document.createElement('input');
-              input.type = 'file';
-              input.accept = '.csv, .xlsx, .xls';
-              input.onchange = (e: any) => {
-                const file = e.target?.files?.[0];
-                if (file) {
-                  showToast('success', `Selected file: ${file.name}`);
-                }
-              };
-              input.click();
-            }}
-          >
-            <Upload size={32} className="text-muted margin-bottom-xs" />
-            <div className="font-weight-700 font-sm text-dark">Click to browse or drag & drop CSV file</div>
-            <span className="font-xs color-subtle">Supports .csv and .xlsx spreadsheets up to 10MB</span>
-          </div>
-        </div>
-      </Modal>
+            await db.payments.create({
+              receipt_number: row.receipt_number || `PAY-${Date.now().toString().slice(-6)}`,
+              member_id: targetMemberId,
+              household_id: targetHouseholdId,
+              subscription_year_id: years[0]?.id || 'year-2026',
+              amount: parseFloat(row.amount) || 1000,
+              payment_method: (['cash', 'upi', 'bank_transfer'].includes(row.payment_method?.toLowerCase()) ? row.payment_method.toLowerCase() : 'cash') as any,
+              payment_date: row.payment_date || new Date().toISOString().split('T')[0],
+              reference_number: row.transaction_id || row.reference_number || null,
+              notes: row.category || 'Batch imported',
+              status: 'completed',
+              created_by: user?.id || 'admin',
+            });
+          }
+          showToast('success', `✓ Successfully imported ${parsedRows.length} payment receipts!`);
+          loadData();
+        }}
+      />
     </div>
   );
 };

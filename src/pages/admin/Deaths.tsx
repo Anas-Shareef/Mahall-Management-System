@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { Modal } from '../../components/Modal';
+import { ExcelImportModal } from '../../components/ExcelImportModal';
 import { SidePanel } from '../../components/SidePanel';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { useOrganization } from '../../contexts/OrganizationContext';
@@ -1060,75 +1061,57 @@ export const Deaths: React.FC = () => {
         .icon-btn-ghost.danger:hover { background: #fee2e2 !important; color: #ef4444 !important; }
       `}</style>
 
-      {/* IMPORT EXCEL / CSV MODAL */}
-      <Modal
+      {/* EXCEL / CSV IMPORT MODAL WITH STRUCTURE GUIDE & PARSED PREVIEW */}
+      <ExcelImportModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
-        title="Import Death Records"
-        subtitle="Batch import death records using Excel or CSV file."
-        icon={<FileSpreadsheet size={20} className="text-emerald" />}
-        size="md"
-        footer={
-          <div className="flex-between width-100 align-items-center">
-            <button
-              type="button"
-              className="pill-btn-ghost font-xs flex-row-gap-xs"
-              onClick={() => {
-                const csvHeader = 'deceased_name,date_of_death,burial_date,place_of_death,age,gender,cause_of_death,notes\n';
-                const csvSample = 'Abdullah Kutty,2026-07-25,2026-07-25,Mahallu Hospital,78,male,Natural Causes,Sample Note\n';
-                const blob = new Blob([csvHeader + csvSample], { type: 'text/csv' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'death_records_sample_template.csv';
-                a.click();
-                showToast('success', 'Sample template downloaded!');
-              }}
-            >
-              <Download size={14} /> Download Sample Template
-            </button>
-            <button
-              type="button"
-              className="pill-btn-primary font-xs"
-              onClick={() => {
-                showToast('success', 'Demo mode: Please upload file using the formatted template.');
-                setIsImportModalOpen(false);
-              }}
-            >
-              Import File
-            </button>
-          </div>
-        }
-      >
-        <div className="flex-col gap-md">
-          <div className="form-card bg-emerald-soft" style={{ padding: '16px', borderRadius: '12px' }}>
-            <div className="flex-row-gap-sm align-items-center">
-              <FileSpreadsheet size={24} className="text-emerald" />
-              <div>
-                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>Excel / CSV Import Format</h4>
-                <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#475569' }}>
-                  Ensure your file includes columns: <code>deceased_name</code>, <code>date_of_death</code>, <code>age</code>, <code>gender</code>.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              border: '2px dashed #cbd5e1',
-              borderRadius: '14px',
-              padding: '32px 16px',
-              textAlign: 'center',
-              background: '#f8fafc',
-              cursor: 'pointer',
-            }}
-          >
-            <Upload size={32} style={{ color: '#00966b', marginBottom: '8px' }} />
-            <h5 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>Click or Drag & Drop Excel/CSV File</h5>
-            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b' }}>Supports .xlsx, .xls, .csv files (Max 5MB)</p>
-          </div>
-        </div>
-      </Modal>
+        title="Upload Deaths from Excel / CSV"
+        subtitle="Import multiple death records at once using an Excel or CSV file"
+        moduleName="Deaths"
+        sampleCsvFilename="death_records_sample_template.csv"
+        columns={[
+          { key: 'deceased_name', label: 'Deceased Name', description: 'Full name of the deceased person', example: 'MUHAMMED SINAD' },
+          { key: 'date_of_death', label: 'Date of Death', description: 'Format YYYY-MM-DD', example: '2026-07-25' },
+          { key: 'age', label: 'Age', description: 'Age at time of death in numbers', example: '78' },
+          { key: 'gender', label: 'Gender', description: 'male / female', example: 'male' },
+          { key: 'place_of_death', label: 'Place', description: 'Hospital / Residence / Location', example: 'Mahallu Hospital' },
+        ]}
+        sampleRow={{
+          deceased_name: 'MUHAMMED SINAD',
+          date_of_death: '2026-07-25',
+          age: '78',
+          gender: 'male',
+          place_of_death: 'Mahallu Hospital',
+        }}
+        onImport={async (parsedRows) => {
+          for (const row of parsedRows) {
+            await db.deaths.create({
+              member_id: null,
+              household_id: null,
+              deceased_name: row.deceased_name || 'Deceased Member',
+              date_of_death: row.date_of_death || new Date().toISOString().split('T')[0],
+              time_of_death: row.time_of_death || null,
+              burial_date: row.burial_date || row.date_of_death || new Date().toISOString().split('T')[0],
+              burial_time: row.burial_time || null,
+              cemetery_name: row.cemetery_name || 'Central Mahallu Khabarsthan',
+              grave_number: row.grave_number || null,
+              cause_of_death: row.cause_of_death || 'Natural',
+              age: parseInt(row.age) || 70,
+              gender: (row.gender?.toLowerCase() === 'female' ? 'female' : 'male') as any,
+              informant_name: row.informant_name || null,
+              informant_phone: row.informant_phone || null,
+              informant_relationship: row.informant_relationship || null,
+              medically_certified: true,
+              certifier_name: row.certifier_name || null,
+              notes: row.notes || 'Batch imported',
+              certificate_url: null,
+              created_by: 'admin',
+            });
+          }
+          showToast('success', `✓ Successfully imported ${parsedRows.length} death records!`);
+          loadData();
+        }}
+      />
 
       {/* CONFIRMATION DELETE MODAL */}
       <ConfirmModal

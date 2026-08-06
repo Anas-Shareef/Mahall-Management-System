@@ -13,6 +13,7 @@ import { SidePanel } from '../../components/SidePanel';
 import { GrantAccessModal } from '../../components/GrantAccessModal';
 import { MemberDetailsModal } from '../../components/MemberDetailsModal';
 import { Modal } from '../../components/Modal';
+import { ExcelImportModal } from '../../components/ExcelImportModal';
 
 export const Members: React.FC = () => {
   const { t } = useTranslation();
@@ -1380,77 +1381,53 @@ const formatHouseNumber = (raw?: string | null): string => {
         }
       `}</style>
 
-      {/* IMPORT EXCEL / CSV MODAL */}
-      <Modal
+      {/* EXCEL / CSV IMPORT MODAL WITH STRUCTURE GUIDE & PARSED PREVIEW */}
+      <ExcelImportModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
-        title="Import Member Directory"
-        subtitle="Batch import member records using Excel or CSV file."
-        icon={<FileSpreadsheet size={20} className="text-emerald" />}
-        size="md"
-        footer={
-          <div className="flex-between width-100 align-items-center">
-            <button
-              type="button"
-              className="pill-btn-ghost font-xs flex-row-gap-xs"
-              onClick={downloadMemberSampleCSV}
-            >
-              <Download size={14} /> Download Sample Template
-            </button>
-            <button
-              type="button"
-              className="pill-btn-primary font-xs"
-              onClick={() => {
-                showToast('success', 'Demo mode: Upload formatted CSV matching sample template.');
-                setIsImportModalOpen(false);
-              }}
-            >
-              Import File
-            </button>
-          </div>
-        }
-      >
-        <div className="flex-col gap-md">
-          <div className="form-card bg-emerald-soft" style={{ padding: '16px', borderRadius: '12px' }}>
-            <div className="flex-row-gap-sm align-items-center">
-              <FileSpreadsheet size={24} className="text-emerald" />
-              <div>
-                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>Excel / CSV Import Format</h4>
-                <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#475569' }}>
-                  Ensure your file includes columns: <code>name</code>, <code>phone</code>, <code>email</code>, <code>gender</code>, <code>household_number</code>, <code>relationship</code>.
-                </p>
-              </div>
-            </div>
-          </div>
+        title="Upload Members from Excel / CSV"
+        subtitle="Import multiple member records at once using an Excel or CSV file"
+        moduleName="Members"
+        sampleCsvFilename="members_sample_template.csv"
+        columns={[
+          { key: 'name', label: 'Name', description: 'Member full name', example: 'MUHAMMED SINAD' },
+          { key: 'phone', label: 'Phone', description: '10-digit mobile contact number', example: '9876543210' },
+          { key: 'email', label: 'Email', description: 'Valid email address for login', example: 'sinad@example.com' },
+          { key: 'household_number', label: 'House No', description: 'Associated house number (e.g. 12 or H-12)', example: '12' },
+          { key: 'relationship', label: 'Relationship', description: 'Head of Family / Groom / Son / Daughter / etc.', example: 'Groom' },
+          { key: 'status', label: 'Status', description: 'Must be "active" or "inactive"', example: 'active' },
+        ]}
+        sampleRow={{
+          name: 'MUHAMMED SINAD',
+          phone: '9876543210',
+          email: 'sinad@example.com',
+          household_number: '12',
+          relationship: 'Groom',
+          status: 'active',
+        }}
+        onImport={async (parsedRows) => {
+          for (const row of parsedRows) {
+            // Find household or default to first
+            const houseNoClean = (row.household_number || row.houseno || '1').replace(/^([hH]-?)+/, '');
+            const matchingHouse = households.find((h) => h.house_number === houseNoClean || h.house_number === `H-${houseNoClean}`);
+            const targetHouseId = matchingHouse ? matchingHouse.id : (households[0]?.id || 'house-1');
 
-          <div
-            style={{
-              border: '2px dashed #cbd5e1',
-              borderRadius: '14px',
-              padding: '32px 20px',
-              textAlign: 'center',
-              background: '#f8fafc',
-              cursor: 'pointer',
-            }}
-            onClick={() => {
-              const input = document.createElement('input');
-              input.type = 'file';
-              input.accept = '.csv, .xlsx, .xls';
-              input.onchange = (e: any) => {
-                const file = e.target?.files?.[0];
-                if (file) {
-                  showToast('success', `Selected file: ${file.name}`);
-                }
-              };
-              input.click();
-            }}
-          >
-            <Upload size={32} className="text-muted margin-bottom-xs" />
-            <div className="font-weight-700 font-sm text-dark">Click to browse or drag & drop CSV file</div>
-            <span className="font-xs color-subtle">Supports .csv and .xlsx spreadsheets up to 10MB</span>
-          </div>
-        </div>
-      </Modal>
+            await db.members.create({
+              name: row.name || 'Member',
+              household_id: targetHouseId,
+              phone: row.phone || null,
+              email: row.email || null,
+              relationship: row.relationship || 'Member',
+              status: (row.status?.toLowerCase() === 'inactive' ? 'inactive' : 'active'),
+              portal_access: false,
+              portal_status: 'not_granted',
+              is_subscription_accountable: true,
+            });
+          }
+          showToast('success', `✓ Successfully imported ${parsedRows.length} members!`);
+          loadData();
+        }}
+      />
     </div>
   );
 };

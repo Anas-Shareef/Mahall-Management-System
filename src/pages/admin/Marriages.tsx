@@ -11,6 +11,7 @@ import { YearFilter } from '../../components/YearFilter';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { SidePanel } from '../../components/SidePanel';
 import { Modal } from '../../components/Modal';
+import { ExcelImportModal } from '../../components/ExcelImportModal';
 
 export const Marriages: React.FC = () => {
   const navigate = useNavigate();
@@ -447,77 +448,62 @@ export const Marriages: React.FC = () => {
         isLoading={isDeleting}
       />
 
-      {/* IMPORT EXCEL / CSV MODAL */}
-      <Modal
+      {/* EXCEL / CSV IMPORT MODAL WITH STRUCTURE GUIDE & PARSED PREVIEW */}
+      <ExcelImportModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
-        title="Import Marriage Records"
-        subtitle="Batch import marriage register using Excel or CSV file."
-        icon={<FileSpreadsheet size={20} className="text-emerald" />}
-        size="md"
-        footer={
-          <div className="flex-between width-100 align-items-center">
-            <button
-              type="button"
-              className="pill-btn-ghost font-xs flex-row-gap-xs"
-              onClick={downloadMarriageSampleCSV}
-            >
-              <Download size={14} /> Download Sample Template
-            </button>
-            <button
-              type="button"
-              className="pill-btn-primary font-xs"
-              onClick={() => {
-                showToast('success', 'Demo mode: Upload formatted CSV matching sample template.');
-                setIsImportModalOpen(false);
-              }}
-            >
-              Import File
-            </button>
-          </div>
-        }
-      >
-        <div className="flex-col gap-md">
-          <div className="form-card bg-emerald-soft" style={{ padding: '16px', borderRadius: '12px' }}>
-            <div className="flex-row-gap-sm align-items-center">
-              <FileSpreadsheet size={24} className="text-emerald" />
-              <div>
-                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>Excel / CSV Import Format</h4>
-                <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#475569' }}>
-                  Ensure your file includes columns: <code>groom_name</code>, <code>bride_name</code>, <code>nikah_date</code>, <code>nikah_venue</code>, <code>officiant_name</code>.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              border: '2px dashed #cbd5e1',
-              borderRadius: '14px',
-              padding: '32px 20px',
-              textAlign: 'center',
-              background: '#f8fafc',
-              cursor: 'pointer',
-            }}
-            onClick={() => {
-              const input = document.createElement('input');
-              input.type = 'file';
-              input.accept = '.csv, .xlsx, .xls';
-              input.onchange = (e: any) => {
-                const file = e.target?.files?.[0];
-                if (file) {
-                  showToast('success', `Selected file: ${file.name}`);
-                }
-              };
-              input.click();
-            }}
-          >
-            <Upload size={32} className="text-muted margin-bottom-xs" />
-            <div className="font-weight-700 font-sm text-dark">Click to browse or drag & drop CSV file</div>
-            <span className="font-xs color-subtle">Supports .csv and .xlsx spreadsheets up to 10MB</span>
-          </div>
-        </div>
-      </Modal>
+        title="Upload Marriages from Excel / CSV"
+        subtitle="Import multiple marriage records at once using an Excel or CSV file"
+        moduleName="Marriages"
+        sampleCsvFilename="marriages_sample_template.csv"
+        columns={[
+          { key: 'groom_name', label: 'Groom Name', description: 'Full name of the groom', example: 'MUHAMMED SINAD' },
+          { key: 'groom_phone', label: 'Groom Phone', description: 'Contact mobile number of groom', example: '9876543210' },
+          { key: 'bride_name', label: 'Bride Name', description: 'Full name of the bride', example: 'AISHA BEEVI' },
+          { key: 'nikah_date', label: 'Nikah Date', description: 'Format YYYY-MM-DD', example: '2026-06-15' },
+          { key: 'nikah_venue', label: 'Venue', description: 'Location / Masjid venue', example: 'Central Juma Masjid' },
+        ]}
+        sampleRow={{
+          groom_name: 'MUHAMMED SINAD',
+          groom_phone: '9876543210',
+          bride_name: 'AISHA BEEVI',
+          nikah_date: '2026-06-15',
+          nikah_venue: 'Central Juma Masjid',
+        }}
+        onImport={async (parsedRows) => {
+          for (const row of parsedRows) {
+            await db.marriages.create({
+              groom_name: row.groom_name || 'Groom',
+              groom_member_id: null,
+              groom_father_name: row.groom_father_name || null,
+              groom_phone: row.groom_phone || null,
+              groom_house_number: row.groom_house_number || null,
+              groom_ward: row.groom_ward || 'Ward 1',
+              groom_address: row.groom_address || null,
+              bride_type: (row.bride_type?.toLowerCase() === 'member' ? 'member' : 'external'),
+              bride_name: row.bride_name || 'Bride',
+              bride_member_id: null,
+              bride_father_name: row.bride_father_name || null,
+              bride_phone: row.bride_phone || null,
+              bride_address: row.bride_address || null,
+              bride_ward: row.bride_ward || null,
+              nikah_date: row.nikah_date || new Date().toISOString().split('T')[0],
+              nikah_time: row.nikah_time || '11:00 AM',
+              nikah_venue: row.nikah_venue || 'Mahallu Juma Masjid',
+              officiant_name: row.officiant_name || 'Khazi',
+              witness_1_name: row.witness_1_name || null,
+              witness_2_name: row.witness_2_name || null,
+              mahr_details: row.mahr_details || 'As agreed',
+              status: 'registered',
+              certificate_issued: false,
+              certificate_number: null,
+              created_by: 'admin',
+            });
+          }
+          showToast('success', `✓ Successfully imported ${parsedRows.length} marriage records!`);
+          loadData();
+        }}
+      />
     </div>
   );
 };
