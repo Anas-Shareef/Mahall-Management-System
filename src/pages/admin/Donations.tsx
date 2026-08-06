@@ -10,7 +10,7 @@ import {
   Download, Edit2, Trash2, User,
   Printer, RefreshCw, HeartHandshake,
   TrendingUp, CalendarDays, Target, Award, QrCode, ChevronLeft, ChevronRight,
-  Wallet, FileSpreadsheet
+  Wallet, FileSpreadsheet, Megaphone, BarChart3, Star, Clock, CheckSquare, Ban
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { Modal } from '../../components/Modal';
@@ -39,8 +39,24 @@ export const Donations: React.FC = () => {
   const navigate = useNavigate();
   const { branding } = useOrganization();
 
-  // Primary Sub-Tab State ('all' | 'general' | 'campaigns')
-  const [activeTab, setActiveTab] = useState<'all' | 'general' | 'campaigns'>('all');
+  // Primary Sub-Tab State ('all' | 'general' | 'campaigns' | 'manage_campaigns')
+  const [activeTab, setActiveTab] = useState<'all' | 'general' | 'campaigns' | 'manage_campaigns'>('all');
+
+  // Campaign Management State
+  const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
+  const [editingCampaign, setEditingCampaign] = useState<DonationCampaign | null>(null);
+  const [deleteCampaignTargetId, setDeleteCampaignTargetId] = useState<string | null>(null);
+  const [isDeletingCampaign, setIsDeletingCampaign] = useState(false);
+  const [isSavingCampaign, setIsSavingCampaign] = useState(false);
+  const [campaignForm, setCampaignForm] = useState({
+    campaign_name: '',
+    campaign_type: 'special_fund',
+    description: '',
+    target_amount: '',
+    start_date: '',
+    end_date: '',
+    status: 'active' as DonationCampaign['status'],
+  });
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Data States
@@ -264,6 +280,84 @@ export const Donations: React.FC = () => {
     );
   };
 
+  // Campaign CRUD Handlers
+  const openCreateCampaign = () => {
+    setEditingCampaign(null);
+    setCampaignForm({
+      campaign_name: '',
+      campaign_type: 'special_fund',
+      description: '',
+      target_amount: '',
+      start_date: '',
+      end_date: '',
+      status: 'active',
+    });
+    setIsCampaignModalOpen(true);
+  };
+
+  const openEditCampaign = (c: DonationCampaign) => {
+    setEditingCampaign(c);
+    setCampaignForm({
+      campaign_name: c.campaign_name,
+      campaign_type: c.campaign_type,
+      description: c.description || '',
+      target_amount: String(c.target_amount),
+      start_date: c.start_date || '',
+      end_date: c.end_date || '',
+      status: c.status,
+    });
+    setIsCampaignModalOpen(true);
+  };
+
+  const handleSaveCampaign = async () => {
+    if (!campaignForm.campaign_name.trim()) {
+      showToast('error', 'Campaign name is required');
+      return;
+    }
+    setIsSavingCampaign(true);
+    try {
+      const payload = {
+        campaign_name: campaignForm.campaign_name.trim(),
+        campaign_type: campaignForm.campaign_type,
+        description: campaignForm.description.trim() || null,
+        target_amount: parseFloat(campaignForm.target_amount) || 0,
+        start_date: campaignForm.start_date || null,
+        end_date: campaignForm.end_date || null,
+        cover_image: null,
+        status: campaignForm.status,
+        created_by: null,
+      };
+      if (editingCampaign) {
+        await db.donationCampaigns.update(editingCampaign.id, payload);
+        showToast('success', 'Campaign updated successfully');
+      } else {
+        await db.donationCampaigns.create(payload);
+        showToast('success', 'Campaign created successfully');
+      }
+      setIsCampaignModalOpen(false);
+      loadData();
+    } catch (err) {
+      showToast('error', 'Failed to save campaign');
+    } finally {
+      setIsSavingCampaign(false);
+    }
+  };
+
+  const handleDeleteCampaign = async () => {
+    if (!deleteCampaignTargetId) return;
+    setIsDeletingCampaign(true);
+    try {
+      await db.donationCampaigns.delete(deleteCampaignTargetId);
+      showToast('success', 'Campaign deleted successfully');
+      setDeleteCampaignTargetId(null);
+      loadData();
+    } catch (err) {
+      showToast('error', 'Failed to delete campaign');
+    } finally {
+      setIsDeletingCampaign(false);
+    }
+  };
+
   const handleBulkDelete = async () => {
     try {
       await db.donations.deleteMultiple(selectedIds);
@@ -339,18 +433,27 @@ export const Donations: React.FC = () => {
         </div>
 
         <div className="header-cta-group">
-          <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={() => setIsImportModalOpen(true)}>
-            <FileSpreadsheet size={15} className="text-emerald" />
-            <span>Import Data</span>
-          </button>
-          <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={exportCSV}>
-            <Download size={15} />
-            <span>Export CSV</span>
-          </button>
-          <button className="add-btn primary-btn" onClick={openAddDrawer}>
-            <Plus size={16} />
-            <span>Record Donation</span>
-          </button>
+          {activeTab === 'manage_campaigns' ? (
+            <button className="add-btn primary-btn" onClick={openCreateCampaign}>
+              <Megaphone size={16} />
+              <span>New Campaign</span>
+            </button>
+          ) : (
+            <>
+              <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={() => setIsImportModalOpen(true)}>
+                <FileSpreadsheet size={15} className="text-emerald" />
+                <span>Import Data</span>
+              </button>
+              <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={exportCSV}>
+                <Download size={15} />
+                <span>Export CSV</span>
+              </button>
+              <button className="add-btn primary-btn" onClick={openAddDrawer}>
+                <Plus size={16} />
+                <span>Record Donation</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -465,6 +568,14 @@ export const Donations: React.FC = () => {
               <span>Campaign Funds</span>
               <span className="badge-pill font-xs">({donations.filter(d => d.donation_type === 'campaign').length})</span>
             </button>
+            <button
+              className={`subtab-btn ${activeTab === 'manage_campaigns' ? 'active' : ''}`}
+              onClick={() => { setActiveTab('manage_campaigns'); setCurrentPage(1); }}
+            >
+              <Megaphone size={13} />
+              <span>Manage Campaigns</span>
+              <span className="badge-pill font-xs">({campaigns.length})</span>
+            </button>
           </div>
         </div>
 
@@ -555,8 +666,122 @@ export const Donations: React.FC = () => {
           </div>
         )}
 
+        {/* CAMPAIGN MANAGEMENT PANEL — Only shown on 'manage_campaigns' sub-tab */}
+        {activeTab === 'manage_campaigns' && (
+          <div className="workspace-table-content">
+            {loading ? (
+              <div className="skeleton-loading-container padding-md">
+                <div className="skeleton-row"></div>
+                <div className="skeleton-row"></div>
+                <div className="skeleton-row"></div>
+              </div>
+            ) : campaigns.length === 0 ? (
+              <div className="empty-state-card">
+                <div className="empty-state-icon purple">
+                  <Megaphone size={32} />
+                </div>
+                <h4>No campaigns yet</h4>
+                <p>Create your first fundraising campaign to start collecting special fund donations.</p>
+                <button className="add-btn primary-btn margin-top-sm" onClick={openCreateCampaign}>
+                  <Plus size={16} /> Create Campaign
+                </button>
+              </div>
+            ) : (
+              <div className="campaigns-management-grid">
+                {campaigns.map((c) => {
+                  const collected = donations
+                    .filter((d) => d.campaign_id === c.id)
+                    .reduce((sum, d) => sum + (d.amount || 0), 0);
+                  const donorCount = donations.filter((d) => d.campaign_id === c.id).length;
+                  const progress = c.target_amount > 0 ? Math.min(100, Math.round((collected / c.target_amount) * 100)) : 0;
+                  const statusConfig: Record<string, { label: string; cls: string; icon: JSX.Element }> = {
+                    active: { label: 'Active', cls: 'success', icon: <CheckCircle size={12} /> },
+                    draft: { label: 'Draft', cls: 'warning', icon: <Clock size={12} /> },
+                    completed: { label: 'Completed', cls: 'primary', icon: <CheckSquare size={12} /> },
+                    cancelled: { label: 'Cancelled', cls: 'danger', icon: <Ban size={12} /> },
+                  };
+                  const sc = statusConfig[c.status] || statusConfig.active;
+                  return (
+                    <div key={c.id} className="campaign-mgmt-card">
+                      {/* Card Header */}
+                      <div className="campaign-card-header">
+                        <div className="campaign-card-icon-wrap">
+                          <Target size={22} className="text-purple" />
+                        </div>
+                        <div className="campaign-card-meta">
+                          <h4 className="campaign-card-name">{c.campaign_name}</h4>
+                          <span className="campaign-card-type">{c.campaign_type.replace(/_/g, ' ').toUpperCase()}</span>
+                        </div>
+                        <span className={`status-badge-dot ${sc.cls}`}>
+                          <span className="dot"></span> {sc.label}
+                        </span>
+                      </div>
+
+                      {/* Description */}
+                      {c.description && (
+                        <p className="campaign-card-desc">{c.description}</p>
+                      )}
+
+                      {/* Progress Bar */}
+                      <div className="campaign-progress-section">
+                        <div className="campaign-progress-labels">
+                          <span className="font-xs color-subtle">Collected</span>
+                          <span className="font-xs font-weight-700 text-success">{progress}%</span>
+                        </div>
+                        <div className="campaign-progress-track">
+                          <div
+                            className="campaign-progress-fill"
+                            style={{ width: `${progress}%`, background: progress >= 100 ? '#00966b' : progress >= 60 ? '#22c55e' : '#f59e0b' }}
+                          />
+                        </div>
+                        <div className="campaign-progress-amounts">
+                          <span className="font-weight-700 text-success font-sm">₹{collected.toLocaleString('en-IN')}</span>
+                          <span className="font-xs color-subtle">of ₹{c.target_amount.toLocaleString('en-IN')} goal</span>
+                        </div>
+                      </div>
+
+                      {/* Stats Row */}
+                      <div className="campaign-stats-row">
+                        <div className="campaign-stat-item">
+                          <HeartHandshake size={13} className="text-emerald" />
+                          <span>{donorCount} donation{donorCount !== 1 ? 's' : ''}</span>
+                        </div>
+                        {c.start_date && (
+                          <div className="campaign-stat-item">
+                            <Calendar size={13} className="color-subtle" />
+                            <span>{c.start_date}{c.end_date ? ` → ${c.end_date}` : ''}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="campaign-card-actions">
+                        <button
+                          className="pill-btn-ghost font-xs"
+                          onClick={() => { setActiveTab('campaigns'); setSelectedCampaignId(c.id); }}
+                        >
+                          <Eye size={13} /> View Donations
+                        </button>
+                        <button className="pill-btn-ghost font-xs" onClick={() => openEditCampaign(c)}>
+                          <Edit2 size={13} /> Edit
+                        </button>
+                        <button
+                          className="pill-btn-ghost font-xs danger"
+                          onClick={() => setDeleteCampaignTargetId(c.id)}
+                        >
+                          <Trash2 size={13} /> Delete
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* WORKSPACE DIRECTORY CONTENT */}
-        <div className="workspace-table-content">
+        {activeTab !== 'manage_campaigns' && <div className="workspace-table-content">
           {fetchError ? (
             <div className="empty-state-card">
               <div className="empty-state-icon neutral">
@@ -817,6 +1042,7 @@ export const Donations: React.FC = () => {
             </>
           )}
         </div>
+        }</div>
       </div>
 
 
@@ -1155,6 +1381,135 @@ export const Donations: React.FC = () => {
         </p>
       </Modal>
 
+      {/* CAMPAIGN CREATE / EDIT MODAL */}
+      <Modal
+        isOpen={isCampaignModalOpen}
+        onClose={() => setIsCampaignModalOpen(false)}
+        title={editingCampaign ? 'Edit Campaign' : 'Create New Campaign'}
+        subtitle="Set up a fundraising campaign for a special fund or project."
+        icon={<Megaphone size={20} className="text-purple" />}
+        size="md"
+        footer={
+          <div className="flex-between width-100">
+            <button className="pill-btn-ghost" onClick={() => setIsCampaignModalOpen(false)}>Cancel</button>
+            <button
+              className="add-btn primary-btn"
+              onClick={handleSaveCampaign}
+              disabled={isSavingCampaign}
+            >
+              {isSavingCampaign ? 'Saving...' : editingCampaign ? 'Save Changes' : 'Create Campaign'}
+            </button>
+          </div>
+        }
+      >
+        <div className="form-group">
+          <label className="form-label">Campaign Name <span className="text-danger">*</span></label>
+          <input
+            className="form-control"
+            placeholder="e.g. Masjid Construction Fund"
+            value={campaignForm.campaign_name}
+            onChange={(e) => setCampaignForm((f) => ({ ...f, campaign_name: e.target.value }))}
+          />
+        </div>
+        <div className="form-grid-2col margin-top-sm">
+          <div className="form-group">
+            <label className="form-label">Campaign Type</label>
+            <select
+              className="form-control"
+              value={campaignForm.campaign_type}
+              onChange={(e) => setCampaignForm((f) => ({ ...f, campaign_type: e.target.value }))}
+            >
+              <option value="special_fund">Special Fund</option>
+              <option value="zakat">Zakat</option>
+              <option value="sadaqah">Sadaqah</option>
+              <option value="infrastructure">Infrastructure / Construction</option>
+              <option value="education">Education</option>
+              <option value="relief">Relief / Emergency</option>
+              <option value="welfare">Welfare Programme</option>
+              <option value="general">General</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Status</label>
+            <select
+              className="form-control"
+              value={campaignForm.status}
+              onChange={(e) => setCampaignForm((f) => ({ ...f, status: e.target.value as any }))}
+            >
+              <option value="active">Active</option>
+              <option value="draft">Draft</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+        </div>
+        <div className="form-group margin-top-sm">
+          <label className="form-label">Description</label>
+          <textarea
+            className="form-control"
+            rows={3}
+            placeholder="Describe the purpose of this campaign..."
+            value={campaignForm.description}
+            onChange={(e) => setCampaignForm((f) => ({ ...f, description: e.target.value }))}
+          />
+        </div>
+        <div className="form-grid-2col margin-top-sm">
+          <div className="form-group">
+            <label className="form-label">Target Amount (₹)</label>
+            <input
+              type="number"
+              className="form-control"
+              placeholder="e.g. 500000"
+              value={campaignForm.target_amount}
+              onChange={(e) => setCampaignForm((f) => ({ ...f, target_amount: e.target.value }))}
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Start Date</label>
+            <input
+              type="date"
+              className="form-control"
+              value={campaignForm.start_date}
+              onChange={(e) => setCampaignForm((f) => ({ ...f, start_date: e.target.value }))}
+            />
+          </div>
+        </div>
+        <div className="form-group margin-top-sm">
+          <label className="form-label">End Date</label>
+          <input
+            type="date"
+            className="form-control"
+            value={campaignForm.end_date}
+            onChange={(e) => setCampaignForm((f) => ({ ...f, end_date: e.target.value }))}
+          />
+        </div>
+      </Modal>
+
+      {/* CAMPAIGN DELETE CONFIRMATION MODAL */}
+      <Modal
+        isOpen={Boolean(deleteCampaignTargetId)}
+        onClose={() => setDeleteCampaignTargetId(null)}
+        title="Delete Campaign?"
+        icon={<Trash2 size={18} className="text-danger" />}
+        size="sm"
+        footer={
+          <div className="flex-between width-100">
+            <button className="pill-btn-ghost" onClick={() => setDeleteCampaignTargetId(null)}>Cancel</button>
+            <button
+              className="pill-btn-primary bg-danger"
+              onClick={handleDeleteCampaign}
+              disabled={isDeletingCampaign}
+            >
+              {isDeletingCampaign ? 'Deleting...' : 'Delete Campaign'}
+            </button>
+          </div>
+        }
+      >
+        <p className="font-sm text-dark">
+          Are you sure you want to delete this campaign? All donation records linked to this campaign will remain, but the campaign will be removed. This action cannot be undone.
+        </p>
+      </Modal>
+
       {/* EMBEDDED STYLES FOR ABSOLUTE DESIGN CONSISTENCY */}
       <style>{`
         .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 16px; }
@@ -1173,6 +1528,31 @@ export const Donations: React.FC = () => {
 
         .pill-btn-danger { padding: 8px 16px !important; border-radius: 9999px !important; background: #fee2e2 !important; border: 1px solid #fca5a5 !important; color: #991b1b !important; font-weight: 700 !important; font-size: 12.5px !important; cursor: pointer !important; display: inline-flex !important; align-items: center !important; gap: 6px !important; transition: all 0.2s ease !important; }
         .icon-btn-ghost.danger:hover { background: #fee2e2 !important; color: #ef4444 !important; }
+
+        /* CAMPAIGN MANAGEMENT GRID */
+        .campaigns-management-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; padding: 20px; }
+        .campaign-mgmt-card { background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 14px; transition: box-shadow 0.2s ease, transform 0.2s ease; }
+        .campaign-mgmt-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); transform: translateY(-2px); }
+        .campaign-card-header { display: flex; align-items: center; gap: 12px; }
+        .campaign-card-icon-wrap { width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, #f3e8ff, #e9d5ff); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .campaign-card-meta { flex: 1; min-width: 0; }
+        .campaign-card-name { margin: 0; font-size: 14.5px; font-weight: 800; color: #0f172a; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .campaign-card-type { font-size: 10px; font-weight: 700; color: #7c3aed; text-transform: uppercase; letter-spacing: 0.06em; }
+        .campaign-card-desc { font-size: 12.5px; color: #64748b; line-height: 1.5; margin: 0; }
+        .campaign-progress-section { display: flex; flex-direction: column; gap: 6px; }
+        .campaign-progress-labels { display: flex; justify-content: space-between; }
+        .campaign-progress-track { height: 8px; background: #f1f5f9; border-radius: 99px; overflow: hidden; }
+        .campaign-progress-fill { height: 100%; border-radius: 99px; transition: width 0.5s ease; }
+        .campaign-progress-amounts { display: flex; justify-content: space-between; align-items: center; }
+        .campaign-stats-row { display: flex; gap: 12px; flex-wrap: wrap; }
+        .campaign-stat-item { display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: #64748b; font-weight: 600; }
+        .campaign-card-actions { display: flex; gap: 8px; flex-wrap: wrap; border-top: 1px solid #f1f5f9; padding-top: 12px; }
+        .campaign-card-actions .pill-btn-ghost.danger { background: #fff5f5 !important; border-color: #fecaca !important; color: #dc2626 !important; }
+        .empty-state-icon.purple { background: linear-gradient(135deg, #f3e8ff, #e9d5ff); color: #7c3aed; }
+        .text-purple { color: #7c3aed; }
+        @media (max-width: 768px) {
+          .campaigns-management-grid { grid-template-columns: 1fr; padding: 14px; }
+        }
       `}</style>
 
       {/* EXCEL / CSV IMPORT MODAL WITH STRUCTURE GUIDE & PARSED PREVIEW */}
