@@ -146,51 +146,59 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
     }
   };
 
-  // Intelligent column cell value lookup supporting exact keys, label matches, semantic aliases, and index fallbacks
-  const getCellValue = (row: Record<string, string>, col: ColumnGuide, colIndex: number): string => {
-    const normKey = col.key.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const normLabel = col.label.toLowerCase().replace(/[^a-z0-9]/g, '');
+  // Alias map for precise column matching without cross-column collisions
+  const FIELD_ALIASES: Record<string, string[]> = {
+    house_number: ['house_number', 'house_no', 'houseno', 'hno', 'h_no', 'house', 'housenumber'],
+    house_owner_name: ['house_owner_name', 'house_owner', 'owner_name', 'ownername', 'owner', 'head_name', 'headofhouse'],
+    primary_contact_phone: ['primary_contact_phone', 'owner_phone', 'phone_number', 'phone', 'mobile_number', 'mobile', 'contact_number', 'contact'],
+    area: ['area', 'cluster_or_area', 'cluster', 'ward', 'zone'],
+    status: ['status', 'state'],
+    name: ['name', 'member_name', 'full_name'],
+    email: ['email', 'email_address', 'mail'],
+    relationship: ['relationship', 'family_role', 'relation'],
+    receipt_number: ['receipt_number', 'receipt_no', 'receiptno', 'ref_no', 'reference_number'],
+    amount: ['amount', 'fee', 'total_amount', 'paid_amount'],
+    payment_date: ['payment_date', 'date', 'txn_date'],
+    payment_method: ['payment_method', 'method', 'pay_method', 'mode'],
+    donor_name: ['donor_name', 'donor', 'contributor_name'],
+    donation_date: ['donation_date', 'date'],
+    groom_name: ['groom_name', 'groom', 'husband_name'],
+    bride_name: ['bride_name', 'bride', 'wife_name'],
+    nikah_date: ['nikah_date', 'marriage_date'],
+    nikah_venue: ['nikah_venue', 'venue', 'location', 'place'],
+    deceased_name: ['deceased_name', 'person_name'],
+    date_of_death: ['date_of_death', 'death_date'],
+    age: ['age', 'years'],
+    gender: ['gender', 'sex'],
+    place_of_death: ['place_of_death', 'place', 'location', 'hospital'],
+  };
 
-    // 1. Direct match on row keys
+  // Precise column cell value lookup supporting exact keys, label matches, and unambiguous aliases
+  const getCellValue = (row: Record<string, string>, col: ColumnGuide, _colIndex: number): string => {
+    const targetKey = col.key.toLowerCase().replace(/[^a-z0-9_]/g, '');
+    const targetLabel = col.label.toLowerCase().replace(/[^a-z0-9_]/g, '');
+    const cleanTargetKey = col.key.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cleanTargetLabel = col.label.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    const aliases = FIELD_ALIASES[col.key] || [targetKey, targetLabel, cleanTargetKey, cleanTargetLabel];
+
     for (const [rKey, rVal] of Object.entries(row)) {
       const cleanRKey = rKey.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const rawRKey = rKey.toLowerCase().replace(/[^a-z0-9_]/g, '');
       if (!cleanRKey) continue;
 
-      // Exact key or label match
-      if (cleanRKey === normKey || cleanRKey === normLabel) {
+      // Match exact key/label or unambiguous alias list
+      if (
+        rawRKey === targetKey ||
+        rawRKey === targetLabel ||
+        cleanRKey === cleanTargetKey ||
+        cleanRKey === cleanTargetLabel ||
+        aliases.some((a) => a.replace(/[^a-z0-9]/g, '') === cleanRKey)
+      ) {
         if (rVal !== undefined && rVal !== null && String(rVal).trim() !== '') {
           return String(rVal).trim();
         }
       }
-
-      // Field semantic aliases matching
-      const isHouse = (normKey.includes('house') || normLabel.includes('house')) && (cleanRKey.includes('house') || cleanRKey.includes('hno') || cleanRKey.includes('h_no'));
-      const isOwner = (normKey.includes('owner') || normLabel.includes('owner') || normLabel.includes('head')) && (cleanRKey.includes('owner') || cleanRKey.includes('head') || cleanRKey.includes('name'));
-      const isPhone = (normKey.includes('phone') || normLabel.includes('phone') || normLabel.includes('mobile')) && (cleanRKey.includes('phone') || cleanRKey.includes('mobile') || cleanRKey.includes('contact'));
-      const isArea = (normKey.includes('area') || normKey.includes('cluster') || normLabel.includes('cluster') || normLabel.includes('ward')) && (cleanRKey.includes('area') || cleanRKey.includes('cluster') || cleanRKey.includes('ward'));
-      const isStatus = (normKey.includes('status') || normLabel.includes('status')) && cleanRKey.includes('status');
-
-      if (isHouse || isOwner || isPhone || isArea || isStatus) {
-        if (rVal !== undefined && rVal !== null && String(rVal).trim() !== '') {
-          return String(rVal).trim();
-        }
-      }
-    }
-
-    // 2. Check if any row key contains column key substring
-    for (const [rKey, rVal] of Object.entries(row)) {
-      const cleanRKey = rKey.toLowerCase().replace(/[^a-z0-9]/g, '');
-      if (cleanRKey.includes(normKey) || normKey.includes(cleanRKey)) {
-        if (rVal !== undefined && rVal !== null && String(rVal).trim() !== '') {
-          return String(rVal).trim();
-        }
-      }
-    }
-
-    // 3. Index fallback
-    const rowValues = Object.values(row);
-    if (rowValues[colIndex] !== undefined && String(rowValues[colIndex]).trim() !== '') {
-      return String(rowValues[colIndex]).trim();
     }
 
     return '—';
