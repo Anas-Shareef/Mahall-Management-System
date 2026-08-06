@@ -1484,8 +1484,7 @@ export const Payments: React.FC = () => {
 
             await db.payments.create({
               member_id: targetMemberId,
-              household_id: targetHouseholdId,
-              subscription_year_id: years[0]?.id || 'year-2026',
+              subscription_id: years[0]?.id || 'sub-1',
               amount: parseFloat(row.amount) || 1000,
               payment_method: (['cash', 'upi', 'bank_transfer'].includes(row.payment_method?.toLowerCase()) ? row.payment_method.toLowerCase() : 'cash') as any,
               payment_date: row.payment_date || new Date().toISOString().split('T')[0],

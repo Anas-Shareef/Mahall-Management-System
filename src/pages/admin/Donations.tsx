@@ -1204,10 +1204,13 @@ export const Donations: React.FC = () => {
               amount: parseFloat(row.amount) || 500,
               payment_method: (['cash', 'upi', 'bank_transfer'].includes(row.payment_method?.toLowerCase()) ? row.payment_method.toLowerCase() : 'cash') as any,
               donation_date: row.donation_date || new Date().toISOString().split('T')[0],
-              category: row.category || 'General Donation',
               notes: row.notes || 'Batch imported',
               status: 'received',
-              created_by: 'admin',
+              recorded_by: 'admin',
+              donation_type: 'general',
+              campaign_id: null,
+              donor_member_id: null,
+              is_anonymous: false,
             });
           }
           showToast('success', `✓ Successfully imported ${parsedRows.length} donations!`);
