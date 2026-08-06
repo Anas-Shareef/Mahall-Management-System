@@ -265,35 +265,6 @@ export const DeathForm: React.FC = () => {
                   )}
                 </div>
 
-                <div className="margin-bottom-xs">
-                  <select
-                    className="form-control"
-                    value={memberId}
-                    onChange={(e) => {
-                      const selected = members.find((m) => m.id === e.target.value);
-                      if (selected) {
-                        setMemberId(selected.id);
-                        setDeceasedName(selected.name);
-                        const house = households.find((h) => h.id === selected.household_id);
-                        if (house && house.area) setWardOrArea(house.area);
-                      } else {
-                        setMemberId('');
-                        setDeceasedName('');
-                      }
-                    }}
-                  >
-                    <option value="">-- Select Member from Dropdown --</option>
-                    {members.map((m) => {
-                      const house = households.find((h) => h.id === m.household_id);
-                      return (
-                        <option key={m.id} value={m.id}>
-                          {m.name} ({m.relationship || 'Member'}) {house ? `• House #${house.house_number}` : ''}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-
                 <div className="search-box margin-bottom-xs">
                   <Search size={16} className="search-icon" />
                   <input
