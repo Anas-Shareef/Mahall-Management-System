@@ -483,17 +483,6 @@ const formatHouseNumber = (raw?: string | null): string => {
                           <td style={{ textAlign: 'right' }}>
                             <div className="actions-button-wrapper" onClick={(e) => e.stopPropagation()}>
                               <button
-                                className="action-icon-btn info"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setMemberForDetails(m);
-                                  setIsDetailsModalOpen(true);
-                                }}
-                                title="View Member Details"
-                              >
-                                <Eye size={15} />
-                              </button>
-                              <button
                                 className="action-icon-btn primary"
                                 onClick={(e) => {
                                   e.stopPropagation();

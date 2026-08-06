@@ -676,16 +676,6 @@ export const Donations: React.FC = () => {
                               </button>
                               <button
                                 className="icon-btn-ghost"
-                                title="View Details"
-                                onClick={() => {
-                                  setSelectedDonationRecord(d);
-                                  setIsDetailsDrawerOpen(true);
-                                }}
-                              >
-                                <Eye size={15} />
-                              </button>
-                              <button
-                                className="icon-btn-ghost"
                                 title="Edit Donation"
                                 onClick={(e) => openEditDrawer(d, e)}
                               >

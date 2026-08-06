@@ -8,11 +8,12 @@ import type {
 import { 
   Plus, Search, Filter, Calendar, X, AlertCircle, 
   CheckCircle, Loader2, Home, CreditCard, 
-  Layers, Sparkles, UserCheck, DollarSign, Eye
+  Layers, Sparkles, UserCheck, DollarSign, Eye, Edit2, Trash2
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { SidePanel } from '../../components/SidePanel';
 import { Modal } from '../../components/Modal';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 export const Subscriptions: React.FC = () => {
   const { t } = useTranslation();
@@ -66,6 +67,59 @@ export const Subscriptions: React.FC = () => {
     createdCount: number;
     existingCount: number;
   } | null>(null);
+
+  // Delete Confirmation States
+  const [isDeleteSubModalOpen, setIsDeleteSubModalOpen] = useState(false);
+  const [subToDelete, setSubToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isDeletingSub, setIsDeletingSub] = useState(false);
+
+  const [isDeleteYearModalOpen, setIsDeleteYearModalOpen] = useState(false);
+  const [yearToDelete, setYearToDelete] = useState<SubscriptionYear | null>(null);
+  const [isDeletingYear, setIsDeletingYear] = useState(false);
+
+  const openDeleteSubModal = (subId: string, memberName: string) => {
+    setSubToDelete({ id: subId, name: memberName });
+    setIsDeleteSubModalOpen(true);
+  };
+
+  const handleConfirmDeleteSub = async () => {
+    if (!subToDelete) return;
+    setIsDeletingSub(true);
+    try {
+      await db.subscriptions.delete(subToDelete.id);
+      showToast('success', `Subscription ledger for ${subToDelete.name} deleted.`);
+      setIsDeleteSubModalOpen(false);
+      setSubToDelete(null);
+      loadData();
+    } catch (err) {
+      console.error('Failed to delete subscription:', err);
+      showToast('error', 'Failed to delete subscription record.');
+    } finally {
+      setIsDeletingSub(false);
+    }
+  };
+
+  const openDeleteYearModal = (yearObj: SubscriptionYear) => {
+    setYearToDelete(yearObj);
+    setIsDeleteYearModalOpen(true);
+  };
+
+  const handleConfirmDeleteYear = async () => {
+    if (!yearToDelete) return;
+    setIsDeletingYear(true);
+    try {
+      await db.years.delete(yearToDelete.id);
+      showToast('success', `Subscription year ${yearToDelete.year} deleted.`);
+      setIsDeleteYearModalOpen(false);
+      setYearToDelete(null);
+      loadData();
+    } catch (err) {
+      console.error('Failed to delete subscription year:', err);
+      showToast('error', 'Failed to delete subscription year.');
+    } finally {
+      setIsDeletingYear(false);
+    }
+  };
 
   // Toast Notification State
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -663,16 +717,30 @@ export const Subscriptions: React.FC = () => {
                               </span>
                             </td>
                             <td style={{ textAlign: 'right' }}>
-                              <button
-                                className="action-icon-btn view"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openMemberLedgerModal(m);
-                                }}
-                                title="View Member Subscription Ledger"
-                              >
-                                <Eye size={15} />
-                              </button>
+                              <div className="actions-button-wrapper" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  className="action-icon-btn edit"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openMemberLedgerModal(m);
+                                  }}
+                                  title="Edit Subscription Ledger"
+                                >
+                                  <Edit2 size={15} />
+                                </button>
+                                {sub && (
+                                  <button
+                                    className="action-icon-btn delete"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openDeleteSubModal(sub.id, m.name);
+                                    }}
+                                    title="Delete Subscription Record"
+                                  >
+                                    <Trash2 size={15} />
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );
@@ -724,16 +792,30 @@ export const Subscriptions: React.FC = () => {
                           <span className="sub-id-tag">
                             {m.is_subscription_accountable !== false ? 'Accountable' : 'Non-Accountable'}
                           </span>
-                          <button
-                            className="mobile-action-btn edit"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openMemberLedgerModal(m);
-                            }}
-                          >
-                            <Eye size={14} />
-                            <span>View Ledger</span>
-                          </button>
+                          <div className="mobile-card-actions" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              className="mobile-action-btn edit"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openMemberLedgerModal(m);
+                              }}
+                            >
+                              <Edit2 size={14} />
+                              <span>Edit</span>
+                            </button>
+                            {sub && (
+                              <button
+                                className="mobile-action-btn delete"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openDeleteSubModal(sub.id, m.name);
+                                }}
+                              >
+                                <Trash2 size={14} />
+                                <span>Delete</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
@@ -789,13 +871,22 @@ export const Subscriptions: React.FC = () => {
                         </span>
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <button
-                          className="action-icon-btn edit"
-                          onClick={() => handleGenerateLedger(y.id)}
-                          title="Generate Subscription Ledger for this year"
-                        >
-                          <Sparkles size={15} />
-                        </button>
+                        <div className="actions-button-wrapper" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            className="action-icon-btn primary"
+                            onClick={() => handleGenerateLedger(y.id)}
+                            title="Generate Subscription Ledger for this year"
+                          >
+                            <Sparkles size={15} />
+                          </button>
+                          <button
+                            className="action-icon-btn delete"
+                            onClick={() => openDeleteYearModal(y)}
+                            title="Delete Subscription Year"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1447,6 +1538,40 @@ export const Subscriptions: React.FC = () => {
           .modal-dialog-card { border-radius: 20px 20px 0 0; max-height: 90vh; }
         }
       `}</style>
+
+      {/* DELETE SUBSCRIPTION RECORD CONFIRMATION MODAL */}
+      <ConfirmModal
+        isOpen={isDeleteSubModalOpen && Boolean(subToDelete)}
+        onClose={() => setIsDeleteSubModalOpen(false)}
+        onConfirm={handleConfirmDeleteSub}
+        title="Delete Subscription Ledger?"
+        message={
+          <>
+            Are you sure you want to delete subscription ledger for <strong>{subToDelete?.name}</strong>? This action cannot be undone.
+          </>
+        }
+        confirmText="Delete Ledger Record"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isDeletingSub}
+      />
+
+      {/* DELETE SUBSCRIPTION YEAR CONFIRMATION MODAL */}
+      <ConfirmModal
+        isOpen={isDeleteYearModalOpen && Boolean(yearToDelete)}
+        onClose={() => setIsDeleteYearModalOpen(false)}
+        onConfirm={handleConfirmDeleteYear}
+        title="Delete Subscription Year?"
+        message={
+          <>
+            Are you sure you want to delete subscription year <strong>{yearToDelete?.year}</strong> (Fee: ₹{yearToDelete?.default_fee})? All associated annual obligations will be removed.
+          </>
+        }
+        confirmText="Delete Subscription Year"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isDeletingYear}
+      />
     </div>
   );
 };

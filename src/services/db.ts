@@ -1204,6 +1204,17 @@ export const db = {
 
       return newYear;
     },
+    delete: async (id: string): Promise<boolean> => {
+      if (isSupabaseConfigured && supabase) {
+        const { error } = await supabase.from('subscription_years').delete().eq('id', id);
+        if (error) throw error;
+        return true;
+      }
+      const list = getLocalData<SubscriptionYear>('mahal_years');
+      const filtered = list.filter((y) => y.id !== id);
+      saveLocalData('mahal_years', filtered);
+      return true;
+    },
   },
 
   // MEMBER SUBSCRIPTIONS

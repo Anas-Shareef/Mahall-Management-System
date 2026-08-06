@@ -612,16 +612,6 @@ export const Deaths: React.FC = () => {
                               </button>
                               <button
                                 className="icon-btn-ghost"
-                                title="View Details"
-                                onClick={() => {
-                                  setSelectedDeathRecord(d);
-                                  setIsDetailsOpen(true);
-                                }}
-                              >
-                                <Eye size={15} />
-                              </button>
-                              <button
-                                className="icon-btn-ghost"
                                 title="Edit Record"
                                 onClick={(e) => openEditDrawer(d, e)}
                               >
