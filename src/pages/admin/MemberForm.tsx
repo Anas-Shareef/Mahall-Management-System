@@ -201,7 +201,7 @@ export const MemberForm: React.FC = () => {
                     onChange={(e) => setRelationship(e.target.value)}
                   >
                     <option value="Head of Family">Head of Family</option>
-                    <option value="Spouse">Spouse</option>
+                    <option value="Groom">Groom (പുതിയാപ്ല)</option>
                     <option value="Son">Son</option>
                     <option value="Daughter">Daughter</option>
                     <option value="Father">Father</option>

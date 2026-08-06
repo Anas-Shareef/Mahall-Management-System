@@ -373,7 +373,7 @@ const MOCK_MEMBERS: Member[] = [
     user_id: null,
     household_id: 'house-17-uuid',
     name: 'Shakeela',
-    relationship: 'Spouse',
+    relationship: 'Groom',
     phone: '9876543213',
     email: null,
     status: 'active',

@@ -157,7 +157,7 @@ const formatHouseNumber = (raw?: string | null): string => {
   };
 
   const relationshipsList = [
-    'Self (Owner)', 'Spouse', 'Son', 'Daughter', 'Father', 'Mother', 'Brother', 'Sister', 'Other'
+    'Self (Owner)', 'Groom', 'Son', 'Daughter', 'Father', 'Mother', 'Brother', 'Sister', 'Other'
   ];
 
   // Fetch initial data
