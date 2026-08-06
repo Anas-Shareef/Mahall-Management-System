@@ -5,7 +5,7 @@ import { db } from '../../services/db';
 import type { Household, Member, MemberSubscription, SubscriptionYear } from '../../services/db';
 import { 
   Plus, Edit2, Trash2, Search, Filter, Home, Users, X, AlertCircle, 
-  CheckCircle, Phone, MapPin, Loader2, Download, Calendar 
+  CheckCircle, CheckCircle2, TrendingUp, Phone, MapPin, Loader2, Download, Calendar 
 } from 'lucide-react';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { HouseholdDetailsModal } from '../../components/HouseholdDetailsModal';
@@ -308,6 +308,19 @@ export const Households: React.FC = () => {
     }).format(val);
   };
 
+  // Overview Summary Metrics
+  const activeHouseholdsCount = useMemo(() => {
+    return households.filter((h) => h.status === 'active').length;
+  }, [households]);
+
+  const totalCollectedDues = useMemo(() => {
+    return households.reduce((sum, h) => sum + getHouseholdFinancials(h.id).totalPaid, 0);
+  }, [households, getHouseholdFinancials]);
+
+  const totalOutstandingBalance = useMemo(() => {
+    return households.reduce((sum, h) => sum + getHouseholdFinancials(h.id).balance, 0);
+  }, [households, getHouseholdFinancials]);
+
   return (
     <div className="households-page animate-fade-in">
       {/* TOAST NOTIFICATION */}
@@ -330,6 +343,64 @@ export const Households: React.FC = () => {
             <Plus size={16} />
             <span>{t('household.addHousehold')}</span>
           </button>
+        </div>
+      </div>
+
+      {/* OVERVIEW STATS CARDS ROW */}
+      <div className="members-stats-row margin-bottom-md">
+        <div className="stat-metric-card shadow-sm">
+          <div className="metric-icon-box emerald">
+            <Home size={22} />
+          </div>
+          <div className="metric-info">
+            <span className="metric-label">Total Households</span>
+            <h3 className="metric-value">{households.length}</h3>
+            <span className="metric-sub">Registered house units</span>
+          </div>
+        </div>
+
+        <div className="stat-metric-card shadow-sm">
+          <div className="metric-icon-box blue">
+            <CheckCircle2 size={22} />
+          </div>
+          <div className="metric-info">
+            <span className="metric-label">Active Households</span>
+            <h3 className="metric-value text-success">{activeHouseholdsCount}</h3>
+            <span className="metric-sub">Active status</span>
+          </div>
+        </div>
+
+        <div className="stat-metric-card shadow-sm">
+          <div className="metric-icon-box purple">
+            <Users size={22} />
+          </div>
+          <div className="metric-info">
+            <span className="metric-label">Total Members</span>
+            <h3 className="metric-value text-primary">{members.length}</h3>
+            <span className="metric-sub">Across all households</span>
+          </div>
+        </div>
+
+        <div className="stat-metric-card shadow-sm">
+          <div className="metric-icon-box green">
+            <TrendingUp size={22} />
+          </div>
+          <div className="metric-info">
+            <span className="metric-label">Dues Collected</span>
+            <h3 className="metric-value text-success">{formatCurrency(totalCollectedDues)}</h3>
+            <span className="metric-sub">Total payments</span>
+          </div>
+        </div>
+
+        <div className="stat-metric-card shadow-sm">
+          <div className="metric-icon-box amber">
+            <AlertCircle size={22} />
+          </div>
+          <div className="metric-info">
+            <span className="metric-label">Outstanding Dues</span>
+            <h3 className="metric-value text-danger">{formatCurrency(totalOutstandingBalance)}</h3>
+            <span className="metric-sub">Pending balances</span>
+          </div>
         </div>
       </div>
 
