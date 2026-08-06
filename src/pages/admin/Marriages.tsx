@@ -497,7 +497,6 @@ export const Marriages: React.FC = () => {
               conducted_by: null,
               witness1_phone: null,
               witness2_phone: null,
-              mahr_details: row.mahr_details || null,
               register_volume: null,
               register_page: null,
               place_of_marriage: row.nikah_venue || null,
