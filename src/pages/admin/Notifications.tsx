@@ -5,7 +5,7 @@ import { db, sanitizeUuid } from '../../services/db';
 import type { Household, Member, Notification } from '../../services/db';
 import { 
   Plus, Edit2, Trash2, Search, Filter, Bell, X, AlertCircle, 
-  CheckCircle, Download, Loader2, Globe 
+  CheckCircle, Download, Globe 
 } from 'lucide-react';
 import { SidePanel } from '../../components/SidePanel';
 import { ConfirmModal } from '../../components/ConfirmModal';
@@ -315,6 +315,10 @@ export const Notifications: React.FC = () => {
         </div>
 
         <div className="header-cta-group">
+          <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={handleDownloadReport} disabled={isExporting} title="Export CSV Report">
+            <Download size={15} />
+            <span>Export CSV</span>
+          </button>
           <button className="add-btn primary-btn" onClick={openAddModal}>
             <Plus size={16} />
             <span>Send Notification</span>
@@ -350,25 +354,6 @@ export const Notifications: React.FC = () => {
               <option value="payment_recorded">Payment Recorded Receipt</option>
             </select>
           </div>
-
-          <button 
-            className="report-export-btn" 
-            onClick={handleDownloadReport} 
-            disabled={isExporting}
-            title="Download Notifications CSV Report"
-          >
-            {isExporting ? (
-              <>
-                <Loader2 size={15} className="spinner-icon" />
-                <span>Generating...</span>
-              </>
-            ) : (
-              <>
-                <Download size={15} />
-                <span>Download Report</span>
-              </>
-            )}
-          </button>
 
           {(searchQuery || selectedType) && (
             <button className="clear-filters-link" onClick={clearFilters}>

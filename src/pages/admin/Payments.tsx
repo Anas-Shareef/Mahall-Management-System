@@ -420,7 +420,7 @@ export const Payments: React.FC = () => {
             <FileSpreadsheet size={15} className="text-emerald" />
             <span>Import Data</span>
           </button>
-          <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={handleDownloadReport} title="Export CSV Report">
+          <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={handleDownloadReport} disabled={isExporting} title="Export CSV Report">
             <Download size={15} />
             <span>Export CSV</span>
           </button>
@@ -477,25 +477,6 @@ export const Payments: React.FC = () => {
               <option value="other">{t('payment.other')}</option>
             </select>
           </div>
-
-          <button 
-            className="report-export-btn" 
-            onClick={handleDownloadReport} 
-            disabled={isExporting}
-            title="Download Payments CSV Report"
-          >
-            {isExporting ? (
-              <>
-                <Loader2 size={15} className="spinner-icon" />
-                <span>Generating...</span>
-              </>
-            ) : (
-              <>
-                <Download size={15} />
-                <span>Download Report</span>
-              </>
-            )}
-          </button>
 
           {(searchQuery || selectedMethod || selectedHouseholdId) && (
             <button className="clear-filters-link" onClick={clearFilters}>

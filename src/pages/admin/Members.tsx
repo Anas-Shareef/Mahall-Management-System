@@ -6,7 +6,7 @@ import type { Household, Member } from '../../services/db';
 import { 
   Plus, Edit2, Trash2, Search, Filter, Users, X, AlertCircle, 
   CheckCircle, Phone, Mail, Home, Smartphone, UserCheck, ShieldCheck,
-  Download, Loader2, FileSpreadsheet
+  Download, FileSpreadsheet
 } from 'lucide-react';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { SidePanel } from '../../components/SidePanel';
@@ -43,35 +43,7 @@ export const Members: React.FC = () => {
 
 
 
-  const exportCSV = () => {
-    if (filteredMembers.length === 0) {
-      showToast('error', 'No member records to export');
-      return;
-    }
-    const headers = ['Name', 'Phone', 'Email', 'Gender', 'House Number', 'Relationship', 'Portal Status', 'Status'];
-    const rows = filteredMembers.map((m) => {
-      const house = households.find((h) => h.id === m.household_id);
-      return [
-        m.name,
-        m.phone || 'N/A',
-        m.email || 'N/A',
-        (m as any).gender || 'N/A',
-        house ? `H-${house.house_number}` : 'N/A',
-        m.relationship || 'Member',
-        m.portal_status || 'not_granted',
-        m.status,
-      ];
-    });
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `members_export_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast('success', 'Members exported to CSV');
-  };
+
 
   // Selection & Bulk Delete State
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -304,7 +276,7 @@ const formatHouseNumber = (raw?: string | null): string => {
             <FileSpreadsheet size={15} className="text-emerald" />
             <span>Import Data</span>
           </button>
-          <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={exportCSV} title="Export CSV Report">
+          <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={handleDownloadReport} disabled={isExporting} title="Export CSV Report">
             <Download size={15} />
             <span>Export CSV</span>
           </button>
@@ -435,26 +407,6 @@ const formatHouseNumber = (raw?: string | null): string => {
               <option value="inactive">{t('member.inactive')}</option>
             </select>
           </div>
-
-          {/* Dynamic Download Report Button */}
-          <button 
-            className="report-export-btn" 
-            onClick={handleDownloadReport} 
-            disabled={isExporting}
-            title="Download Members CSV Report"
-          >
-            {isExporting ? (
-              <>
-                <Loader2 size={15} className="spinner-icon" />
-                <span>Generating...</span>
-              </>
-            ) : (
-              <>
-                <Download size={15} />
-                <span>Download Report</span>
-              </>
-            )}
-          </button>
 
           {(searchQuery || selectedHouseholdId || selectedRelationship || selectedStatus || selectedPortalStatus) && (
             <button className="clear-filters-link" onClick={clearFilters}>

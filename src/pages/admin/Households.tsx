@@ -5,7 +5,7 @@ import { db } from '../../services/db';
 import type { Household, Member, MemberSubscription, SubscriptionYear } from '../../services/db';
 import { 
   Plus, Edit2, Trash2, Search, Filter, Home, Users, X, AlertCircle, 
-  CheckCircle, CheckCircle2, TrendingUp, Phone, MapPin, Loader2, Download, Calendar,
+  CheckCircle, CheckCircle2, TrendingUp, Phone, MapPin, Download, Calendar,
   FileSpreadsheet
 } from 'lucide-react';
 import { ConfirmModal } from '../../components/ConfirmModal';
@@ -385,7 +385,7 @@ export const Households: React.FC = () => {
             <FileSpreadsheet size={15} className="text-emerald" />
             <span>Import Data</span>
           </button>
-          <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={handleDownloadReport} title="Export CSV Report">
+          <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={handleDownloadReport} disabled={isExporting} title="Export CSV Report">
             <Download size={15} />
             <span>Export CSV</span>
           </button>
@@ -509,26 +509,6 @@ export const Households: React.FC = () => {
               <option value="inactive">{t('household.inactive')}</option>
             </select>
           </div>
-
-          {/* Dynamic Download Report Button */}
-          <button 
-            className="report-export-btn" 
-            onClick={handleDownloadReport} 
-            disabled={isExporting}
-            title="Download CSV Report"
-          >
-            {isExporting ? (
-              <>
-                <Loader2 size={15} className="spinner-icon" />
-                <span>Generating...</span>
-              </>
-            ) : (
-              <>
-                <Download size={15} />
-                <span>Download Report</span>
-              </>
-            )}
-          </button>
         </div>
       </div>
 
