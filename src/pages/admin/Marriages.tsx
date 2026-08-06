@@ -541,6 +541,7 @@ export const Marriages: React.FC = () => {
       {/* EMBEDDED STYLES FOR PERFECT ALIGNMENT & DESIGN CONSISTENCY */}
       <style>{`
         .marriages-page { display: flex; flex-direction: column; gap: 20px; width: 100%; box-sizing: border-box; }
+        .stats-dashboard-grid-4 { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 16px !important; width: 100% !important; box-sizing: border-box !important; }
         .page-header-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; width: 100%; box-sizing: border-box; }
         .page-subtitle { font-size: 13px; color: #6b7280; margin-top: 2px; }
         .header-cta-group { display: flex; align-items: center; gap: 12px; }

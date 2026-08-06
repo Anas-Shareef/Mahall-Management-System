@@ -970,21 +970,50 @@ img, svg, video, canvas {
   box-shadow: 0 2px 8px rgba(0, 150, 107, 0.15);
 }
 
-.stats-dashboard-grid {
+.stats-dashboard-grid,
+.stats-dashboard-grid-4 {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   margin-bottom: 20px;
+  width: 100%;
+}
+
+.stats-dashboard-grid-5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.stats-dashboard-grid-6 {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+@media (max-width: 1200px) {
+  .stats-dashboard-grid-5,
+  .stats-dashboard-grid-6 {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 @media (max-width: 1024px) {
-  .stats-dashboard-grid {
+  .stats-dashboard-grid,
+  .stats-dashboard-grid-4 {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 640px) {
-  .stats-dashboard-grid {
+  .stats-dashboard-grid,
+  .stats-dashboard-grid-4,
+  .stats-dashboard-grid-5,
+  .stats-dashboard-grid-6 {
     grid-template-columns: 1fr;
   }
 }
