@@ -31,6 +31,8 @@ export const Marriages: React.FC = () => {
 
   // Bulk Actions
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+
   // CSV Import State
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
@@ -58,7 +60,7 @@ export const Marriages: React.FC = () => {
       m.nikah_date,
       m.nikah_venue || 'N/A',
       m.groom_house_number || 'N/A',
-      m.officiant_name || 'N/A',
+      (m as any).officiant_name || 'N/A',
       m.status,
     ]);
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');

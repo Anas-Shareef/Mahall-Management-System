@@ -32,6 +32,7 @@ export const Payments: React.FC = () => {
   // Add / Edit Payment Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
+  const [currentPaymentId, setCurrentPaymentId] = useState<string | null>(null);
   // CSV Import State
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 

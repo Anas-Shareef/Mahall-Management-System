@@ -65,7 +65,7 @@ export const Members: React.FC = () => {
         m.name,
         m.phone || 'N/A',
         m.email || 'N/A',
-        m.gender || 'N/A',
+        (m as any).gender || 'N/A',
         house ? `H-${house.house_number}` : 'N/A',
         m.relationship || 'Member',
         m.portal_status || 'not_granted',
