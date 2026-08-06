@@ -5,11 +5,10 @@ import { db, sanitizeUuid } from '../../services/db';
 import type { Household, Member, MemberSubscription, Payment, SubscriptionYear } from '../../services/db';
 import { 
   Plus, Edit2, Trash2, Search, Filter, Receipt, X, AlertCircle, 
-  CheckCircle, Download, Loader2, Home, FileSpreadsheet, Upload
+  CheckCircle, Download, Loader2, Home, FileSpreadsheet
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { SidePanel } from '../../components/SidePanel';
-import { Modal } from '../../components/Modal';
 import { ExcelImportModal } from '../../components/ExcelImportModal';
 
 export const Payments: React.FC = () => {
@@ -37,17 +36,7 @@ export const Payments: React.FC = () => {
   // CSV Import State
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
-  const downloadPaymentSampleCSV = () => {
-    const csvHeader = 'receipt_number,member_name,household_number,amount,payment_date,payment_method,transaction_id,category,status\n';
-    const csvSample = 'PAY-2026-001,Abubakar Siddique,H-1,1200,2026-07-28,upi,TXN98765432,Annual Subscription,completed\nPAY-2026-002,Usman Ghani,H-2,500,2026-07-29,cash,,Monthly Fee,completed\n';
-    const blob = new Blob([csvHeader + csvSample], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'payments_sample_template.csv';
-    a.click();
-    showToast('success', 'Sample CSV template downloaded!');
-  };
+
 
   // Payment Form Fields
   const [formHouseholdId, setFormHouseholdId] = useState('');
@@ -1490,7 +1479,7 @@ export const Payments: React.FC = () => {
               reference_number: row.transaction_id || row.reference_number || null,
               notes: row.category || 'Batch imported',
               recorded_by: user?.id || 'admin',
-            });
+            } as any);
           }
           showToast('success', `✓ Successfully imported ${parsedRows.length} payment receipts!`);
           loadData();

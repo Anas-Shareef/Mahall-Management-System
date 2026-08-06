@@ -5,12 +5,11 @@ import type { MarriageRecord, Household, SubscriptionYear } from '../../services
 import { 
   Heart, Plus, Search, 
   Trash2, Edit2, Eye, CheckCircle, AlertCircle, 
-  Loader2, FileSpreadsheet, Upload, Download
+  Loader2, FileSpreadsheet, Download
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { SidePanel } from '../../components/SidePanel';
-import { Modal } from '../../components/Modal';
 import { ExcelImportModal } from '../../components/ExcelImportModal';
 
 export const Marriages: React.FC = () => {
@@ -37,17 +36,7 @@ export const Marriages: React.FC = () => {
   // CSV Import State
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
-  const downloadMarriageSampleCSV = () => {
-    const csvHeader = 'groom_name,groom_phone,groom_father_name,groom_address,bride_name,bride_type,nikah_date,nikah_venue,officiant_name,mahr_details\n';
-    const csvSample = 'Muhammed Fayis,9876543210,Abubakar Siddique,H-1 East Ward,Aisha Beevi,external,2026-06-15,Central Juma Masjid,Kazi Ustad,10 Sovereign Gold\n';
-    const blob = new Blob([csvHeader + csvSample], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'marriages_sample_template.csv';
-    a.click();
-    showToast('success', 'Sample CSV template downloaded!');
-  };
+
 
   const exportCSV = () => {
     if (filteredMarriages.length === 0) {
@@ -494,7 +483,7 @@ export const Marriages: React.FC = () => {
               witness2_name: row.witness_2_name || null,
               status: 'completed',
               created_by: 'admin',
-            });
+            } as any);
           }
           showToast('success', `✓ Successfully imported ${parsedRows.length} marriage records!`);
           loadData();

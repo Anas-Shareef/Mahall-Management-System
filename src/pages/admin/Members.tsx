@@ -6,13 +6,12 @@ import type { Household, Member } from '../../services/db';
 import { 
   Plus, Edit2, Trash2, Search, Filter, Users, X, AlertCircle, 
   CheckCircle, Phone, Mail, Home, Smartphone, UserCheck, ShieldCheck,
-  Download, Loader2, FileSpreadsheet, Upload
+  Download, Loader2, FileSpreadsheet
 } from 'lucide-react';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { SidePanel } from '../../components/SidePanel';
 import { GrantAccessModal } from '../../components/GrantAccessModal';
 import { MemberDetailsModal } from '../../components/MemberDetailsModal';
-import { Modal } from '../../components/Modal';
 import { ExcelImportModal } from '../../components/ExcelImportModal';
 
 export const Members: React.FC = () => {
@@ -42,17 +41,7 @@ export const Members: React.FC = () => {
   // CSV Import State
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
-  const downloadMemberSampleCSV = () => {
-    const csvHeader = 'name,phone,email,gender,dob,household_number,relationship,blood_group,occupation,status\n';
-    const csvSample = 'Muhammed Fayis,9876543210,fayis@example.com,male,1995-04-12,H-1,Head of Family,O+,Software Engineer,active\nFathima Suhra,9876543211,suhra@example.com,female,1998-08-20,H-1,Wife,B+,Teacher,active\n';
-    const blob = new Blob([csvHeader + csvSample], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'members_sample_template.csv';
-    a.click();
-    showToast('success', 'Sample CSV template downloaded!');
-  };
+
 
   const exportCSV = () => {
     if (filteredMembers.length === 0) {
@@ -1423,7 +1412,7 @@ const formatHouseNumber = (raw?: string | null): string => {
               portal_access: false,
               portal_status: 'not_granted',
               is_subscription_accountable: true,
-            });
+            } as any);
           }
           showToast('success', `✓ Successfully imported ${parsedRows.length} members!`);
           loadData();

@@ -6,13 +6,12 @@ import type { Household, Member, MemberSubscription, SubscriptionYear } from '..
 import { 
   Plus, Edit2, Trash2, Search, Filter, Home, Users, X, AlertCircle, 
   CheckCircle, CheckCircle2, TrendingUp, Phone, MapPin, Loader2, Download, Calendar,
-  FileSpreadsheet, Upload
+  FileSpreadsheet
 } from 'lucide-react';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { HouseholdDetailsModal } from '../../components/HouseholdDetailsModal';
 import { GrantAccessModal } from '../../components/GrantAccessModal';
 import { SidePanel } from '../../components/SidePanel';
-import { Modal } from '../../components/Modal';
 import { ExcelImportModal } from '../../components/ExcelImportModal';
 
 // Helper to safely format house numbers without double H- prefix
@@ -51,17 +50,7 @@ export const Households: React.FC = () => {
   // CSV Import State
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
-  const downloadHouseholdSampleCSV = () => {
-    const csvHeader = 'house_number,house_owner_name,primary_contact_phone,cluster_or_area,status,address\n';
-    const csvSample = '1,Abubakar Siddique,9876543210,East Ward,active,Near Juma Masjid\n2,Usman Ghani,9876543211,West Ward,active,Central Street H-2\n';
-    const blob = new Blob([csvHeader + csvSample], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'households_sample_template.csv';
-    a.click();
-    showToast('success', 'Sample CSV template downloaded!');
-  };
+
 
   // Delete Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -1479,7 +1468,7 @@ export const Households: React.FC = () => {
               area: row.area || row.cluster || 'General',
               status: (row.status?.toLowerCase() === 'inactive' ? 'inactive' : 'active'),
               address: row.address || null,
-            });
+            } as any);
           }
           showToast('success', `✓ Successfully imported ${parsedRows.length} households!`);
           loadData();

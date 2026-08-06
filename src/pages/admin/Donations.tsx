@@ -10,7 +10,7 @@ import {
   Download, Edit2, Trash2, User,
   Printer, RefreshCw, HeartHandshake,
   TrendingUp, CalendarDays, Target, Award, QrCode, ChevronLeft, ChevronRight,
-  Wallet, FileSpreadsheet, Upload
+  Wallet, FileSpreadsheet
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { Modal } from '../../components/Modal';
@@ -1211,7 +1211,7 @@ export const Donations: React.FC = () => {
               campaign_id: null,
               donor_member_id: null,
               is_anonymous: false,
-            });
+            } as any);
           }
           showToast('success', `✓ Successfully imported ${parsedRows.length} donations!`);
           loadData();

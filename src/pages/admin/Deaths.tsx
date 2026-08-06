@@ -6,7 +6,7 @@ import {
   UserX, Plus, Search, Trash2, Edit2, Eye, CheckCircle, AlertCircle, 
   X, Calendar, CalendarDays, FileWarning, Download, 
   Filter, ChevronRight, User, Printer, RefreshCw, FileText,
-  Home, Building2, ChevronLeft, Award, QrCode, FileSpreadsheet, Upload
+  Home, Building2, ChevronLeft, Award, QrCode, FileSpreadsheet
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { Modal } from '../../components/Modal';
@@ -1103,7 +1103,7 @@ export const Deaths: React.FC = () => {
               certificate_url: null,
               notes: row.notes || 'Batch imported',
               created_by: 'admin',
-            });
+            } as any);
           }
           showToast('success', `✓ Successfully imported ${parsedRows.length} death records!`);
           loadData();
