@@ -1480,7 +1480,6 @@ export const Payments: React.FC = () => {
               (m) => m.name.toLowerCase().trim() === row.member_name?.toLowerCase().trim()
             );
             const targetMemberId = matchingMember ? matchingMember.id : (members[0]?.id || 'member-1');
-            const targetHouseholdId = matchingMember ? matchingMember.household_id : (households[0]?.id || 'house-1');
 
             await db.payments.create({
               member_id: targetMemberId,
@@ -1490,7 +1489,6 @@ export const Payments: React.FC = () => {
               payment_date: row.payment_date || new Date().toISOString().split('T')[0],
               reference_number: row.transaction_id || row.reference_number || null,
               notes: row.category || 'Batch imported',
-              status: 'completed',
               created_by: user?.id || 'admin',
             });
           }

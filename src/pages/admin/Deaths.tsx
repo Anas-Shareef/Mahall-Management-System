@@ -1094,13 +1094,7 @@ export const Deaths: React.FC = () => {
               cause_of_death: row.cause_of_death || 'Natural',
               age: parseInt(row.age) || 70,
               gender: (row.gender?.toLowerCase() === 'female' ? 'female' : 'male') as any,
-              informant_name: row.informant_name || null,
-              informant_phone: row.informant_phone || null,
-              informant_relationship: row.informant_relationship || null,
-              medically_certified: true,
-              certifier_name: row.certifier_name || null,
               notes: row.notes || 'Batch imported',
-              certificate_url: null,
               created_by: 'admin',
             });
           }

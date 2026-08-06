@@ -493,8 +493,6 @@ export const Marriages: React.FC = () => {
               witness1_name: row.witness_1_name || null,
               witness2_name: row.witness_2_name || null,
               status: 'completed',
-              certificate_issued: false,
-              certificate_number: null,
               created_by: 'admin',
             });
           }
