@@ -12,6 +12,13 @@ import { HouseholdDetailsModal } from '../../components/HouseholdDetailsModal';
 import { GrantAccessModal } from '../../components/GrantAccessModal';
 import { SidePanel } from '../../components/SidePanel';
 
+// Helper to safely format house numbers without double H- prefix
+const formatHouseNumber = (raw?: string | null): string => {
+  if (!raw) return 'N/A';
+  const clean = raw.trim().replace(/^([hH]-?)+/, '');
+  return `H-${clean}`;
+};
+
 export const Households: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -194,7 +201,7 @@ export const Households: React.FC = () => {
         const rows = filteredHouseholds.map((h) => {
           const fin = getHouseholdFinancials(h.id);
           return [
-            `"H-${h.house_number}"`,
+            `"${formatHouseNumber(h.house_number)}"`,
             `"${h.house_owner_name.replace(/"/g, '""')}"`,
             `"${h.house_owner_phone || ''}"`,
             `"${(h.area || '').replace(/"/g, '""')}"`,
@@ -466,7 +473,7 @@ export const Households: React.FC = () => {
                           onClick={() => handleViewDetails(h)}
                         >
                           <td className="bold-text">
-                            <span className="house-badge">H-{h.house_number}</span>
+                            <span className="house-badge">{formatHouseNumber(h.house_number)}</span>
                           </td>
                           <td>
                             <div className="owner-cell">
@@ -533,7 +540,7 @@ export const Households: React.FC = () => {
                       onClick={() => handleViewDetails(h)}
                     >
                       <div className="card-head">
-                        <div className="house-no-badge">H-{h.house_number}</div>
+                        <div className="house-no-badge">{formatHouseNumber(h.house_number)}</div>
                         <span className={`status-pill ${h.status}`}>
                           <span className="dot"></span>
                           {t(`household.${h.status}`)}
@@ -594,7 +601,7 @@ export const Households: React.FC = () => {
       <SidePanel
         isOpen={Boolean(selectedHouseholdDetails)}
         onClose={() => setSelectedHouseholdDetails(null)}
-        title={`House No. H-${selectedHouseholdDetails?.house_number}`}
+        title={`House No. ${formatHouseNumber(selectedHouseholdDetails?.house_number)}`}
         subtitle={selectedHouseholdDetails?.house_owner_name}
         icon={<Home size={20} />}
         size="lg"
@@ -713,7 +720,7 @@ export const Households: React.FC = () => {
         title="Delete Household?"
         message={
           <>
-            Are you sure you want to delete household <strong>H-{householdToDelete?.house_number}</strong> ({householdToDelete?.house_owner_name})? This action cannot be undone.
+            Are you sure you want to delete household <strong>{formatHouseNumber(householdToDelete?.house_number)}</strong> ({householdToDelete?.house_owner_name})? This action cannot be undone.
           </>
         }
         confirmText="Delete Household"

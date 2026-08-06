@@ -87,8 +87,9 @@ export const HouseholdForm: React.FC = () => {
 
     setIsSaving(true);
     try {
+      const cleanHouseNum = houseNumber.trim().replace(/^([hH]-?)+/, '') || houseNumber.trim();
       const payload = {
-        house_number: houseNumber.trim(),
+        house_number: cleanHouseNum,
         house_owner_name: ownerName.trim(),
         house_owner_phone: ownerPhone.trim() || null,
         address: address.trim() || null,

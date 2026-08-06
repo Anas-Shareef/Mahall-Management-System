@@ -64,6 +64,13 @@ export const Members: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+// Helper to safely format house numbers without double H- prefix
+const formatHouseNumber = (raw?: string | null): string => {
+  if (!raw) return 'N/A';
+  const clean = raw.trim().replace(/^([hH]-?)+/, '');
+  return `H-${clean}`;
+};
+
   // Download CSV Report for Members
   const handleDownloadReport = () => {
     setIsExporting(true);
@@ -75,7 +82,7 @@ export const Members: React.FC = () => {
           return [
             `"${m.id}"`,
             `"${m.name.replace(/"/g, '""')}"`,
-            `"${house ? `H-${house.house_number}` : 'N/A'}"`,
+            `"${formatHouseNumber(house?.house_number)}"`,
             `"${m.relationship || 'N/A'}"`,
             `"${m.phone || 'N/A'}"`,
             `"${m.email || 'N/A'}"`,
@@ -445,7 +452,7 @@ export const Members: React.FC = () => {
                           </td>
                           <td>
                             {house ? (
-                              <span className="house-tag">H-{house.house_number}</span>
+                              <span className="house-tag">{formatHouseNumber(house.house_number)}</span>
                             ) : (
                               'N/A'
                             )}
