@@ -16,6 +16,8 @@ import { YearFilter } from '../../components/YearFilter';
 import { Modal } from '../../components/Modal';
 import { SidePanel } from '../../components/SidePanel';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { useOrganization } from '../../contexts/OrganizationContext';
+
 const numberToWords = (num: number): string => {
   if (!num || isNaN(num)) return 'Zero Rupees Only';
   const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
