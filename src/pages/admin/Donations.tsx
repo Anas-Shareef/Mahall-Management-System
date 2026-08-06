@@ -781,7 +781,8 @@ export const Donations: React.FC = () => {
         )}
 
         {/* WORKSPACE DIRECTORY CONTENT */}
-        {activeTab !== 'manage_campaigns' && <div className="workspace-table-content">
+        {activeTab !== 'manage_campaigns' && (
+        <div className="workspace-table-content">
           {fetchError ? (
             <div className="empty-state-card">
               <div className="empty-state-icon neutral">
@@ -1042,7 +1043,7 @@ export const Donations: React.FC = () => {
             </>
           )}
         </div>
-        }</div>
+        )}
       </div>
 
 
