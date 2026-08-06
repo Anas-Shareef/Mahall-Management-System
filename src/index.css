@@ -3447,7 +3447,7 @@ select.custom-select-pill:focus,
   flex-wrap: nowrap !important;
 }
 
-.page-header-actions, .header-cta-group, .actions-group, .canvas-header-bar > .flex-row-gap-xs {
+.actions-group, .canvas-header-bar > .flex-row-gap-xs {
   display: flex !important;
   align-items: center !important;
   gap: 10px !important;
@@ -4560,7 +4560,35 @@ select.custom-select-pill:focus,
     text-align: center !important;
     justify-content: center !important;
   }
+}
 
+/* ── UNIVERSAL HEADER CTA GROUP BUTTON STYLES ── */
+.header-cta-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.header-cta-group button,
+.header-cta-group a,
+.header-cta-group .pill-btn-ghost,
+.header-cta-group .add-btn,
+.header-cta-group .primary-btn,
+.header-cta-group .pill-btn-primary {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 10px 18px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  border-radius: 9999px !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 768px) {
   .page-header-actions,
   .page-header {
     display: flex !important;
@@ -4589,8 +4617,10 @@ select.custom-select-pill:focus,
 
   .header-cta-group .add-btn,
   .header-cta-group .primary-btn,
-  .header-cta-group .pill-btn-primary {
-    grid-column: span 2 !important;
+  .header-cta-group .pill-btn-primary,
+  .header-cta-group > button:last-child,
+  .header-cta-group > a:last-child {
+    grid-column: 1 / -1 !important;
     width: 100% !important;
     justify-content: center !important;
     box-sizing: border-box !important;

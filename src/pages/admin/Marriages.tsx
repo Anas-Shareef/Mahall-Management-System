@@ -554,7 +554,6 @@ export const Marriages: React.FC = () => {
         .stats-dashboard-grid-4 { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 16px !important; width: 100% !important; box-sizing: border-box !important; }
         .page-header-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; width: 100%; box-sizing: border-box; }
         .page-subtitle { font-size: 13px; color: #6b7280; margin-top: 2px; }
-        .header-cta-group { display: flex; align-items: center; gap: 12px; }
 
         .filter-bar { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; gap: 14px; background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-xl); flex-wrap: wrap; width: 100%; box-sizing: border-box; }
         .search-box { position: relative; display: flex; align-items: center; flex: 1; min-width: 260px; }
