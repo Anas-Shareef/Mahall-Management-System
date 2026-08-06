@@ -1465,18 +1465,22 @@ export const Payments: React.FC = () => {
         }}
         onImport={async (parsedRows) => {
           for (const row of parsedRows) {
+            const rawMemberName = (row.member_name || row.name || row.member || '').toLowerCase().trim();
             const matchingMember = members.find(
-              (m) => m.name.toLowerCase().trim() === row.member_name?.toLowerCase().trim()
+              (m) => m.name.toLowerCase().trim() === rawMemberName
             );
             const targetMemberId = matchingMember ? matchingMember.id : (members[0]?.id || 'member-1');
+
+            const rawAmount = parseFloat(row.amount || row.amt || row.total || row.paid || '0');
+            const rawMethod = (row.payment_method || row.method || row.mode || 'cash').toLowerCase();
 
             await db.payments.create({
               member_id: targetMemberId,
               subscription_id: years[0]?.id || 'sub-1',
-              amount: parseFloat(row.amount) || 1000,
-              payment_method: (['cash', 'upi', 'bank_transfer'].includes(row.payment_method?.toLowerCase()) ? row.payment_method.toLowerCase() : 'cash') as any,
-              payment_date: row.payment_date || new Date().toISOString().split('T')[0],
-              reference_number: row.transaction_id || row.reference_number || null,
+              amount: rawAmount > 0 ? rawAmount : 1000,
+              payment_method: (['cash', 'upi', 'bank_transfer'].includes(rawMethod) ? rawMethod : 'cash') as any,
+              payment_date: row.payment_date || row.date || new Date().toISOString().split('T')[0],
+              reference_number: row.receipt_number || row.receipt_no || row.transaction_id || row.reference_number || null,
               notes: row.category || 'Batch imported',
               recorded_by: user?.id || 'admin',
             } as any);
