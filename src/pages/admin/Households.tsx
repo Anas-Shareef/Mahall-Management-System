@@ -346,8 +346,8 @@ export const Households: React.FC = () => {
         </div>
       </div>
 
-      {/* OVERVIEW STATS CARDS ROW */}
-      <div className="members-stats-row margin-bottom-md">
+      {/* OVERVIEW STATS CARDS ROW (SINGLE ROW ON DESKTOP) */}
+      <div className="stats-dashboard-grid-5 margin-bottom-md">
         <div className="stat-metric-card shadow-sm">
           <div className="metric-icon-box emerald">
             <Home size={22} />

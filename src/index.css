@@ -2776,30 +2776,42 @@ select.custom-select-pill:focus,
   margin-top: 4px;
 }
 
-/* 5-COLUMN DASHBOARD METRICS GRID (DEATH MANAGEMENT) */
-.stats-dashboard-grid-5 {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 14px;
-  width: 100%;
-  box-sizing: border-box;
+/* 5-COLUMN DASHBOARD METRICS GRID (HOUSEHOLDS, MEMBERS, SUBSCRIPTIONS, DEATHS) */
+.stats-dashboard-grid-5,
+.stats-dashboard-grid,
+.members-stats-row,
+.households-stats-grid {
+  display: grid !important;
+  grid-template-columns: repeat(5, 1fr) !important;
+  gap: 14px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 @media (max-width: 1200px) {
-  .stats-dashboard-grid-5 {
-    grid-template-columns: repeat(3, 1fr);
+  .stats-dashboard-grid-5,
+  .stats-dashboard-grid,
+  .members-stats-row,
+  .households-stats-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
   }
 }
 
 @media (max-width: 768px) {
-  .stats-dashboard-grid-5 {
-    grid-template-columns: repeat(2, 1fr);
+  .stats-dashboard-grid-5,
+  .stats-dashboard-grid,
+  .members-stats-row,
+  .households-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 }
 
 @media (max-width: 480px) {
-  .stats-dashboard-grid-5 {
-    grid-template-columns: 1fr;
+  .stats-dashboard-grid-5,
+  .stats-dashboard-grid,
+  .members-stats-row,
+  .households-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 }
 

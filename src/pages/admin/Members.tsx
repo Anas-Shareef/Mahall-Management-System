@@ -235,7 +235,7 @@ const formatHouseNumber = (raw?: string | null): string => {
       </div>
 
       {/* STATISTICS SUMMARY CARDS (MATCHING SUBSCRIPTIONS DESIGN) */}
-      <div className="stats-dashboard-grid margin-bottom-md">
+      <div className="stats-dashboard-grid-5 margin-bottom-md">
         <div className="stat-metric-card shadow-sm">
           <div className="metric-icon-box emerald">
             <Users size={22} />
