@@ -8,7 +8,7 @@ import type {
 import { 
   Plus, Search, Filter, Calendar, X, AlertCircle, 
   CheckCircle, Loader2, Home, CreditCard, 
-  Layers, Sparkles, UserCheck, DollarSign, Edit2, Trash2
+  Layers, Sparkles, UserCheck, DollarSign, Edit2, Trash2, ShieldCheck
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { SidePanel } from '../../components/SidePanel';
@@ -896,25 +896,25 @@ export const Subscriptions: React.FC = () => {
                       <td style={{ textAlign: 'right' }}>
                         <div className="actions-button-wrapper" onClick={(e) => e.stopPropagation()}>
                           <button
+                            className="action-icon-btn shield"
+                            onClick={() => handleGenerateLedger(y.id)}
+                            title="Generate Subscription Ledger for this year"
+                          >
+                            <ShieldCheck size={17} />
+                          </button>
+                          <button
                             className="action-icon-btn edit"
                             onClick={() => openEditYearModal(y)}
                             title="Edit Subscription Year Details"
                           >
-                            <Edit2 size={15} />
-                          </button>
-                          <button
-                            className="action-icon-btn primary"
-                            onClick={() => handleGenerateLedger(y.id)}
-                            title="Generate Subscription Ledger for this year"
-                          >
-                            <Sparkles size={15} />
+                            <Edit2 size={17} />
                           </button>
                           <button
                             className="action-icon-btn delete"
                             onClick={() => openDeleteYearModal(y)}
                             title="Delete Subscription Year"
                           >
-                            <Trash2 size={15} />
+                            <Trash2 size={17} />
                           </button>
                         </div>
                       </td>

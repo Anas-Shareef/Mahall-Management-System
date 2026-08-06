@@ -4633,6 +4633,76 @@ select.custom-select-pill:focus,
   margin-bottom: 20px !important;
 }
 
+/* ── ULTRA-PREMIUM CLEAN SQUARED TABLE ACTION BUTTONS (MATCHING USER IMAGE) ── */
+.actions-button-wrapper {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+}
+
+.action-icon-btn,
+.action-btn-card {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  border-radius: 10px !important;
+  background: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  color: #64748b !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.action-icon-btn:hover,
+.action-btn-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Green Shield / Generate / Primary Icon Button */
+.action-icon-btn.primary,
+.action-icon-btn.generate,
+.action-icon-btn.shield {
+  color: #475569 !important;
+}
+.action-icon-btn.primary:hover,
+.action-icon-btn.generate:hover,
+.action-icon-btn.shield:hover {
+  background: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+  color: #00966b !important;
+}
+
+/* Blue Edit Icon Button */
+.action-icon-btn.edit {
+  color: #475569 !important;
+}
+.action-icon-btn.edit:hover {
+  background: #eff6ff !important;
+  border-color: #bfdbfe !important;
+  color: #0746d3 !important;
+}
+
+/* Red Delete Icon Button */
+.action-icon-btn.delete,
+.action-icon-btn.danger {
+  color: #475569 !important;
+}
+.action-icon-btn.delete:hover,
+.action-icon-btn.danger:hover {
+  background: #fef2f2 !important;
+  border-color: #fca5a5 !important;
+  color: #dc2626 !important;
+}
+
 /* ── UNIVERSAL HIGH-PREMIUM BULK ACTION TOOLBAR ── */
 .bulk-actions-toolbar {
   display: flex !important;
