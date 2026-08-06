@@ -1489,6 +1489,7 @@ export const Payments: React.FC = () => {
               payment_date: row.payment_date || new Date().toISOString().split('T')[0],
               reference_number: row.transaction_id || row.reference_number || null,
               notes: row.category || 'Batch imported',
+              recorded_by: user?.id || 'admin',
             });
           }
           showToast('success', `✓ Successfully imported ${parsedRows.length} payment receipts!`);

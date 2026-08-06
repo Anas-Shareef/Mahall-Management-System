@@ -495,7 +495,6 @@ export const Marriages: React.FC = () => {
               status: 'completed',
               registration_number: `REG-${Date.now().toString().slice(-6)}`,
               conducted_by: null,
-              officiant_name: null,
               witness1_phone: null,
               witness2_phone: null,
               mahr_details: row.mahr_details || null,
