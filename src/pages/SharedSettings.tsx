@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { VmOneLogo } from '../components/VmOneLogo';
+import { db } from '../services/db';
 import { 
   Building2, UserCheck, Award, Bell, 
   Database, Save, RotateCcw, CheckCircle, AlertCircle, 
@@ -148,6 +149,129 @@ export const SharedSettings: React.FC = () => {
     }
   };
 
+  // Real JSON Full Database Backup Generator
+  const handleDownloadJsonBackup = async () => {
+    setIsSaving(true);
+    try {
+      const [households, members, subscriptions, payments, marriages, deaths, donations] = await Promise.all([
+        db.households.get(),
+        db.members.get(),
+        db.subscriptions.get(),
+        db.payments.get(),
+        db.marriages.get(),
+        db.deaths.get(),
+        db.donations.get(),
+      ]);
+
+      const backupObject = {
+        app: 'Mahall Management System',
+        version: '1.0.0',
+        exported_at: new Date().toISOString(),
+        data: {
+          households,
+          members,
+          subscriptions,
+          payments,
+          marriages,
+          deaths,
+          donations,
+        },
+      };
+
+      const jsonStr = JSON.stringify(backupObject, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Mahallu_Database_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast('success', '✓ Full Database JSON Backup downloaded successfully!');
+    } catch (err) {
+      console.error('Backup failed:', err);
+      showToast('error', 'Failed to generate database backup.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Real CSV Members Directory Exporter
+  const handleExportMembersCsv = async () => {
+    try {
+      const membersList = await db.members.get();
+      if (membersList.length === 0) {
+        showToast('error', 'No member records found to export.');
+        return;
+      }
+
+      const headers = ['ID', 'Name', 'Household ID', 'Relationship', 'Phone', 'Email', 'Status', 'Portal Status'];
+      const rows = membersList.map((m: any) => [
+        `"${m.id}"`,
+        `"${m.name.replace(/"/g, '""')}"`,
+        `"${m.household_id}"`,
+        `"${m.relationship}"`,
+        `"${m.phone || ''}"`,
+        `"${m.email || ''}"`,
+        `"${m.status}"`,
+        `"${m.portal_status || 'not_granted'}"`,
+      ]);
+
+      const csvContent = [headers.join(','), ...rows.map((r: any) => r.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Mahallu_Members_Directory_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      showToast('success', '✓ Members Directory CSV exported successfully!');
+    } catch (err) {
+      showToast('error', 'Failed to export Members CSV.');
+    }
+  };
+
+  // Real CSV Household Ledgers Exporter
+  const handleExportHouseholdsCsv = async () => {
+    try {
+      const houseList = await db.households.get();
+      if (houseList.length === 0) {
+        showToast('error', 'No household records found to export.');
+        return;
+      }
+
+      const headers = ['ID', 'House Number', 'Owner Name', 'Phone', 'Area / Cluster', 'Address', 'Status', 'Created Date'];
+      const rows = houseList.map((h: any) => [
+        `"${h.id}"`,
+        `"${h.house_number}"`,
+        `"${h.house_owner_name.replace(/"/g, '""')}"`,
+        `"${h.house_owner_phone || ''}"`,
+        `"${(h.area || '').replace(/"/g, '""')}"`,
+        `"${(h.address || '').replace(/"/g, '""')}"`,
+        `"${h.status}"`,
+        `"${new Date(h.created_at).toLocaleDateString()}"`,
+      ]);
+
+      const csvContent = [headers.join(','), ...rows.map((r: any) => r.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Mahallu_Households_Roster_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      showToast('success', '✓ Household Ledgers CSV exported successfully!');
+    } catch (err) {
+      showToast('error', 'Failed to export Households CSV.');
+    }
+  };
+
   return (
     <div className="shared-settings-container padding-lg">
       {/* TOAST NOTIFICATION */}
@@ -254,8 +378,8 @@ export const SharedSettings: React.FC = () => {
             </div>
 
             <div className="settings-form-body">
-              {/* DASHED UPLOAD DROPZONE CARDS (MATCHING IMAGE 1) */}
-              <div className="form-row-grid margin-bottom-lg" style={{ gap: 20 }}>
+              {/* DASHED UPLOAD DROPZONE CARDS */}
+              <div className="dashed-upload-dropzone-container margin-bottom-lg">
                 {/* MAHALL LOGO UPLOAD DROPZONE */}
                 <label htmlFor="logo-upload-input" className="dashed-upload-dropzone">
                   <div className="dropzone-left-preview">
@@ -669,7 +793,7 @@ export const SharedSettings: React.FC = () => {
                     <p className="font-2xs color-subtle margin-top-3xs">Complete snapshot of households, members, payments, and system settings</p>
                   </div>
                 </div>
-                <button className="pill-btn-primary font-xs" style={{ padding: '10px 18px', borderRadius: 9999 }} onClick={() => showToast('success', 'Database JSON backup generated & downloaded.')}>
+                <button className="pill-btn-primary font-xs" style={{ padding: '10px 18px', borderRadius: 9999 }} onClick={handleDownloadJsonBackup}>
                   <Download size={14} /> Download JSON
                 </button>
               </div>
@@ -684,7 +808,7 @@ export const SharedSettings: React.FC = () => {
                     <p className="font-2xs color-subtle margin-top-3xs">Full CSV roster of registered members</p>
                   </div>
                 </div>
-                <button className="pill-btn-secondary font-xs" style={{ padding: '10px 18px', borderRadius: 9999 }} onClick={() => showToast('success', 'Exporting Members CSV...')}>
+                <button className="pill-btn-secondary font-xs" style={{ padding: '10px 18px', borderRadius: 9999 }} onClick={handleExportMembersCsv}>
                   <Download size={14} /> Export CSV
                 </button>
               </div>
@@ -699,7 +823,7 @@ export const SharedSettings: React.FC = () => {
                     <p className="font-2xs color-subtle margin-top-3xs">CSV report of all registered households and payment status</p>
                   </div>
                 </div>
-                <button className="pill-btn-secondary font-xs" style={{ padding: '10px 18px', borderRadius: 9999 }} onClick={() => showToast('success', 'Exporting Household Ledgers...')}>
+                <button className="pill-btn-secondary font-xs" style={{ padding: '10px 18px', borderRadius: 9999 }} onClick={handleExportHouseholdsCsv}>
                   <Download size={14} /> Export CSV
                 </button>
               </div>
@@ -731,16 +855,33 @@ export const SharedSettings: React.FC = () => {
       <style>{`
         .mobile-settings-select-container { display: none; }
         .desktop-settings-tabs-only { display: flex; flex-wrap: wrap; gap: 8px; }
+        .dashed-upload-dropzone-container {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 20px;
+          width: 100%;
+        }
 
         @media (max-width: 768px) {
           .mobile-settings-select-container { display: block; }
           .desktop-settings-tabs-only { display: none !important; }
-          .shared-settings-container { padding: 14px !important; }
-          .settings-section-card { padding: 18px !important; border-radius: 16px !important; }
+          .shared-settings-container { padding: 12px !important; }
+          .settings-section-card { padding: 18px !important; border-radius: 18px !important; }
+          .dashed-upload-dropzone-container { grid-template-columns: 1fr !important; gap: 14px !important; }
           .form-row-grid { grid-template-columns: 1fr !important; gap: 14px !important; }
-          .dashed-upload-dropzone { flex-direction: column; text-align: center; gap: 12px; }
-          .setting-option-card { flex-direction: column; align-items: flex-start; gap: 12px; }
-          .setting-option-card button { width: 100%; justify-content: center; }
+          .dashed-upload-dropzone { 
+            flex-direction: row !important; 
+            align-items: center !important; 
+            text-align: left !important; 
+            padding: 14px 16px !important; 
+            gap: 14px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+          }
+          .dropzone-left-preview { flex-shrink: 0 !important; }
+          .dropzone-right-info { flex: 1 !important; }
+          .setting-option-card { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
+          .setting-option-card button { width: 100% !important; justify-content: center !important; }
         }
       `}</style>
     </div>
