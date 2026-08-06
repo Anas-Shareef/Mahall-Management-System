@@ -146,6 +146,56 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
     }
   };
 
+  // Intelligent column cell value lookup supporting exact keys, label matches, semantic aliases, and index fallbacks
+  const getCellValue = (row: Record<string, string>, col: ColumnGuide, colIndex: number): string => {
+    const normKey = col.key.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const normLabel = col.label.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    // 1. Direct match on row keys
+    for (const [rKey, rVal] of Object.entries(row)) {
+      const cleanRKey = rKey.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (!cleanRKey) continue;
+
+      // Exact key or label match
+      if (cleanRKey === normKey || cleanRKey === normLabel) {
+        if (rVal !== undefined && rVal !== null && String(rVal).trim() !== '') {
+          return String(rVal).trim();
+        }
+      }
+
+      // Field semantic aliases matching
+      const isHouse = (normKey.includes('house') || normLabel.includes('house')) && (cleanRKey.includes('house') || cleanRKey.includes('hno') || cleanRKey.includes('h_no'));
+      const isOwner = (normKey.includes('owner') || normLabel.includes('owner') || normLabel.includes('head')) && (cleanRKey.includes('owner') || cleanRKey.includes('head') || cleanRKey.includes('name'));
+      const isPhone = (normKey.includes('phone') || normLabel.includes('phone') || normLabel.includes('mobile')) && (cleanRKey.includes('phone') || cleanRKey.includes('mobile') || cleanRKey.includes('contact'));
+      const isArea = (normKey.includes('area') || normKey.includes('cluster') || normLabel.includes('cluster') || normLabel.includes('ward')) && (cleanRKey.includes('area') || cleanRKey.includes('cluster') || cleanRKey.includes('ward'));
+      const isStatus = (normKey.includes('status') || normLabel.includes('status')) && cleanRKey.includes('status');
+
+      if (isHouse || isOwner || isPhone || isArea || isStatus) {
+        if (rVal !== undefined && rVal !== null && String(rVal).trim() !== '') {
+          return String(rVal).trim();
+        }
+      }
+    }
+
+    // 2. Check if any row key contains column key substring
+    for (const [rKey, rVal] of Object.entries(row)) {
+      const cleanRKey = rKey.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (cleanRKey.includes(normKey) || normKey.includes(cleanRKey)) {
+        if (rVal !== undefined && rVal !== null && String(rVal).trim() !== '') {
+          return String(rVal).trim();
+        }
+      }
+    }
+
+    // 3. Index fallback
+    const rowValues = Object.values(row);
+    if (rowValues[colIndex] !== undefined && String(rowValues[colIndex]).trim() !== '') {
+      return String(rowValues[colIndex]).trim();
+    }
+
+    return '—';
+  };
+
   const modalJSX = (
     <div className="global-confirm-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="excel-import-dialog animate-scale-up">
@@ -262,8 +312,8 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                             <Check size={14} />
                           </span>
                         </td>
-                        {columns.slice(0, 6).map((c) => (
-                          <td key={c.key}>{row[c.key.toLowerCase()] || row[c.label.toLowerCase()] || '—'}</td>
+                        {columns.slice(0, 6).map((c, cIdx) => (
+                          <td key={c.key}>{getCellValue(row, c, cIdx)}</td>
                         ))}
                       </tr>
                     ))}
