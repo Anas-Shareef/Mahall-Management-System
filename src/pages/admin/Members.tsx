@@ -73,10 +73,45 @@ export const Members: React.FC = () => {
     showToast('success', 'Members exported to CSV');
   };
 
+  // Selection & Bulk Delete State
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+
   // Delete Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleToggleSelectAll = () => {
+    if (selectedIds.length === filteredMembers.length && filteredMembers.length > 0) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredMembers.map((m) => m.id));
+    }
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      setIsDeleting(true);
+      for (const id of selectedIds) {
+        await db.members.delete(id);
+      }
+      showToast('success', `✓ Successfully deleted ${selectedIds.length} members!`);
+      setSelectedIds([]);
+      setIsBulkDeleteModalOpen(false);
+      loadData();
+    } catch (err) {
+      showToast('error', 'Failed to delete selected members');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Toast Notification State
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -429,6 +464,17 @@ const formatHouseNumber = (raw?: string | null): string => {
         </div>
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.length > 0 && (
+        <div className="bulk-actions-toolbar glass-card margin-bottom-md">
+          <span className="font-weight-700 font-sm">{selectedIds.length} members selected</span>
+          <button className="pill-btn-danger font-xs" onClick={() => setIsBulkDeleteModalOpen(true)}>
+            <Trash2 size={15} />
+            <span>Delete Selected ({selectedIds.length})</span>
+          </button>
+        </div>
+      )}
+
       {/* MAIN CONTENT SPLIT */}
       <div className="members-content-split">
         {/* MEMBERS TABLE & MOBILE DIRECTORY */}
@@ -471,6 +517,13 @@ const formatHouseNumber = (raw?: string | null): string => {
                 <table className="members-table">
                   <thead>
                     <tr>
+                      <th style={{ width: 40 }} onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.length === filteredMembers.length && filteredMembers.length > 0}
+                          onChange={handleToggleSelectAll}
+                        />
+                      </th>
                       <th>{t('member.memberName')}</th>
                       <th>{t('household.houseNumber')}</th>
                       <th>{t('member.relationship')}</th>
@@ -483,13 +536,20 @@ const formatHouseNumber = (raw?: string | null): string => {
                   <tbody>
                     {filteredMembers.map((m) => {
                       const house = households.find((h) => h.id === m.household_id);
-                      const isSelected = selectedMemberDetails?.id === m.id;
+                      const isSelected = selectedMemberDetails?.id === m.id || selectedIds.includes(m.id);
                       return (
                         <tr
                           key={m.id}
                           className={`member-row ${isSelected ? 'selected' : ''}`}
                           onClick={() => setSelectedMemberDetails(m)}
                         >
+                          <td onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.includes(m.id)}
+                              onChange={() => handleToggleSelect(m.id)}
+                            />
+                          </td>
                           <td className="bold-text">
                             <div className="member-name-td">
                               <span className="name-text">{m.name}</span>
@@ -727,6 +787,19 @@ const formatHouseNumber = (raw?: string | null): string => {
       </div>
 
 
+
+      {/* BULK DELETE CONFIRMATION MODAL */}
+      <ConfirmModal
+        isOpen={isBulkDeleteModalOpen}
+        onClose={() => setIsBulkDeleteModalOpen(false)}
+        onConfirm={handleBulkDelete}
+        title="Delete Selected Members?"
+        message={`Are you sure you want to delete ${selectedIds.length} selected members? This action cannot be undone.`}
+        confirmText="Delete Members"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isDeleting}
+      />
 
       {/* DELETE CONFIRMATION MODAL */}
       <ConfirmModal

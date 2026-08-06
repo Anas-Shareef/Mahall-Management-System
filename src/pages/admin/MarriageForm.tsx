@@ -261,43 +261,45 @@ export const MarriageForm: React.FC = () => {
         <div className="form-section-card shadow-sm">
           <div className="form-section-header">
             <User size={18} className="text-primary" />
-            <span className="form-section-title">Groom Information & Member Link</span>
+            <span className="form-section-title">Groom Details (പുതിയാപ്ല / Groom Information)</span>
           </div>
 
           <div className="form-grid-2col padding-md">
             <div className="form-group full-width">
-              <label className="form-label">Search & Select Groom from Member Database</label>
+              <label className="form-label">Link Member from Database (Optional)</label>
               <div className="search-box margin-bottom-xs">
                 <Search size={16} className="search-icon" />
                 <input
                   type="text"
-                  placeholder="Search groom by name or phone..."
+                  placeholder="Type to search groom by name or phone..."
                   value={groomSearchQuery}
                   onChange={(e) => setGroomSearchQuery(e.target.value)}
                 />
               </div>
-              <div className="member-search-cards-list max-height-180">
-                {filteredGrooms.slice(0, 5).map((m) => (
-                  <div
-                    key={m.id}
-                    className={`member-select-card ${groomMemberId === m.id ? 'selected' : ''}`}
-                    onClick={() => handleSelectGroom(m)}
-                  >
-                    <div className="flex-row-gap-sm">
-                      <div className="donor-avatar-circle sm avatar-member">
-                        {m.name.charAt(0).toUpperCase()}
+              {groomSearchQuery.trim() !== '' && (
+                <div className="member-search-cards-list max-height-180">
+                  {filteredGrooms.slice(0, 5).map((m) => (
+                    <div
+                      key={m.id}
+                      className={`member-select-card ${groomMemberId === m.id ? 'selected' : ''}`}
+                      onClick={() => handleSelectGroom(m)}
+                    >
+                      <div className="flex-row-gap-sm">
+                        <div className="donor-avatar-circle sm avatar-member">
+                          {m.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-weight-700 font-sm text-dark">{m.name}</div>
+                          <span className="font-xs color-subtle">ID: {m.id.substring(0, 8)} • Phone: {m.phone || 'N/A'}</span>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-weight-700 font-sm text-dark">{m.name}</div>
-                        <span className="font-xs color-subtle">ID: {m.id.substring(0, 8)} • Phone: {m.phone || 'N/A'}</span>
-                      </div>
+                      <button type="button" className={`pill-btn-ghost font-xs ${groomMemberId === m.id ? 'bg-success text-white' : ''}`}>
+                        {groomMemberId === m.id ? 'Selected ✓' : 'Select'}
+                      </button>
                     </div>
-                    <button type="button" className={`pill-btn-ghost font-xs ${groomMemberId === m.id ? 'bg-success text-white' : ''}`}>
-                      {groomMemberId === m.id ? 'Selected ✓' : 'Select'}
-                    </button>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="form-group">
@@ -340,43 +342,45 @@ export const MarriageForm: React.FC = () => {
         <div className="form-section-card shadow-sm">
           <div className="form-section-header">
             <User size={18} className="text-danger" />
-            <span className="form-section-title">Bride Information & Member Link</span>
+            <span className="form-section-title">Bride Details (പെണ്ണു / Bride Information)</span>
           </div>
 
           <div className="form-grid-2col padding-md">
             <div className="form-group full-width">
-              <label className="form-label">Search & Select Bride from Member Database</label>
+              <label className="form-label">Link Member from Database (Optional)</label>
               <div className="search-box margin-bottom-xs">
                 <Search size={16} className="search-icon" />
                 <input
                   type="text"
-                  placeholder="Search bride by name or phone..."
+                  placeholder="Type to search bride by name or phone..."
                   value={brideSearchQuery}
                   onChange={(e) => setBrideSearchQuery(e.target.value)}
                 />
               </div>
-              <div className="member-search-cards-list max-height-180">
-                {filteredBrides.slice(0, 5).map((m) => (
-                  <div
-                    key={m.id}
-                    className={`member-select-card ${brideMemberId === m.id ? 'selected' : ''}`}
-                    onClick={() => handleSelectBride(m)}
-                  >
-                    <div className="flex-row-gap-sm">
-                      <div className="donor-avatar-circle sm avatar-member">
-                        {m.name.charAt(0).toUpperCase()}
+              {brideSearchQuery.trim() !== '' && (
+                <div className="member-search-cards-list max-height-180">
+                  {filteredBrides.slice(0, 5).map((m) => (
+                    <div
+                      key={m.id}
+                      className={`member-select-card ${brideMemberId === m.id ? 'selected' : ''}`}
+                      onClick={() => handleSelectBride(m)}
+                    >
+                      <div className="flex-row-gap-sm">
+                        <div className="donor-avatar-circle sm avatar-member">
+                          {m.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-weight-700 font-sm text-dark">{m.name}</div>
+                          <span className="font-xs color-subtle">ID: {m.id.substring(0, 8)} • Phone: {m.phone || 'N/A'}</span>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-weight-700 font-sm text-dark">{m.name}</div>
-                        <span className="font-xs color-subtle">ID: {m.id.substring(0, 8)} • Phone: {m.phone || 'N/A'}</span>
-                      </div>
+                      <button type="button" className={`pill-btn-ghost font-xs ${brideMemberId === m.id ? 'bg-success text-white' : ''}`}>
+                        {brideMemberId === m.id ? 'Selected ✓' : 'Select'}
+                      </button>
                     </div>
-                    <button type="button" className={`pill-btn-ghost font-xs ${brideMemberId === m.id ? 'bg-success text-white' : ''}`}>
-                      {brideMemberId === m.id ? 'Selected ✓' : 'Select'}
-                    </button>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="form-group">

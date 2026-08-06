@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { SidePanel } from '../../components/SidePanel';
+import { ConfirmModal } from '../../components/ConfirmModal';
 import { ExcelImportModal } from '../../components/ExcelImportModal';
 
 export const Payments: React.FC = () => {
@@ -54,10 +55,45 @@ export const Payments: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
+  // Selection & Bulk Delete State
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+
   // Delete Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [paymentToDelete, setPaymentToDelete] = useState<Payment | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleToggleSelectAll = () => {
+    if (selectedIds.length === filteredPayments.length && filteredPayments.length > 0) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredPayments.map((p) => p.id));
+    }
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      setIsDeleting(true);
+      for (const id of selectedIds) {
+        await db.payments.delete(id);
+      }
+      showToast('success', `✓ Successfully deleted ${selectedIds.length} payment receipts!`);
+      setSelectedIds([]);
+      setIsBulkDeleteModalOpen(false);
+      loadData();
+    } catch (err) {
+      showToast('error', 'Failed to delete selected payments');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Toast Notification State
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -467,11 +503,21 @@ export const Payments: React.FC = () => {
             </button>
           )}
         </div>
+        {/* Bulk Action Bar */}
+      {selectedIds.length > 0 && (
+        <div className="bulk-actions-toolbar glass-card margin-bottom-md">
+          <span className="font-weight-700 font-sm">{selectedIds.length} payments selected</span>
+          <button className="pill-btn-danger font-xs" onClick={() => setIsBulkDeleteModalOpen(true)}>
+            <Trash2 size={15} />
+            <span>Delete Selected ({selectedIds.length})</span>
+          </button>
+        </div>
+      )}
       </div>
 
       {/* MAIN CONTENT SPLIT */}
       <div className="payments-content-split">
-        {/* TRANSACTIONS TABLE & MOBILE DIRECTORY */}
+        {/* PAYMENTS TABLE & MOBILE DIRECTORY */}
         <div className={`table-container-card glass-card ${selectedPaymentDetails ? 'narrow' : ''}`}>
           {loading ? (
             <div className="skeleton-loading-container">
@@ -485,11 +531,11 @@ export const Payments: React.FC = () => {
               <div className="empty-state-icon emerald">
                 <Receipt size={32} />
               </div>
-              <h4>No payments yet</h4>
-              <p>Payment transactions will appear here once they are recorded.</p>
+              <h4>No payments recorded</h4>
+              <p>Start recording member payments and fee collection receipts.</p>
               <button className="add-btn primary-btn margin-top" onClick={openRecordModal}>
                 <Plus size={16} />
-                <span>Record Payment</span>
+                <span>{t('payment.addPayment')}</span>
               </button>
             </div>
           ) : filteredPayments.length === 0 ? (
@@ -498,8 +544,8 @@ export const Payments: React.FC = () => {
               <div className="empty-state-icon neutral">
                 <Search size={32} />
               </div>
-              <h4>No matching payments</h4>
-              <p>Try changing your search keywords or filter criteria.</p>
+              <h4>No payments found</h4>
+              <p>Try changing your search keywords or year filter.</p>
               <button className="btn-cancel margin-top" onClick={clearFilters}>
                 Clear Filters
               </button>
@@ -511,7 +557,14 @@ export const Payments: React.FC = () => {
                 <table className="payments-table">
                   <thead>
                     <tr>
-                      <th>{t('payment.paymentDate')}</th>
+                      <th style={{ width: 40 }} onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.length === filteredPayments.length && filteredPayments.length > 0}
+                          onChange={handleToggleSelectAll}
+                        />
+                      </th>
+                      <th>{t('payment.date')}</th>
                       <th>{t('member.memberName')}</th>
                       <th>{t('household.houseNumber')}</th>
                       <th>{t('payment.amount')}</th>
@@ -524,7 +577,7 @@ export const Payments: React.FC = () => {
                     {filteredPayments.map((pay) => {
                       const mem = members.find((m) => m.id === pay.member_id);
                       const house = mem ? households.find((h) => h.id === mem.household_id) : null;
-                      const isSelected = selectedPaymentDetails?.id === pay.id;
+                      const isSelected = selectedPaymentDetails?.id === pay.id || selectedIds.includes(pay.id);
 
                       return (
                         <tr
@@ -532,6 +585,13 @@ export const Payments: React.FC = () => {
                           className={`payment-row ${isSelected ? 'selected' : ''}`}
                           onClick={() => setSelectedPaymentDetails(pay)}
                         >
+                          <td onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.includes(pay.id)}
+                              onChange={() => handleToggleSelect(pay.id)}
+                            />
+                          </td>
                           <td className="bold-text">
                             {new Date(pay.payment_date).toLocaleDateString()}
                           </td>
@@ -914,6 +974,19 @@ export const Payments: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* BULK DELETE CONFIRMATION MODAL */}
+      <ConfirmModal
+        isOpen={isBulkDeleteModalOpen}
+        onClose={() => setIsBulkDeleteModalOpen(false)}
+        onConfirm={handleBulkDelete}
+        title="Delete Selected Payments?"
+        message={`Are you sure you want to delete ${selectedIds.length} selected payment receipts? This action cannot be undone.`}
+        confirmText="Delete Payments"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isDeleting}
+      />
 
       {/* STYLES */}
       <style>{`

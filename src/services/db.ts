@@ -1958,8 +1958,22 @@ export const db = {
     },
     create: async (data: Omit<DeathRecord, 'id' | 'created_at' | 'updated_at'>): Promise<DeathRecord> => {
       const cleanData = {
-        ...data,
+        deceased_name: data.deceased_name,
         member_id: sanitizeUuid(data.member_id),
+        father_or_husband_name: data.father_or_husband_name || null,
+        date_of_death: data.date_of_death,
+        burial_date: data.burial_date || null,
+        burial_time: data.burial_time || null,
+        place_of_death: data.place_of_death || null,
+        age: data.age ? Number(data.age) : null,
+        gender: data.gender || 'male',
+        address: data.address || null,
+        ward_or_area: data.ward_or_area || null,
+        cause_of_death: data.cause_of_death || null,
+        medically_certified: data.medically_certified ?? false,
+        certifier_name: data.certifier_name || null,
+        notes: data.notes || null,
+        certificate_url: data.certificate_url || null,
         created_by: sanitizeUuid(data.created_by),
       };
       if (isSupabaseConfigured && supabase) {
@@ -1974,13 +1988,16 @@ export const db = {
               .single();
             if (!retryErr && retryData) return retryData as DeathRecord;
           }
+          if (error) {
+            console.error('Supabase deaths insert error:', error);
+          }
         } catch (e) {
           console.warn('Supabase deaths create notice:', e);
         }
       }
       const list = getLocalData<DeathRecord>('mahal_deaths');
       const newRecord: DeathRecord = {
-        ...data,
+        ...cleanData,
         id: 'death-' + Math.random().toString(36).substr(2, 9),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -1990,8 +2007,10 @@ export const db = {
       return newRecord;
     },
     update: async (id: string, updates: Partial<DeathRecord>): Promise<DeathRecord> => {
-      const cleanUpdates = { ...updates, updated_at: new Date().toISOString() };
-      if (cleanUpdates.created_by) cleanUpdates.created_by = sanitizeUuid(cleanUpdates.created_by);
+      const cleanUpdates: any = { ...updates, updated_at: new Date().toISOString() };
+      if ('member_id' in cleanUpdates) cleanUpdates.member_id = sanitizeUuid(cleanUpdates.member_id);
+      if ('created_by' in cleanUpdates) cleanUpdates.created_by = sanitizeUuid(cleanUpdates.created_by);
+
       if (isSupabaseConfigured && supabase) {
         try {
           const { data: updated, error } = await supabase.from('death_records').update(cleanUpdates).eq('id', id).select().single();

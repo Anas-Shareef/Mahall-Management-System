@@ -52,10 +52,45 @@ export const Households: React.FC = () => {
 
 
 
+  // Selection & Bulk Delete State
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+
   // Delete Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [householdToDelete, setHouseholdToDelete] = useState<Household | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleToggleSelectAll = () => {
+    if (selectedIds.length === filteredHouseholds.length && filteredHouseholds.length > 0) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredHouseholds.map((h) => h.id));
+    }
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      setIsDeleting(true);
+      for (const id of selectedIds) {
+        await db.households.delete(id);
+      }
+      showToast('success', `✓ Successfully deleted ${selectedIds.length} households!`);
+      setSelectedIds([]);
+      setIsBulkDeleteModalOpen(false);
+      loadData();
+    } catch (err) {
+      showToast('error', 'Failed to delete selected households');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Toast Notification State
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -497,6 +532,17 @@ export const Households: React.FC = () => {
         </div>
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.length > 0 && (
+        <div className="bulk-actions-toolbar glass-card margin-bottom-md">
+          <span className="font-weight-700 font-sm">{selectedIds.length} households selected</span>
+          <button className="pill-btn-danger font-xs" onClick={() => setIsBulkDeleteModalOpen(true)}>
+            <Trash2 size={15} />
+            <span>Delete Selected ({selectedIds.length})</span>
+          </button>
+        </div>
+      )}
+
       {/* MAIN CONTENT SPLIT */}
       <div className="households-content-split">
         {/* HOUSEHOLDS TABLE & MOBILE DIRECTORY */}
@@ -539,6 +585,13 @@ export const Households: React.FC = () => {
                 <table className="households-table">
                   <thead>
                     <tr>
+                      <th style={{ width: 40 }} onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.length === filteredHouseholds.length && filteredHouseholds.length > 0}
+                          onChange={handleToggleSelectAll}
+                        />
+                      </th>
                       <th>{t('household.houseNumber')}</th>
                       <th>{t('household.houseOwner')}</th>
                       <th>Cluster</th>
@@ -551,13 +604,20 @@ export const Households: React.FC = () => {
                   <tbody>
                     {filteredHouseholds.map((h) => {
                       const financials = getHouseholdFinancials(h.id);
-                      const isSelected = selectedHouseholdDetails?.id === h.id;
+                      const isSelected = selectedHouseholdDetails?.id === h.id || selectedIds.includes(h.id);
                       return (
                         <tr
                           key={h.id}
                           className={`household-row ${isSelected ? 'selected' : ''}`}
                           onClick={() => handleViewDetails(h)}
                         >
+                          <td onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.includes(h.id)}
+                              onChange={() => handleToggleSelect(h.id)}
+                            />
+                          </td>
                           <td className="bold-text">
                             <span className="house-badge">{formatHouseNumber(h.house_number)}</span>
                           </td>
@@ -797,6 +857,19 @@ export const Households: React.FC = () => {
           </div>
         )}
       </SidePanel>
+
+      {/* BULK DELETE CONFIRMATION MODAL */}
+      <ConfirmModal
+        isOpen={isBulkDeleteModalOpen}
+        onClose={() => setIsBulkDeleteModalOpen(false)}
+        onConfirm={handleBulkDelete}
+        title="Delete Selected Households?"
+        message={`Are you sure you want to delete ${selectedIds.length} selected households? This action cannot be undone.`}
+        confirmText="Delete Households"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isDeleting}
+      />
 
       {/* DELETE CONFIRMATION MODAL */}
       <ConfirmModal

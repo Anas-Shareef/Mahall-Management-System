@@ -136,32 +136,27 @@ export const DeathForm: React.FC = () => {
         deceased_name: deceasedName.trim(),
         member_id: isLinkedMember && memberId ? memberId : null,
         date_of_death: dateOfDeath,
-        time_of_death: timeOfDeath.trim() || null,
+        burial_date: dateOfDeath,
+        burial_time: timeOfDeath.trim() || null,
         place_of_death: placeOfDeath.trim() || null,
         cause_of_death: causeOfDeath.trim() || null,
         age: age ? Number(age) : null,
         gender,
         father_or_husband_name: fatherOrHusbandName.trim() || null,
-        mother_name: null,
-        cemetery_place: cemeteryPlace.trim() || null,
-        burial_date: dateOfDeath,
-        burial_time: null,
-        plot_number: plotNumber.trim() || null,
+        address: null,
+        ward_or_area: wardOrArea.trim() || null,
         medically_certified: medicallyCertified,
         certifier_name: certifierName.trim() || null,
-        certificate_number: certificateNumber.trim() || null,
-        ward_or_area: wardOrArea.trim() || null,
         notes: notes.trim() || null,
-        address: null,
+        certificate_url: certificateNumber.trim() || null,
         created_by: null,
-        certificate_url: certificateNumber.trim() || null
       };
 
       if (isEditMode && id) {
-        await db.deaths.update(id, payload);
+        await db.deaths.update(id, payload as any);
         showToast('success', 'Death record updated successfully');
       } else {
-        await db.deaths.create(payload);
+        await db.deaths.create(payload as any);
         // Automatically deactivate member status if linked
         if (isLinkedMember && memberId) {
           await db.members.update(memberId, { status: 'inactive' });
