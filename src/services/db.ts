@@ -753,26 +753,17 @@ export const db = {
       return getLocalData<Household>('mahal_households').find((h) => h.id === id) || null;
     },
     create: async (household: Omit<Household, 'id' | 'created_at' | 'updated_at'>): Promise<Household> => {
-      const list = getLocalData<Household>('mahal_households');
+      const existingList = await db.households.get();
       const cleanNum = household.house_number.trim().replace(/^([hH]-?)+/, '') || household.house_number.trim();
       const payload = { ...household, house_number: cleanNum };
 
-      // Check duplicate in local storage excluding raw prefix mismatches
-      const duplicateExists = list.some(
+      // Check duplicate against active households list (Supabase or Local)
+      const duplicateExists = existingList.some(
         (h) => h.house_number.trim().replace(/^([hH]-?)+/, '') === cleanNum
       );
       if (duplicateExists) {
         throw new Error(`House number H-${cleanNum} already exists`);
       }
-
-      const newHousehold: Household = {
-        ...payload,
-        id: 'house-' + Math.random().toString(36).substr(2, 9),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      list.push(newHousehold);
-      saveLocalData('mahal_households', list);
 
       if (isSupabaseConfigured && supabase) {
         try {
@@ -782,37 +773,50 @@ export const db = {
             .select()
             .single();
           if (!error && data) {
-            const idx = list.findIndex((h) => h.id === newHousehold.id);
-            if (idx !== -1) list[idx] = data as Household;
+            const list = getLocalData<Household>('mahal_households');
+            list.push(data as Household);
             saveLocalData('mahal_households', list);
             return data as Household;
           }
-        } catch (err) {
+          if (error) {
+            console.warn('Supabase insert household error:', error);
+            if (error.message && error.message.includes('unique')) {
+              throw new Error(`House number H-${cleanNum} already exists in database`);
+            }
+          }
+        } catch (err: any) {
+          if (err.message && err.message.includes('already exists')) throw err;
           console.warn('Supabase insert household notice:', err);
         }
       }
+
+      // Fallback local creation
+      const list = getLocalData<Household>('mahal_households');
+      const newHousehold: Household = {
+        ...payload,
+        id: 'house-' + Math.random().toString(36).substr(2, 9),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      list.push(newHousehold);
+      saveLocalData('mahal_households', list);
       return newHousehold;
     },
     update: async (id: string, updates: Partial<Household>): Promise<Household> => {
-      const list = getLocalData<Household>('mahal_households');
-      const idx = list.findIndex((h) => h.id === id);
-
+      const existingList = await db.households.get();
       const cleanUpdates = { ...updates, updated_at: new Date().toISOString() };
+
       if (cleanUpdates.house_number) {
         cleanUpdates.house_number = cleanUpdates.house_number.trim().replace(/^([hH]-?)+/, '') || cleanUpdates.house_number.trim();
         const targetClean = cleanUpdates.house_number;
-        // MUST filter out h.id !== id so editing a household doesn't self-conflict!
-        const duplicateExists = list.some(
+        
+        // Exclude current ID (h.id !== id) from active households list
+        const duplicateExists = existingList.some(
           (h) => h.id !== id && h.house_number.trim().replace(/^([hH]-?)+/, '') === targetClean
         );
         if (duplicateExists) {
           throw new Error(`House number H-${targetClean} already exists`);
         }
-      }
-
-      if (idx !== -1) {
-        list[idx] = { ...list[idx], ...cleanUpdates };
-        saveLocalData('mahal_households', list);
       }
 
       if (isSupabaseConfigured && supabase) {
@@ -824,6 +828,8 @@ export const db = {
             .select()
             .maybeSingle();
           if (!error && data) {
+            const list = getLocalData<Household>('mahal_households');
+            const idx = list.findIndex((h) => h.id === id);
             if (idx !== -1) {
               list[idx] = data as Household;
             } else {
@@ -832,11 +838,27 @@ export const db = {
             saveLocalData('mahal_households', list);
             return data as Household;
           }
-        } catch (err) {
+          if (error) {
+            console.warn('Supabase update household error:', error);
+            if (error.message && error.message.includes('unique')) {
+              throw new Error(`House number H-${cleanUpdates.house_number} already exists in database`);
+            }
+          }
+        } catch (err: any) {
+          if (err.message && err.message.includes('already exists')) throw err;
           console.warn('Supabase update household notice:', err);
         }
       }
-      return idx !== -1 ? list[idx] : ({ ...cleanUpdates, id } as Household);
+
+      // Fallback local update
+      const list = getLocalData<Household>('mahal_households');
+      const idx = list.findIndex((h) => h.id === id);
+      if (idx !== -1) {
+        list[idx] = { ...list[idx], ...cleanUpdates };
+        saveLocalData('mahal_households', list);
+        return list[idx];
+      }
+      return { ...cleanUpdates, id } as Household;
     },
     delete: async (id: string): Promise<boolean> => {
       const list = getLocalData<Household>('mahal_households');
