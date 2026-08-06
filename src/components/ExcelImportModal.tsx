@@ -178,7 +178,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
     place_of_death: ['place_of_death', 'place', 'location', 'hospital'],
   };
 
-  // Precise column cell value lookup supporting exact keys, label matches, and unambiguous aliases
+  // Precise column cell value lookup supporting exact keys, label matches, unambiguous aliases, and Value Type Auto-Detection
   const getCellValue = (row: Record<string, string>, col: ColumnGuide, _colIndex: number): string => {
     const targetKey = col.key.toLowerCase().replace(/[^a-z0-9_]/g, '');
     const targetLabel = col.label.toLowerCase().replace(/[^a-z0-9_]/g, '');
@@ -187,12 +187,12 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
 
     const aliases = FIELD_ALIASES[col.key] || FIELD_ALIASES[targetKey] || [targetKey, targetLabel, cleanTargetKey, cleanTargetLabel];
 
+    // 1. Check exact key/label or alias list match
     for (const [rKey, rVal] of Object.entries(row)) {
       const cleanRKey = rKey.toLowerCase().replace(/[^a-z0-9]/g, '');
       const rawRKey = rKey.toLowerCase().replace(/[^a-z0-9_]/g, '');
       if (!cleanRKey) continue;
 
-      // Match exact key/label or unambiguous alias list
       if (
         rawRKey === targetKey ||
         rawRKey === targetLabel ||
@@ -204,6 +204,37 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
           return String(rVal).trim();
         }
       }
+    }
+
+    // 2. Value Type Auto-Detection fallback
+    const values = Object.values(row).map((v) => String(v || '').trim()).filter(Boolean);
+
+    // Date Auto-Detection
+    if (['payment_date', 'date', 'nikah_date', 'date_of_death', 'donation_date', 'burial_date'].includes(targetKey)) {
+      const dateVal = values.find((v) => /^\d{1,4}[\/\.-]\d{1,4}[\/\.-]\d{1,4}$/.test(v));
+      if (dateVal) return dateVal;
+    }
+
+    // Amount Auto-Detection
+    if (['amount', 'fee', 'total', 'paid'].includes(targetKey)) {
+      const numVal = values.find((v) => /^[₹$]?\s*\d+([.,]\d+)?\s*$/.test(v) && !/^\d{1,4}[\/\.-]\d{1,4}[\/\.-]\d{1,4}$/.test(v));
+      if (numVal) return numVal;
+    }
+
+    // Payment Method Auto-Detection
+    if (['payment_method', 'method', 'mode'].includes(targetKey)) {
+      const methodVal = values.find((v) => ['cash', 'upi', 'bank', 'bank_transfer', 'cheque', 'online', 'card', 'ഗൂഗിൾ പേ'].includes(v.toLowerCase()));
+      if (methodVal) return methodVal;
+    }
+
+    // Member / Person Name Auto-Detection
+    if (['member_name', 'name', 'house_owner_name', 'donor_name', 'groom_name', 'deceased_name'].includes(targetKey)) {
+      const nameVal = values.find((v) => 
+        !/^\d+$/.test(v) && 
+        !/^\d{1,4}[\/\.-]\d{1,4}[\/\.-]\d{1,4}$/.test(v) && 
+        !['cash', 'upi', 'bank', 'bank_transfer', 'active', 'inactive'].includes(v.toLowerCase())
+      );
+      if (nameVal) return nameVal;
     }
 
     return '—';

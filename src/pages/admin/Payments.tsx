@@ -1450,36 +1450,54 @@ export const Payments: React.FC = () => {
         moduleName="Payments"
         sampleCsvFilename="payments_sample_template.csv"
         columns={[
-          { key: 'receipt_number', label: 'Receipt No', description: 'Unique payment reference number', example: 'PAY-2026-001' },
           { key: 'member_name', label: 'Member Name', description: 'Name of the paying member', example: 'MUHAMMED SINAD' },
           { key: 'amount', label: 'Amount', description: 'Payment amount in numbers', example: '15000' },
-          { key: 'payment_date', label: 'Date', description: 'Format YYYY-MM-DD', example: '2026-07-28' },
+          { key: 'payment_date', label: 'Date', description: 'Format YYYY-MM-DD or MM/DD/YYYY', example: '2026-07-28' },
           { key: 'payment_method', label: 'Method', description: 'Cash / UPI / Bank Transfer / etc.', example: 'cash' },
+          { key: 'receipt_number', label: 'Receipt No', description: 'Unique payment reference number (optional)', example: 'PAY-2026-001' },
         ]}
         sampleRow={{
-          receipt_number: 'PAY-2026-001',
           member_name: 'MUHAMMED SINAD',
           amount: '15000',
           payment_date: '2026-07-28',
           payment_method: 'cash',
+          receipt_number: 'PAY-2026-001',
         }}
         onImport={async (parsedRows) => {
           for (const row of parsedRows) {
-            const rawMemberName = (row.member_name || row.name || row.member || '').toLowerCase().trim();
+            const values = Object.values(row).map((v) => String(v || '').trim()).filter(Boolean);
+
+            const detectedName = row.member_name || row.name || row.member || values.find((v) => 
+              !/^\d+$/.test(v) && 
+              !/^\d{1,4}[\/\.-]\d{1,4}[\/\.-]\d{1,4}$/.test(v) && 
+              !['cash', 'upi', 'bank', 'bank_transfer'].includes(v.toLowerCase())
+            ) || '';
+
+            const detectedAmountStr = row.amount || row.amt || row.total || row.paid || values.find((v) => 
+              /^[₹$]?\s*\d+([.,]\d+)?\s*$/.test(v) && !/^\d{1,4}[\/\.-]\d{1,4}[\/\.-]\d{1,4}$/.test(v)
+            ) || '1000';
+
+            const detectedMethodStr = (row.payment_method || row.method || row.mode || values.find((v) => 
+              ['cash', 'upi', 'bank', 'bank_transfer', 'cheque'].includes(v.toLowerCase())
+            ) || 'cash').toLowerCase();
+
+            const detectedDateStr = row.payment_date || row.date || values.find((v) => 
+              /^\d{1,4}[\/\.-]\d{1,4}[\/\.-]\d{1,4}$/.test(v)
+            ) || new Date().toISOString().split('T')[0];
+
+            const rawMemberName = detectedName.toLowerCase().trim();
             const matchingMember = members.find(
               (m) => m.name.toLowerCase().trim() === rawMemberName
             );
             const targetMemberId = matchingMember ? matchingMember.id : (members[0]?.id || 'member-1');
-
-            const rawAmount = parseFloat(row.amount || row.amt || row.total || row.paid || '0');
-            const rawMethod = (row.payment_method || row.method || row.mode || 'cash').toLowerCase();
+            const rawAmount = parseFloat(detectedAmountStr) || 1000;
 
             await db.payments.create({
               member_id: targetMemberId,
               subscription_id: years[0]?.id || 'sub-1',
-              amount: rawAmount > 0 ? rawAmount : 1000,
-              payment_method: (['cash', 'upi', 'bank_transfer'].includes(rawMethod) ? rawMethod : 'cash') as any,
-              payment_date: row.payment_date || row.date || new Date().toISOString().split('T')[0],
+              amount: rawAmount,
+              payment_method: (['cash', 'upi', 'bank_transfer'].includes(detectedMethodStr) ? detectedMethodStr : 'cash') as any,
+              payment_date: detectedDateStr,
               reference_number: row.receipt_number || row.receipt_no || row.transaction_id || row.reference_number || null,
               notes: row.category || 'Batch imported',
               recorded_by: user?.id || 'admin',
