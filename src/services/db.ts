@@ -36,6 +36,7 @@ export interface Household {
 
 export interface Member {
   id: string;
+  member_number?: string;
   user_id: string | null;
   household_id: string;
   name: string;

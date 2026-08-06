@@ -14,7 +14,8 @@ type SettingsSection =
   | 'administrator'
   | 'certificates'
   | 'notifications'
-  | 'backup';
+  | 'backup'
+  | 'portal';
 
 export const SharedSettings: React.FC = () => {
   const { user, updateUserProfile } = useAuth();
@@ -42,6 +43,9 @@ export const SharedSettings: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isPasswordUpdating, setIsPasswordUpdating] = useState(false);
+  // Member Portal Settings
+  const [maxPortalMembers, setMaxPortalMembers] = useState<number>(branding.maxPortalMembersPerHousehold || 2);
+  const [enablePortal, setEnablePortal] = useState<boolean>(branding.enableMemberPortal ?? true);
 
   // Certificate Templates State
   const [activeCertTab, setActiveCertTab] = useState<'nikah' | 'noc' | 'membership'>('nikah');
@@ -131,6 +135,8 @@ export const SharedSettings: React.FC = () => {
         registrationNumber: regNo.trim(),
         website: website.trim(),
         adminDisplayName: adminName.trim(),
+        maxPortalMembersPerHousehold: maxPortalMembers,
+        enableMemberPortal: enablePortal,
       });
 
       if (user && (adminName !== user.name || adminEmail !== user.email || adminPhone !== user.phone)) {
@@ -317,6 +323,7 @@ export const SharedSettings: React.FC = () => {
           <option value="certificates">📜 Certificate Templates</option>
           <option value="notifications">🔔 Notifications & Alerts</option>
           <option value="backup">💾 Backup & Data Export</option>
+          <option value="portal">🔑 Member Portal Settings</option>
         </select>
       </div>
 
@@ -360,6 +367,14 @@ export const SharedSettings: React.FC = () => {
         >
           <Database size={16} />
           <span>Backup & Data Export</span>
+        </button>
+
+        <button
+          className={`settings-pill-tab ${activeSection === 'portal' ? 'active' : ''}`}
+          onClick={() => setActiveSection('portal')}
+        >
+          <ShieldCheck size={16} />
+          <span>Member Portal Settings</span>
         </button>
       </div>
 
@@ -826,6 +841,55 @@ export const SharedSettings: React.FC = () => {
                 <button className="pill-btn-secondary font-xs" style={{ padding: '10px 18px', borderRadius: 9999 }} onClick={handleExportHouseholdsCsv}>
                   <Download size={14} /> Export CSV
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SECTION 6: MEMBER PORTAL SETTINGS */}
+        {activeSection === 'portal' && (
+          <div className="settings-section-card glass-card animate-fade-in" style={{ borderRadius: 24, padding: 32, border: '1.5px solid #e2e8f0', background: '#ffffff', boxShadow: '0 4px 20px rgba(15, 23, 42, 0.03)' }}>
+            <div className="section-head margin-bottom-lg" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 14, background: '#ecfdf5', color: '#01A350', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ShieldCheck size={24} />
+              </div>
+              <div>
+                <h3 className="font-lg font-weight-800 text-dark margin-0">Member Portal Settings</h3>
+                <p className="font-xs color-subtle margin-top-3xs">Configure maximum portal members per household, authentication features, and access policies.</p>
+              </div>
+            </div>
+
+            <div className="settings-form-body flex-col gap-md">
+              <div className="setting-option-card flex-between align-items-center flex-wrap gap-md" style={{ padding: 20, borderRadius: 16, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                <div style={{ flex: 1, minWidth: 260 }}>
+                  <h4 className="font-sm font-weight-800 text-dark margin-0">Maximum Portal Members Per Household</h4>
+                  <p className="font-2xs color-subtle margin-top-3xs">Controls how many household members are permitted to hold active Member Portal login accounts simultaneously (Default: 2).</p>
+                </div>
+                <div style={{ width: 140 }}>
+                  <input
+                    type="number"
+                    className="form-control font-weight-800 text-emerald"
+                    min="1"
+                    max="10"
+                    value={maxPortalMembers}
+                    onChange={(e) => setMaxPortalMembers(Math.max(1, Math.min(10, parseInt(e.target.value) || 1)))}
+                  />
+                </div>
+              </div>
+
+              <div className="setting-option-card flex-between align-items-center flex-wrap gap-md" style={{ padding: 20, borderRadius: 16, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                <div style={{ flex: 1, minWidth: 260 }}>
+                  <h4 className="font-sm font-weight-800 text-dark margin-0">Enable Member Portal Authentication</h4>
+                  <p className="font-2xs color-subtle margin-top-3xs">When enabled, members with active portal credentials can log in to view household subscription ledgers.</p>
+                </div>
+                <label className="ios-toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={enablePortal}
+                    onChange={(e) => setEnablePortal(e.target.checked)}
+                  />
+                  <span className="ios-toggle-slider"></span>
+                </label>
               </div>
             </div>
           </div>

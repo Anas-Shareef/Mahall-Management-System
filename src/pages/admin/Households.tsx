@@ -6,13 +6,14 @@ import type { Household, Member, MemberSubscription, SubscriptionYear } from '..
 import { 
   Plus, Edit2, Trash2, Search, Filter, Home, Users, X, AlertCircle, 
   CheckCircle, CheckCircle2, TrendingUp, Phone, MapPin, Download, Calendar,
-  FileSpreadsheet
+  FileSpreadsheet, ShieldCheck
 } from 'lucide-react';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { HouseholdDetailsModal } from '../../components/HouseholdDetailsModal';
 import { GrantAccessModal } from '../../components/GrantAccessModal';
 import { SidePanel } from '../../components/SidePanel';
 import { ExcelImportModal } from '../../components/ExcelImportModal';
+import { useOrganization } from '../../contexts/OrganizationContext';
 
 // Helper to safely format house numbers without double H- prefix
 const formatHouseNumber = (raw?: string | null): string => {
@@ -24,6 +25,7 @@ const formatHouseNumber = (raw?: string | null): string => {
 export const Households: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { branding } = useOrganization();
   
   // Data States
   const [households, setHouseholds] = useState<Household[]>([]);
@@ -36,6 +38,7 @@ export const Households: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedArea, setSelectedArea] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [selectedPortalCapacity, setSelectedPortalCapacity] = useState('');
   const [selectedYearId, setSelectedYearId] = useState<string>('all');
 
   const [isExporting, setIsExporting] = useState(false);
@@ -310,6 +313,7 @@ export const Households: React.FC = () => {
     const list = households.filter((h) => {
       const q = searchQuery.toLowerCase().trim();
       const cleanQ = q.replace(/^h-?/, '');
+      const hMembers = members.filter((m) => m.household_id === h.id);
 
       const matchesSearch =
         !q ||
@@ -317,12 +321,30 @@ export const Households: React.FC = () => {
         h.house_number.toLowerCase().includes(cleanQ) ||
         h.house_owner_name.toLowerCase().includes(q) ||
         (h.area && h.area.toLowerCase().includes(q)) ||
-        (h.house_owner_phone && h.house_owner_phone.includes(q));
+        (h.house_owner_phone && h.house_owner_phone.includes(q)) ||
+        hMembers.some(
+          (m) =>
+            m.name.toLowerCase().includes(q) ||
+            (m.member_number && m.member_number.toLowerCase().includes(q)) ||
+            (m.email && m.email.toLowerCase().includes(q)) ||
+            (m.phone && m.phone.includes(q))
+        );
 
       const matchesArea = selectedArea ? h.area === selectedArea : true;
       const matchesStatus = selectedStatus ? h.status === selectedStatus : true;
 
-      return matchesSearch && matchesArea && matchesStatus;
+      const activePortalCount = hMembers.filter(
+        (m) => m.portal_access || (m.portal_status && m.portal_status !== 'not_granted' && m.portal_status !== 'revoked')
+      ).length;
+      const maxLimit = branding.maxPortalMembersPerHousehold || 2;
+
+      let matchesPortal = true;
+      if (selectedPortalCapacity === 'has_access') matchesPortal = activePortalCount > 0;
+      else if (selectedPortalCapacity === 'no_access') matchesPortal = activePortalCount === 0;
+      else if (selectedPortalCapacity === 'available') matchesPortal = activePortalCount < maxLimit;
+      else if (selectedPortalCapacity === 'full') matchesPortal = activePortalCount >= maxLimit;
+
+      return matchesSearch && matchesArea && matchesStatus && matchesPortal;
     });
 
     // Sort by house number in ascending numerical order
@@ -334,12 +356,13 @@ export const Households: React.FC = () => {
       }
       return a.house_number.localeCompare(b.house_number, undefined, { numeric: true, sensitivity: 'base' });
     });
-  }, [households, searchQuery, selectedArea, selectedStatus]);
+  }, [households, members, searchQuery, selectedArea, selectedStatus, selectedPortalCapacity, branding.maxPortalMembersPerHousehold]);
 
   const clearFilters = () => {
     setSearchQuery('');
     setSelectedArea('');
     setSelectedStatus('');
+    setSelectedPortalCapacity('');
   };
 
   const formatCurrency = (val: number) => {
@@ -509,6 +532,18 @@ export const Households: React.FC = () => {
               <option value="inactive">{t('household.inactive')}</option>
             </select>
           </div>
+
+          {/* Portal Access Filter Dropdown */}
+          <div className="filter-select-wrapper">
+            <ShieldCheck size={15} className="select-icon" />
+            <select value={selectedPortalCapacity} onChange={(e) => setSelectedPortalCapacity(e.target.value)}>
+              <option value="">Portal Members: All</option>
+              <option value="has_access">Has Portal Access</option>
+              <option value="no_access">No Portal Access</option>
+              <option value="available">Slots Available</option>
+              <option value="full">Capacity Full ({branding.maxPortalMembersPerHousehold || 2}/{branding.maxPortalMembersPerHousehold || 2})</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -586,6 +621,7 @@ export const Households: React.FC = () => {
                       <th>{t('household.houseOwner')}</th>
                       <th>Cluster</th>
                       <th>{t('household.membersCount')}</th>
+                      <th>Portal Access</th>
                       <th>{t('household.balance')}</th>
                       <th>{t('household.status')}</th>
                       <th style={{ textAlign: 'right' }}>{t('common.actions')}</th>
@@ -595,6 +631,10 @@ export const Households: React.FC = () => {
                     {filteredHouseholds.map((h) => {
                       const financials = getHouseholdFinancials(h.id);
                       const isSelected = selectedHouseholdDetails?.id === h.id || selectedIds.includes(h.id);
+                      const hMembers = members.filter((m) => m.household_id === h.id);
+                      const portalMembersCount = hMembers.filter((m) => m.portal_access || (m.portal_status && m.portal_status !== 'not_granted' && m.portal_status !== 'revoked')).length;
+                      const maxLimit = branding.maxPortalMembersPerHousehold || 2;
+
                       return (
                         <tr
                           key={h.id}
@@ -627,6 +667,11 @@ export const Households: React.FC = () => {
                           <td>
                             <span className="members-pill">
                               <Users size={12} /> {financials.membersCount}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`status-pill ${portalMembersCount >= maxLimit ? 'paid' : portalMembersCount > 0 ? 'partially_paid' : 'unpaid'}`} style={{ fontSize: '11.5px', padding: '4px 8px' }}>
+                              <ShieldCheck size={12} /> {portalMembersCount} / {maxLimit}
                             </span>
                           </td>
                           <td>
@@ -803,40 +848,74 @@ export const Households: React.FC = () => {
                 <table className="mini-ledger-table" style={{ width: '100%', fontSize: '12.5px' }}>
                   <thead>
                     <tr>
-                      <th style={{ textAlign: 'left', padding: '8px' }}>Member Name</th>
+                      <th style={{ textAlign: 'left', padding: '8px' }}>Member & Number</th>
+                      <th style={{ textAlign: 'center', padding: '8px' }}>Portal</th>
                       <th style={{ textAlign: 'right', padding: '8px' }}>Due</th>
                       <th style={{ textAlign: 'right', padding: '8px' }}>Paid</th>
                       <th style={{ textAlign: 'right', padding: '8px' }}>Balance</th>
+                      <th style={{ textAlign: 'right', padding: '8px' }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {householdMembersDetails.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="no-data-cell" style={{ textAlign: 'center', padding: '16px', color: '#94a3b8' }}>
+                        <td colSpan={6} className="no-data-cell" style={{ textAlign: 'center', padding: '16px', color: '#94a3b8' }}>
                           No members added to this household yet.
                         </td>
                       </tr>
                     ) : (
                       <>
-                        {householdMembersDetails.map((m) => (
-                          <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                            <td style={{ padding: '8px', fontWeight: 700, color: '#0f172a' }}>
-                              {m.name} <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 400 }}>({m.relationship})</span>
-                            </td>
-                            <td style={{ padding: '8px', textAlign: 'right' }}>{formatCurrency(m.totalDue)}</td>
-                            <td style={{ padding: '8px', textAlign: 'right', color: '#00966b', fontWeight: 700 }}>{formatCurrency(m.totalPaid)}</td>
-                            <td style={{ padding: '8px', textAlign: 'right', color: m.balance > 0 ? '#dc2626' : '#00966b', fontWeight: 800 }}>
-                              {formatCurrency(m.balance)}
-                            </td>
-                          </tr>
-                        ))}
+                        {householdMembersDetails.map((m) => {
+                          const fullM = members.find((mem) => mem.id === m.id);
+                          const hasPortal = fullM?.portal_access || (fullM?.portal_status && fullM.portal_status !== 'not_granted' && fullM.portal_status !== 'revoked');
+                          const mNo = fullM?.member_number || `MEM-${m.id.replace(/\D/g, '').slice(0, 6) || m.id.slice(0, 6)}`;
+                          return (
+                            <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '8px', fontWeight: 700, color: '#0f172a' }}>
+                                <div>
+                                  <span>{m.name}</span>
+                                  <span style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 400, display: 'block' }}>
+                                    {mNo} • {m.relationship}
+                                  </span>
+                                </div>
+                              </td>
+                              <td style={{ padding: '8px', textAlign: 'center' }}>
+                                <span className={`status-pill ${hasPortal ? 'paid' : 'unpaid'}`} style={{ fontSize: '10px', padding: '2px 6px' }}>
+                                  {hasPortal ? 'Portal ✓' : 'No Portal'}
+                                </span>
+                              </td>
+                              <td style={{ padding: '8px', textAlign: 'right' }}>{formatCurrency(m.totalDue)}</td>
+                              <td style={{ padding: '8px', textAlign: 'right', color: '#00966b', fontWeight: 700 }}>{formatCurrency(m.totalPaid)}</td>
+                              <td style={{ padding: '8px', textAlign: 'right', color: m.balance > 0 ? '#dc2626' : '#00966b', fontWeight: 800 }}>
+                                {formatCurrency(m.balance)}
+                              </td>
+                              <td style={{ padding: '8px', textAlign: 'right' }}>
+                                <button
+                                  type="button"
+                                  className="action-icon-btn edit"
+                                  onClick={() => {
+                                    if (fullM) {
+                                      setMemberForAccess(fullM);
+                                      setIsGrantModalOpen(true);
+                                    }
+                                  }}
+                                  title="Manage Member Portal Access"
+                                  style={{ width: 28, height: 28, minWidth: 28, minHeight: 28 }}
+                                >
+                                  <ShieldCheck size={13} />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
                         <tr style={{ background: '#f8fafc', fontWeight: 800, borderTop: '2px solid #e2e8f0' }}>
-                          <td style={{ padding: '10px 8px', color: '#0f172a' }}>Consolidated Total</td>
+                          <td colSpan={2} style={{ padding: '10px 8px', color: '#0f172a' }}>Consolidated Total</td>
                           <td style={{ padding: '10px 8px', textAlign: 'right' }}>{formatCurrency(householdMembersDetails.reduce((sum, m) => sum + m.totalDue, 0))}</td>
                           <td style={{ padding: '10px 8px', textAlign: 'right', color: '#00966b' }}>{formatCurrency(householdMembersDetails.reduce((sum, m) => sum + m.totalPaid, 0))}</td>
                           <td style={{ padding: '10px 8px', textAlign: 'right', color: householdMembersDetails.reduce((sum, m) => sum + m.balance, 0) > 0 ? '#dc2626' : '#00966b', fontSize: '14px' }}>
                             {formatCurrency(householdMembersDetails.reduce((sum, m) => sum + m.balance, 0))}
                           </td>
+                          <td></td>
                         </tr>
                       </>
                     )}

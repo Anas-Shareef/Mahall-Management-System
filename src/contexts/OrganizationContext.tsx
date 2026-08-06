@@ -17,6 +17,8 @@ export interface OrganizationBranding {
   adminDisplayName: string;
   adminTitle: string;
   defaultLanguage: 'en' | 'ml';
+  maxPortalMembersPerHousehold: number;
+  enableMemberPortal: boolean;
 }
 
 interface OrganizationContextProps {
@@ -42,6 +44,8 @@ const DEFAULT_BRANDING: OrganizationBranding = {
   adminDisplayName: 'Muhammed Anas',
   adminTitle: 'Administrator',
   defaultLanguage: 'en',
+  maxPortalMembersPerHousehold: 2,
+  enableMemberPortal: true,
 };
 
 const OrganizationContext = createContext<OrganizationContextProps | undefined>(undefined);

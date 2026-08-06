@@ -7,6 +7,8 @@ import {
   Eye, EyeOff, Copy, Check, Sparkles
 } from 'lucide-react';
 
+import { useOrganization } from '../contexts/OrganizationContext';
+
 interface GrantAccessModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -76,6 +78,7 @@ export const GrantAccessModal: React.FC<GrantAccessModalProps> = ({
   houseNo = '',
   onSuccess,
 }) => {
+  const { branding } = useOrganization();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('Mahall@12345');
   const [showPassword, setShowPassword] = useState(false);
@@ -109,6 +112,22 @@ export const GrantAccessModal: React.FC<GrantAccessModalProps> = ({
     if (/[^\x00-\x7F]/.test(email)) {
       setErrorMsg('Login email address must contain English characters only (e.g. aboobackar@mahal.com).');
       return;
+    }
+
+    // Check household portal member capacity limit
+    try {
+      const houseMembers = await db.members.getByHousehold(member.household_id);
+      const activePortalMembers = houseMembers.filter(
+        (m) => m.id !== member.id && (m.portal_access || (m.portal_status && m.portal_status !== 'not_granted' && m.portal_status !== 'revoked'))
+      );
+
+      const maxLimit = branding.maxPortalMembersPerHousehold || 2;
+      if (activePortalMembers.length >= maxLimit) {
+        setErrorMsg(`⚠ Portal member limit reached (${activePortalMembers.length}/${maxLimit}). This household already has ${activePortalMembers.length} member(s) with active portal access. To add portal access for ${member.name}, please remove or revoke portal access from an existing member first.`);
+        return;
+      }
+    } catch (e) {
+      console.warn('Household portal limit check notice:', e);
     }
 
     setIsSubmitting(true);
