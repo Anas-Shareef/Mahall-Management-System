@@ -1052,6 +1052,7 @@ export const Deaths: React.FC = () => {
         .header-cta-group { display: flex; align-items: center; gap: 10px; }
 
         .stats-dashboard-grid-6 { margin-bottom: 24px !important; }
+        .workspace-filter-toolbar { margin-bottom: 24px !important; }
 
         .search-box { position: relative; display: flex; align-items: center; width: 100%; }
         .search-box .search-icon { position: absolute; left: 14px !important; color: #9ca3af; pointer-events: none; z-index: 2; }

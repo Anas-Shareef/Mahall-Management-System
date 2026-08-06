@@ -4568,26 +4568,39 @@ select.custom-select-pill:focus,
     align-items: stretch !important;
     gap: 14px !important;
     width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .header-cta-group {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: 8px !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
     width: 100% !important;
+    box-sizing: border-box !important;
   }
 
+  .header-cta-group > button,
+  .header-cta-group > a,
   .header-cta-group .pill-btn-ghost {
-    flex: 1 !important;
+    width: 100% !important;
     justify-content: center !important;
+    box-sizing: border-box !important;
   }
 
   .header-cta-group .add-btn,
   .header-cta-group .primary-btn,
   .header-cta-group .pill-btn-primary {
+    grid-column: span 2 !important;
     width: 100% !important;
     justify-content: center !important;
+    box-sizing: border-box !important;
   }
+}
+
+/* ── UNIVERSAL FILTER BAR & TOOLBAR BOTTOM SPACING ── */
+.workspace-filter-toolbar,
+.filter-bar {
+  margin-bottom: 20px !important;
 }
 
 /* ── UNIVERSAL HIGH-PREMIUM BULK ACTION TOOLBAR ── */
