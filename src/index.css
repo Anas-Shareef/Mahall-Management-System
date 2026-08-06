@@ -4519,6 +4519,75 @@ select.custom-select-pill:focus,
   box-shadow: 0 0 0 3px rgba(0, 150, 107, 0.15) !important;
 }
 
+/* ── UNIVERSAL FORM INPUT WITH ICON FIX (PREVENTS ICON & PLACEHOLDER OVERLAP) ── */
+.input-with-icon,
+.input-icon-wrapper,
+.field-with-icon,
+.input-group-icon,
+.dhic-input-wrapper {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+
+.input-with-icon .input-icon,
+.input-with-icon > svg,
+.input-icon-wrapper > svg,
+.field-with-icon > svg,
+.input-group-icon > svg,
+.dhic-input-wrapper > svg,
+.dhic-input-icon {
+  position: absolute !important;
+  left: 14px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  color: #00966b !important;
+  pointer-events: none !important;
+  z-index: 2 !important;
+  width: 16px !important;
+  height: 16px !important;
+}
+
+.input-with-icon input,
+.input-with-icon select,
+.input-icon-wrapper input,
+.input-icon-wrapper select,
+.field-with-icon input,
+.input-group-icon input,
+.dhic-input-wrapper input,
+.dhic-input-wrapper select,
+.dhic-input {
+  padding-left: 42px !important;
+}
+
+/* SEARCH BOX INPUT WITH ICON */
+.search-box {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  flex: 1 !important;
+  min-width: 240px !important;
+}
+
+.search-box .search-icon,
+.search-box > svg {
+  position: absolute !important;
+  left: 14px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  color: #9ca3af !important;
+  pointer-events: none !important;
+  z-index: 2 !important;
+  width: 16px !important;
+  height: 16px !important;
+}
+
+.search-box input {
+  padding-left: 42px !important;
+  padding-right: 36px !important;
+}
+
 
 
 
