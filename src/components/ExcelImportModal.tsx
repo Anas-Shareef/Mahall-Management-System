@@ -148,14 +148,16 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
 
   // Alias map for precise column matching without cross-column collisions
   const FIELD_ALIASES: Record<string, string[]> = {
-    house_number: ['house_number', 'house_no', 'houseno', 'hno', 'h_no', 'house', 'housenumber'],
+    house_number: ['house_number', 'household_number', 'household_no', 'householdno', 'house_no', 'houseno', 'hno', 'h_no', 'house', 'housenumber', 'household'],
+    household_number: ['household_number', 'house_number', 'household_no', 'householdno', 'house_no', 'houseno', 'hno', 'h_no', 'house', 'housenumber', 'household'],
     house_owner_name: ['house_owner_name', 'house_owner', 'owner_name', 'ownername', 'owner', 'head_name', 'headofhouse'],
-    primary_contact_phone: ['primary_contact_phone', 'owner_phone', 'phone_number', 'phone', 'mobile_number', 'mobile', 'contact_number', 'contact'],
+    primary_contact_phone: ['primary_contact_phone', 'owner_phone', 'phone_number', 'phone', 'mobile_number', 'mobile', 'contact_number', 'contact', 'telephone'],
+    phone: ['phone', 'primary_contact_phone', 'owner_phone', 'phone_number', 'mobile_number', 'mobile', 'contact_number', 'contact', 'telephone'],
     area: ['area', 'cluster_or_area', 'cluster', 'ward', 'zone'],
     status: ['status', 'state'],
     name: ['name', 'member_name', 'full_name'],
-    email: ['email', 'email_address', 'mail'],
-    relationship: ['relationship', 'family_role', 'relation'],
+    email: ['email', 'email_address', 'mail', 'email_id'],
+    relationship: ['relationship', 'family_role', 'relation', 'rel'],
     receipt_number: ['receipt_number', 'receipt_no', 'receiptno', 'ref_no', 'reference_number'],
     amount: ['amount', 'fee', 'total_amount', 'paid_amount'],
     payment_date: ['payment_date', 'date', 'txn_date'],
@@ -180,7 +182,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
     const cleanTargetKey = col.key.toLowerCase().replace(/[^a-z0-9]/g, '');
     const cleanTargetLabel = col.label.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-    const aliases = FIELD_ALIASES[col.key] || [targetKey, targetLabel, cleanTargetKey, cleanTargetLabel];
+    const aliases = FIELD_ALIASES[col.key] || FIELD_ALIASES[targetKey] || [targetKey, targetLabel, cleanTargetKey, cleanTargetLabel];
 
     for (const [rKey, rVal] of Object.entries(row)) {
       const cleanRKey = rKey.toLowerCase().replace(/[^a-z0-9]/g, '');
