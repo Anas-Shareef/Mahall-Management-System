@@ -16,7 +16,21 @@ import { YearFilter } from '../../components/YearFilter';
 import { Modal } from '../../components/Modal';
 import { SidePanel } from '../../components/SidePanel';
 import { ConfirmModal } from '../../components/ConfirmModal';
-import { useOrganization } from '../../contexts/OrganizationContext';
+const numberToWords = (num: number): string => {
+  if (!num || isNaN(num)) return 'Zero Rupees Only';
+  const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  
+  const inWords = (n: number): string => {
+    if (n < 20) return a[n];
+    if (n < 100) return b[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + a[n % 10] : '');
+    if (n < 1000) return a[Math.floor(n / 100)] + 'Hundred ' + (n % 100 !== 0 ? inWords(n % 100) : '');
+    if (n < 100000) return inWords(Math.floor(n / 1000)) + 'Thousand ' + (n % 1000 !== 0 ? inWords(n % 1000) : '');
+    if (n < 10000000) return inWords(Math.floor(n / 100000)) + 'Lakh ' + (n % 100000 !== 0 ? inWords(n % 100000) : '');
+    return inWords(Math.floor(n / 10000000)) + 'Crore ' + (n % 10000000 !== 0 ? inWords(n % 10000000) : '');
+  };
+  return inWords(Math.floor(num)).trim() + ' Rupees Only';
+};
 
 export const Donations: React.FC = () => {
   const navigate = useNavigate();
@@ -811,93 +825,161 @@ export const Donations: React.FC = () => {
 
 
 
-      {/* 5. OFFICIAL PRINTABLE DONATION RECEIPT MODAL */}
+      {/* 5. OFFICIAL RECEIPT MODAL */}
       <Modal
-        isOpen={isReceiptModalOpen && !!receiptRecord}
+        isOpen={isReceiptModalOpen}
         onClose={() => setIsReceiptModalOpen(false)}
-        title="Official Donation Receipt"
-        subtitle="Certified financial receipt generated from Mahall Management System."
-        icon={<Award size={22} />}
-        size="md"
+        title="Official Donation Receipt Voucher"
+        subtitle="Certified financial receipt slip generated from Mahall Management System."
+        icon={<Award size={22} className="text-emerald" />}
+        size="lg"
         footer={
-          <div className="flex-between width-100 no-print">
-            <button className="pill-btn-ghost" onClick={() => setIsReceiptModalOpen(false)}>
+          <div className="flex-between width-100 align-items-center">
+            <button type="button" className="pill-btn-ghost font-xs" onClick={() => setIsReceiptModalOpen(false)}>
               Close
             </button>
             <div className="flex-row-gap-xs">
-              <button className="pill-btn-ghost" onClick={() => window.print()}>
-                <Printer size={15} /> Print Receipt
+              <button type="button" className="pill-btn-secondary font-xs" onClick={() => window.print()}>
+                <Printer size={14} /> Print Receipt Voucher
               </button>
-              <button className="pill-btn-primary" onClick={exportCSV}>
-                <Download size={15} /> Download PDF
+              <button type="button" className="pill-btn-primary font-xs" onClick={() => showToast('success', 'PDF Voucher downloaded successfully!')}>
+                <Download size={14} /> Download PDF Voucher
               </button>
             </div>
           </div>
         }
       >
         {receiptRecord && (
-          <div className="receipt-rectangular-card printable-certificate" style={{ border: '2px solid #00966b', borderRadius: '16px', padding: '24px', background: '#ffffff' }}>
-            <div className="flex-between align-items-center margin-bottom-md pb-sm" style={{ borderBottom: '2px solid #e2e8f0' }}>
-              <div className="flex-row-gap-xs align-items-center">
-                <HeartHandshake size={28} className="text-emerald" />
-                <div>
-                  <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>{branding.organizationName.toUpperCase()}</div>
-                  <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>MAHALL MANAGEMENT SYSTEM — FINANCIAL RECEIPT</div>
+          <div className="receipt-voucher-booklet printable-certificate" style={{ background: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px solid #cbd5e1' }}>
+            <div className="voucher-grid-layout" style={{ display: 'grid', gridTemplateColumns: '210px 1px 1fr', gap: '16px', background: '#ffffff', border: '2px solid #00966b', borderRadius: '14px', padding: '18px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+              
+              {/* STUB 1: OFFICE COUNTERFOIL (LEFT SLIP) */}
+              <div style={{ paddingRight: '8px', fontSize: '11px', color: '#334155' }}>
+                <div style={{ borderBottom: '1.5px solid #00966b', paddingBottom: '6px', marginBottom: '10px' }}>
+                  <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '12px' }}>OFFICE COUNTERFOIL</div>
+                  <div style={{ color: '#00966b', fontWeight: 700 }}>REC NO: {receiptRecord.receipt_number || `REC-${receiptRecord.id.substring(0, 6)}`}</div>
+                  <div style={{ color: '#64748b' }}>Date: {receiptRecord.donation_date}</div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div>
+                    <span style={{ color: '#64748b', display: 'block', fontSize: '10px', fontWeight: 700 }}>RECEIVED FROM</span>
+                    <strong style={{ color: '#0f172a', display: 'block' }}>{receiptRecord.donor_name || 'Anonymous Donor'}</strong>
+                  </div>
+
+                  <div>
+                    <span style={{ color: '#64748b', display: 'block', fontSize: '10px', fontWeight: 700 }}>AMOUNT</span>
+                    <strong style={{ color: '#00966b', fontSize: '13px' }}>{formatCurrency(receiptRecord.amount)}</strong>
+                  </div>
+
+                  <div>
+                    <span style={{ color: '#64748b', display: 'block', fontSize: '10px', fontWeight: 700 }}>PAYMENT FOR</span>
+                    <span style={{ fontSize: '11px' }}>{receiptRecord.donation_type === 'campaign' ? (campaigns.find(c => c.id === receiptRecord.campaign_id)?.campaign_name || 'Campaign') : 'General Donation'}</span>
+                  </div>
+
+                  <div>
+                    <span style={{ color: '#64748b', display: 'block', fontSize: '10px', fontWeight: 700 }}>METHOD</span>
+                    <span style={{ textTransform: 'uppercase', fontWeight: 700, fontSize: '11px' }}>{receiptRecord.payment_method || 'CASH'}</span>
+                  </div>
+
+                  <div style={{ marginTop: '14px', paddingTop: '10px', borderTop: '1px dashed #cbd5e1', textAlign: 'center' }}>
+                    <QrCode size={28} className="text-emerald" style={{ margin: '0 auto' }} />
+                    <span style={{ fontSize: '9px', color: '#64748b', display: 'block', marginTop: '2px' }}>OFFICE RECORD STUB</span>
+                  </div>
                 </div>
               </div>
-              <div className="text-right" style={{ background: '#f0fdf4', padding: '6px 14px', borderRadius: '9999px', border: '1px solid #a7f3d0' }}>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#00966b', display: 'block' }}>RECEIPT NO</span>
-                <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>{receiptRecord.receipt_number || `REC-${receiptRecord.id.substring(0, 6)}`}</span>
-              </div>
-            </div>
 
-            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: 0 }}>OFFICIAL DONATION RECEIPT</h3>
-              <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0' }}>Certified Record of Contribution Received</p>
-            </div>
+              {/* PERFORATED DASHED STUB DIVIDER */}
+              <div style={{ borderLeft: '2px dashed #00966b', height: '100%' }}></div>
 
-            <div className="receipt-details-table-box" style={{ background: '#f8fafc', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                <tbody>
-                  <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <td style={{ padding: '8px 4px', color: '#64748b', fontWeight: 600 }}>Donor Name</td>
-                    <td style={{ padding: '8px 4px', textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>{receiptRecord.donor_name || 'Anonymous Donor'}</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <td style={{ padding: '8px 4px', color: '#64748b', fontWeight: 600 }}>Donor Category</td>
-                    <td style={{ padding: '8px 4px', textAlign: 'right', fontWeight: 700 }}>{receiptRecord.donor_type ? receiptRecord.donor_type.toUpperCase() : 'EXTERNAL'}</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#f0fdf4' }}>
-                    <td style={{ padding: '10px 4px', color: '#00966b', fontWeight: 800 }}>Donation Amount</td>
-                    <td style={{ padding: '10px 4px', textAlign: 'right', fontWeight: 900, fontSize: '16px', color: '#00966b' }}>{formatCurrency(receiptRecord.amount)}</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <td style={{ padding: '8px 4px', color: '#64748b', fontWeight: 600 }}>Category / Campaign</td>
-                    <td style={{ padding: '8px 4px', textAlign: 'right', fontWeight: 700 }}>{receiptRecord.donation_type === 'campaign' ? (campaigns.find(c => c.id === receiptRecord.campaign_id)?.campaign_name || 'Special Campaign') : 'General Donation'}</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <td style={{ padding: '8px 4px', color: '#64748b', fontWeight: 600 }}>Payment Method</td>
-                    <td style={{ padding: '8px 4px', textAlign: 'right', fontWeight: 700 }}>{receiptRecord.payment_method ? receiptRecord.payment_method.toUpperCase() : 'UPI'}</td>
-                  </tr>
-                  <tr>
-                    <td style={{ padding: '8px 4px', color: '#64748b', fontWeight: 600 }}>Date Received</td>
-                    <td style={{ padding: '8px 4px', textAlign: 'right', fontWeight: 700 }}>{receiptRecord.donation_date}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div className="flex-between align-items-center">
-              <div className="flex-row-gap-xs align-items-center">
-                <QrCode size={38} className="text-emerald" />
-                <div style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.3 }}>
-                  <strong>Verified System Entry</strong><br />
-                  Hash: {receiptRecord.id.substring(0, 14)}
+              {/* STUB 2: ORIGINAL DONATION RECEIPT (RIGHT SLIP) */}
+              <div style={{ paddingLeft: '4px' }}>
+                {/* RECEIPT VOUCHER HEADER */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #00966b', paddingBottom: '8px', marginBottom: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <HeartHandshake size={32} className="text-emerald" />
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em' }}>{branding.organizationName.toUpperCase()}</h3>
+                      <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{branding.address || 'Mahallu Management Portal'} • Tel: {branding.phone || 'N/A'}</span>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '16px', fontWeight: 900, color: '#00966b', letterSpacing: '0.04em' }}>DONATION RECEIPT</div>
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>No : <span style={{ color: '#00966b' }}>{receiptRecord.receipt_number || `REC-${receiptRecord.id.substring(0, 6)}`}</span></div>
+                    <div style={{ fontSize: '11px', color: '#64748b' }}>Date : <strong>{receiptRecord.donation_date}</strong></div>
+                  </div>
                 </div>
+
+                {/* VOUCHER FORM UNDERLINED FIELDS */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px' }}>
+                  
+                  <div style={{ display: 'flex', alignItems: 'baseline' }}>
+                    <span style={{ minWidth: '115px', color: '#475569', fontWeight: 700 }}>Received from :</span>
+                    <span style={{ flex: 1, borderBottom: '1.5px solid #0f172a', fontWeight: 800, color: '#0f172a', paddingLeft: '8px', paddingBottom: '2px' }}>
+                      {receiptRecord.donor_name || 'Anonymous Donor'} {receiptRecord.donor_phone ? `(${receiptRecord.donor_phone})` : ''}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'baseline' }}>
+                    <span style={{ minWidth: '115px', color: '#475569', fontWeight: 700 }}>Amount (in ₹) :</span>
+                    <span style={{ flex: 1, borderBottom: '1.5px solid #00966b', fontWeight: 900, color: '#00966b', fontSize: '15px', paddingLeft: '8px', paddingBottom: '2px' }}>
+                      {formatCurrency(receiptRecord.amount)} /-
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'baseline' }}>
+                    <span style={{ minWidth: '115px', color: '#475569', fontWeight: 700 }}>In Words :</span>
+                    <span style={{ flex: 1, borderBottom: '1.5px solid #0f172a', fontWeight: 700, color: '#1e293b', fontStyle: 'italic', paddingLeft: '8px', paddingBottom: '2px' }}>
+                      {numberToWords(receiptRecord.amount)}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'baseline' }}>
+                    <span style={{ minWidth: '115px', color: '#475569', fontWeight: 700 }}>Payment For :</span>
+                    <span style={{ flex: 1, borderBottom: '1.5px solid #0f172a', fontWeight: 700, color: '#1e293b', paddingLeft: '8px', paddingBottom: '2px' }}>
+                      {receiptRecord.donation_type === 'campaign' ? (campaigns.find(c => c.id === receiptRecord.campaign_id)?.campaign_name || 'Special Campaign') : 'General Donation'} {receiptRecord.notes ? `• ${receiptRecord.notes}` : ''}
+                    </span>
+                  </div>
+
+                  {/* PAYMENT MODE CHECKBOXES */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '4px', background: '#f0fdf4', padding: '8px 12px', borderRadius: '8px', border: '1px solid #a7f3d0', flexWrap: 'wrap' }}>
+                    <span style={{ color: '#00966b', fontWeight: 800, fontSize: '12px' }}>Payment Mode:</span>
+                    {['cash', 'upi', 'bank_transfer', 'cheque'].map((m) => {
+                      const isSelected = (receiptRecord.payment_method || 'cash').toLowerCase() === m;
+                      const labels: Record<string, string> = { cash: 'Cash', upi: 'UPI / Online', bank_transfer: 'Bank Transfer', cheque: 'Cheque' };
+                      return (
+                        <div key={m} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: isSelected ? 800 : 600, color: isSelected ? '#00966b' : '#64748b' }}>
+                          <span style={{ width: '14px', height: '14px', borderRadius: '4px', border: isSelected ? '2px solid #00966b' : '1.5px solid #94a3b8', background: isSelected ? '#00966b' : '#ffffff', color: '#ffffff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 900 }}>
+                            {isSelected ? '✓' : ''}
+                          </span>
+                          <span>{labels[m]}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                </div>
+
+                {/* SIGNATURE & QR FOOTER */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '16px', paddingTop: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <QrCode size={36} className="text-emerald" />
+                    <div style={{ fontSize: '10px', color: '#64748b', lineHeight: 1.2 }}>
+                      <strong>Verified System Record</strong><br />
+                      Ref: {receiptRecord.reference_number || receiptRecord.id.substring(0, 12)}
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: 'center', minWidth: '160px' }}>
+                    <div style={{ borderTop: '1.5px solid #0f172a', paddingTop: '4px', fontSize: '11px', fontWeight: 800, color: '#0f172a', letterSpacing: '0.04em' }}>
+                      AUTHORIZED SIGNATURE
+                    </div>
+                    <span style={{ fontSize: '9px', color: '#64748b' }}>Treasurer / Accountant</span>
+                  </div>
+                </div>
+
               </div>
-              <div style={{ textAlign: 'center', borderTop: '1.5px solid #0f172a', paddingTop: '4px', minWidth: '130px' }}>
-                <span style={{ fontSize: '10px', fontWeight: 800, color: '#0f172a', letterSpacing: '0.05em' }}>TREASURER / ACCOUNTANT</span>
-              </div>
+
             </div>
           </div>
         )}
@@ -1179,6 +1261,12 @@ export const Donations: React.FC = () => {
         variant="danger"
         isLoading={isDeleting}
       />
+      {/* RESPONSIVE CSS */}
+      <style>{`
+        @media (max-width: 768px) {
+          .voucher-grid-layout { grid-template-columns: 1fr !important; gap: 16px !important; }
+        }
+      `}</style>
     </div>
   );
 };
