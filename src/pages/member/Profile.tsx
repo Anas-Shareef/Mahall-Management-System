@@ -19,7 +19,15 @@ export const Profile: React.FC = () => {
       if (!user) return;
       setLoading(true);
       try {
-        const memObj = await db.members.getByUserId(user.id);
+        let memObj: Member | null = await db.members.getByUserId(user.id);
+        if (!memObj && user.member_id) {
+          memObj = await db.members.getById(user.member_id);
+        }
+        if (!memObj && user.email) {
+          const allMembers = await db.members.get();
+          memObj = allMembers.find((m) => m.email && m.email.toLowerCase() === user.email?.toLowerCase()) || null;
+        }
+
         if (memObj) {
           setMember(memObj);
 

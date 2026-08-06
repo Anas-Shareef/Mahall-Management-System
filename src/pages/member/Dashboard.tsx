@@ -29,16 +29,36 @@ export const Dashboard: React.FC = () => {
       if (!user) return;
       setLoading(true);
       try {
-        // Get member record
-        const memObj = await db.members.getByUserId(user.id);
+        // Get member record with robust auto-linking to Admin records
+        let memObj: Member | null = await db.members.getByUserId(user.id);
+        
+        if (!memObj && user.member_id) {
+          memObj = await db.members.getById(user.member_id);
+        }
+
+        if (!memObj && user.email) {
+          const allMembers = await db.members.get();
+          memObj = allMembers.find((m) => m.email && m.email.toLowerCase() === user.email?.toLowerCase()) || null;
+        }
+
+        // If matched but user_id was not linked yet, auto-link to Supabase now
+        if (memObj && (!memObj.user_id || memObj.user_id !== user.id)) {
+          try {
+            await db.members.update(memObj.id, { user_id: user.id, portal_access: true, portal_status: 'active' });
+            memObj.user_id = user.id;
+          } catch (e) {
+            console.warn('Auto-link update notice:', e);
+          }
+        }
+
         if (memObj) {
           setMember(memObj);
 
-          // Get household details
+          // Get household details from Admin
           const houseObj = await db.households.getById(memObj.household_id);
           setHousehold(houseObj);
 
-          // Get years and subscriptions
+          // Get active year and subscriptions from Admin
           const yearList = await db.years.get();
           const activeYr = yearList.find(y => y.status === 'active') || yearList[0];
           
