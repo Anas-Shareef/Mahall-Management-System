@@ -5,7 +5,7 @@ import { db } from '../../services/db';
 import type { Household, Member } from '../../services/db';
 import { 
   Plus, Edit2, Trash2, Search, Filter, Users, X, AlertCircle, 
-  CheckCircle, Phone, Mail, Home, Smartphone, UserCheck, ShieldCheck, Eye,
+  CheckCircle, Phone, Mail, Home, Smartphone, UserCheck, ShieldCheck,
   Download, Loader2
 } from 'lucide-react';
 import { ConfirmModal } from '../../components/ConfirmModal';

@@ -8,7 +8,7 @@ import type {
 import { 
   Plus, Search, Filter, Calendar, X, AlertCircle, 
   CheckCircle, Loader2, Home, CreditCard, 
-  Layers, Sparkles, UserCheck, DollarSign, Eye, Edit2, Trash2
+  Layers, Sparkles, UserCheck, DollarSign, Edit2, Trash2
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { SidePanel } from '../../components/SidePanel';
