@@ -10,6 +10,7 @@ import {
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { HouseholdDetailsModal } from '../../components/HouseholdDetailsModal';
 import { GrantAccessModal } from '../../components/GrantAccessModal';
+import { SidePanel } from '../../components/SidePanel';
 
 export const Households: React.FC = () => {
   const { t } = useTranslation();
@@ -181,7 +182,7 @@ export const Households: React.FC = () => {
           'House Number',
           'House Owner Name',
           'Owner Phone',
-          'Area / Ward',
+          'Cluster',
           'Members Count',
           'Total Due (INR)',
           'Total Paid (INR)',
@@ -255,13 +256,16 @@ export const Households: React.FC = () => {
     return Array.from(new Set(households.map((h) => h.area).filter(Boolean))) as string[];
   }, [households]);
 
-  // Filtered Households list
+  // Filtered Households list (Ascending Numerical Sorting: H-1, H-2, H-3, ... H-17, H-18)
   const filteredHouseholds = useMemo(() => {
-    return households.filter((h) => {
+    const list = households.filter((h) => {
       const q = searchQuery.toLowerCase().trim();
+      const cleanQ = q.replace(/^h-?/, '');
+
       const matchesSearch =
         !q ||
         h.house_number.toLowerCase().includes(q) ||
+        h.house_number.toLowerCase().includes(cleanQ) ||
         h.house_owner_name.toLowerCase().includes(q) ||
         (h.area && h.area.toLowerCase().includes(q)) ||
         (h.house_owner_phone && h.house_owner_phone.includes(q));
@@ -270,6 +274,16 @@ export const Households: React.FC = () => {
       const matchesStatus = selectedStatus ? h.status === selectedStatus : true;
 
       return matchesSearch && matchesArea && matchesStatus;
+    });
+
+    // Sort by house number in ascending numerical order
+    return list.sort((a, b) => {
+      const numA = parseInt(a.house_number.replace(/\D/g, ''), 10);
+      const numB = parseInt(b.house_number.replace(/\D/g, ''), 10);
+      if (!isNaN(numA) && !isNaN(numB)) {
+        return numA - numB;
+      }
+      return a.house_number.localeCompare(b.house_number, undefined, { numeric: true, sensitivity: 'base' });
     });
   }, [households, searchQuery, selectedArea, selectedStatus]);
 
@@ -312,14 +326,14 @@ export const Households: React.FC = () => {
         </div>
       </div>
 
-      {/* SEARCH AND FILTER TOOLBAR (RESPONSIVE FOR SAMSUNG GALAXY S8 & MOBILE) */}
+      {/* SEARCH AND FILTER TOOLBAR */}
       <div className="filter-bar glass-card">
         {/* Search Input Box */}
         <div className="search-box">
           <Search size={18} className="search-icon" />
           <input
             type="text"
-            placeholder="Search house number, owner, or ward..."
+            placeholder="Search house number, owner, or cluster..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -345,11 +359,11 @@ export const Households: React.FC = () => {
             </select>
           </div>
 
-          {/* Area / Ward Filter Dropdown */}
+          {/* Cluster Filter Dropdown */}
           <div className="filter-select-wrapper">
             <MapPin size={15} className="select-icon" />
             <select value={selectedArea} onChange={(e) => setSelectedArea(e.target.value)}>
-              <option value="">All Wards / Areas</option>
+              <option value="">All Clusters</option>
               {uniqueAreas.map((a) => (
                 <option key={a} value={a}>
                   {a}
@@ -434,7 +448,7 @@ export const Households: React.FC = () => {
                     <tr>
                       <th>{t('household.houseNumber')}</th>
                       <th>{t('household.houseOwner')}</th>
-                      <th>{t('household.area')}</th>
+                      <th>Cluster</th>
                       <th>{t('household.membersCount')}</th>
                       <th>{t('household.balance')}</th>
                       <th>{t('household.status')}</th>
@@ -452,33 +466,30 @@ export const Households: React.FC = () => {
                           onClick={() => handleViewDetails(h)}
                         >
                           <td className="bold-text">
-                            <div className="house-no-cell">
-                              <span className="house-tag">H-{h.house_number}</span>
-                            </div>
+                            <span className="house-badge">H-{h.house_number}</span>
                           </td>
                           <td>
-                            <div className="owner-profile-td">
+                            <div className="owner-cell">
                               <span className="owner-name">{h.house_owner_name}</span>
-                              <span className="owner-phone-sub">
-                                <Phone size={11} />
-                                {h.house_owner_phone || 'No phone'}
-                              </span>
+                              {h.house_owner_phone && (
+                                <span className="phone-sub">
+                                  <Phone size={11} /> {h.house_owner_phone}
+                                </span>
+                              )}
                             </div>
                           </td>
                           <td>
-                            <span className="area-tag">
-                              <MapPin size={11} />
-                              {h.area || 'N/A'}
+                            <span className="area-tag">{h.area || '—'}</span>
+                          </td>
+                          <td>
+                            <span className="members-pill">
+                              <Users size={12} /> {financials.membersCount}
                             </span>
                           </td>
                           <td>
-                            <span className="members-badge">
-                              <Users size={13} />
-                              <span>{financials.membersCount}</span>
+                            <span className={`balance-text ${financials.balance > 0 ? 'outstanding' : 'paid'}`}>
+                              {formatCurrency(financials.balance)}
                             </span>
-                          </td>
-                          <td className={`balance-td ${financials.balance > 0 ? 'outstanding' : 'paid'}`}>
-                            {formatCurrency(financials.balance)}
                           </td>
                           <td>
                             <span className={`status-pill ${h.status}`}>
@@ -511,7 +522,7 @@ export const Households: React.FC = () => {
                 </table>
               </div>
 
-              {/* MOBILE CARD DIRECTORY VIEW (FOR SAMSUNG GALAXY S8 & SMARTPHONES) */}
+              {/* MOBILE CARD DIRECTORY VIEW */}
               <div className="mobile-cards-directory">
                 {filteredHouseholds.map((h) => {
                   const financials = getHouseholdFinancials(h.id);
@@ -577,96 +588,122 @@ export const Households: React.FC = () => {
             </>
           )}
         </div>
+      </div>
 
-        {/* HOUSEHOLD DETAILS FINANCIAL LEDGER SIDE PANEL */}
+      {/* HOUSEHOLD DETAILS FINANCIAL LEDGER SIDE PANEL DRAWER */}
+      <SidePanel
+        isOpen={Boolean(selectedHouseholdDetails)}
+        onClose={() => setSelectedHouseholdDetails(null)}
+        title={`House No. H-${selectedHouseholdDetails?.house_number}`}
+        subtitle={selectedHouseholdDetails?.house_owner_name}
+        icon={<Home size={20} />}
+        size="lg"
+        quickActions={
+          selectedHouseholdDetails && (
+            <button
+              type="button"
+              className="pill-btn-primary font-xs"
+              onClick={() => {
+                const h = selectedHouseholdDetails;
+                setSelectedHouseholdDetails(null);
+                navigate(`/admin/households/${h.id}/edit`);
+              }}
+            >
+              <Edit2 size={13} /> Edit Household
+            </button>
+          )
+        }
+      >
         {selectedHouseholdDetails && (
-          <div className="details-panel-card glass-card">
-            <div className="panel-header">
-              <div className="panel-title-wrapper">
-                <div className="panel-icon-box">
-                  <Home size={20} color="#00966b" />
+          <div className="flex-col gap-md">
+            {/* META DETAILS CARD */}
+            <div className="form-card">
+              <div className="form-card-header margin-bottom-sm">
+                <Home size={16} className="text-primary" />
+                <span className="form-card-title margin-left-xs">Household Information</span>
+              </div>
+              <div className="form-grid-2col font-xs">
+                <div>
+                  <div className="detail-item-label">Owner Name</div>
+                  <div className="font-weight-700 font-sm text-dark">{selectedHouseholdDetails.house_owner_name}</div>
                 </div>
                 <div>
-                  <h4>House No. {selectedHouseholdDetails.house_number}</h4>
-                  <p>{selectedHouseholdDetails.house_owner_name}</p>
+                  <div className="detail-item-label">Phone Number</div>
+                  <div className="font-weight-600">{selectedHouseholdDetails.house_owner_phone || 'N/A'}</div>
+                </div>
+                <div>
+                  <div className="detail-item-label">Cluster</div>
+                  <div className="font-weight-600 text-dark">{selectedHouseholdDetails.area || 'N/A'}</div>
+                </div>
+                <div>
+                  <div className="detail-item-label">Status</div>
+                  <span className={`status-pill ${selectedHouseholdDetails.status}`}>
+                    <span className="dot"></span>
+                    {selectedHouseholdDetails.status}
+                  </span>
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <div className="detail-item-label">Address</div>
+                  <div className="font-weight-600 text-dark">{selectedHouseholdDetails.address || 'N/A'}</div>
                 </div>
               </div>
-              <button
-                className="panel-close-btn"
-                onClick={() => setSelectedHouseholdDetails(null)}
-                aria-label="Close household details panel"
-              >
-                <X size={18} />
-              </button>
             </div>
 
-            <div className="panel-body">
-              <div className="details-meta-section">
-                <div className="meta-item">
-                  <span className="meta-label">Phone</span>
-                  <span className="meta-value">{selectedHouseholdDetails.house_owner_phone || 'N/A'}</span>
-                </div>
-                <div className="meta-item">
-                  <span className="meta-label">Area / Ward</span>
-                  <span className="meta-value">{selectedHouseholdDetails.area || 'N/A'}</span>
-                </div>
-                <div className="meta-item">
-                  <span className="meta-label">Address</span>
-                  <span className="meta-value font-sm">{selectedHouseholdDetails.address || 'N/A'}</span>
-                </div>
+            {/* FINANCIALS BREAKDOWN TABLE */}
+            <div className="form-card">
+              <div className="form-card-header margin-bottom-sm">
+                <Users size={16} className="text-primary" />
+                <span className="form-card-title margin-left-xs">Family Roster & Financial Summary</span>
               </div>
 
-              <div className="financials-breakdown">
-                <h5>{t('household.financialSummary')}</h5>
-                <div className="members-ledger-table-wrapper">
-                  <table className="mini-ledger-table">
-                    <thead>
+              <div className="members-ledger-table-wrapper" style={{ overflowX: 'auto' }}>
+                <table className="mini-ledger-table" style={{ width: '100%', fontSize: '12.5px' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left', padding: '8px' }}>Member Name</th>
+                      <th style={{ textAlign: 'right', padding: '8px' }}>Due</th>
+                      <th style={{ textAlign: 'right', padding: '8px' }}>Paid</th>
+                      <th style={{ textAlign: 'right', padding: '8px' }}>Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {householdMembersDetails.length === 0 ? (
                       <tr>
-                        <th>{t('member.memberName')}</th>
-                        <th>Due</th>
-                        <th>Paid</th>
-                        <th>Balance</th>
+                        <td colSpan={4} className="no-data-cell" style={{ textAlign: 'center', padding: '16px', color: '#94a3b8' }}>
+                          No members added to this household yet.
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {householdMembersDetails.length === 0 ? (
-                        <tr>
-                          <td colSpan={4} className="no-data-cell">
-                            No members added to this household yet.
-                          </td>
-                        </tr>
-                      ) : (
-                        <>
-                          {householdMembersDetails.map((m) => (
-                            <tr key={m.id}>
-                              <td className="bold-text">
-                                {m.name} <span className="rel-tag">({m.relationship})</span>
-                              </td>
-                              <td>{formatCurrency(m.totalDue)}</td>
-                              <td>{formatCurrency(m.totalPaid)}</td>
-                              <td className={m.balance > 0 ? 'outstanding' : ''}>{formatCurrency(m.balance)}</td>
-                            </tr>
-                          ))}
-                          <tr className="consolidated-total-row">
-                            <td>House Total</td>
-                            <td>{formatCurrency(householdMembersDetails.reduce((sum, m) => sum + m.totalDue, 0))}</td>
-                            <td>{formatCurrency(householdMembersDetails.reduce((sum, m) => sum + m.totalPaid, 0))}</td>
-                            <td className="grand-balance">
-                              {formatCurrency(householdMembersDetails.reduce((sum, m) => sum + m.balance, 0))}
+                    ) : (
+                      <>
+                        {householdMembersDetails.map((m) => (
+                          <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '8px', fontWeight: 700, color: '#0f172a' }}>
+                              {m.name} <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 400 }}>({m.relationship})</span>
+                            </td>
+                            <td style={{ padding: '8px', textAlign: 'right' }}>{formatCurrency(m.totalDue)}</td>
+                            <td style={{ padding: '8px', textAlign: 'right', color: '#00966b', fontWeight: 700 }}>{formatCurrency(m.totalPaid)}</td>
+                            <td style={{ padding: '8px', textAlign: 'right', color: m.balance > 0 ? '#dc2626' : '#00966b', fontWeight: 800 }}>
+                              {formatCurrency(m.balance)}
                             </td>
                           </tr>
-                        </>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                        ))}
+                        <tr style={{ background: '#f8fafc', fontWeight: 800, borderTop: '2px solid #e2e8f0' }}>
+                          <td style={{ padding: '10px 8px', color: '#0f172a' }}>Consolidated Total</td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right' }}>{formatCurrency(householdMembersDetails.reduce((sum, m) => sum + m.totalDue, 0))}</td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right', color: '#00966b' }}>{formatCurrency(householdMembersDetails.reduce((sum, m) => sum + m.totalPaid, 0))}</td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right', color: householdMembersDetails.reduce((sum, m) => sum + m.balance, 0) > 0 ? '#dc2626' : '#00966b', fontSize: '14px' }}>
+                            {formatCurrency(householdMembersDetails.reduce((sum, m) => sum + m.balance, 0))}
+                          </td>
+                        </tr>
+                      </>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
         )}
-      </div>
-
-
+      </SidePanel>
 
       {/* DELETE CONFIRMATION MODAL */}
       <ConfirmModal

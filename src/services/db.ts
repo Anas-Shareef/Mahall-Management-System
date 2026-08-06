@@ -714,21 +714,32 @@ export const db = {
     },
   },
 
-  // HOUSEHOLDS
   households: {
     get: async (): Promise<Household[]> => {
-      const localItems = getLocalData<Household>('mahal_households').sort((a, b) =>
-        a.house_number.localeCompare(b.house_number, undefined, { numeric: true, sensitivity: 'base' })
-      );
+      let items: Household[] = [];
       if (isSupabaseConfigured && supabase) {
         try {
-          const { data, error } = await supabase.from('households').select('*').order('house_number');
-          if (!error && data && data.length > 0) return data as Household[];
+          const { data, error } = await supabase.from('households').select('*');
+          if (!error && data && data.length > 0) {
+            items = data as Household[];
+          }
         } catch (err) {
           console.warn('Supabase households fetch notice:', err);
         }
       }
-      return localItems;
+      if (items.length === 0) {
+        items = getLocalData<Household>('mahal_households');
+      }
+
+      // Natural Ascending Numerical Sorting (H-1, H-2, H-17, etc.)
+      return items.sort((a, b) => {
+        const numA = parseInt(a.house_number.replace(/\D/g, ''), 10);
+        const numB = parseInt(b.house_number.replace(/\D/g, ''), 10);
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return numA - numB;
+        }
+        return a.house_number.localeCompare(b.house_number, undefined, { numeric: true, sensitivity: 'base' });
+      });
     },
     getById: async (id: string): Promise<Household | null> => {
       if (isSupabaseConfigured && supabase) {
