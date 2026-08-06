@@ -5,7 +5,8 @@ import { db } from '../../services/db';
 import type { Household, Member } from '../../services/db';
 import { 
   Plus, Edit2, Trash2, Search, Filter, Users, X, AlertCircle, 
-  CheckCircle, Phone, Mail, Home, Smartphone, UserCheck, ShieldCheck, Eye 
+  CheckCircle, Phone, Mail, Home, Smartphone, UserCheck, ShieldCheck, Eye,
+  Download, Loader2
 } from 'lucide-react';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { SidePanel } from '../../components/SidePanel';
@@ -27,6 +28,7 @@ export const Members: React.FC = () => {
   const [selectedRelationship, setSelectedRelationship] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedPortalStatus, setSelectedPortalStatus] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
 
   // Access Control & Details Modal States
   const [isGrantModalOpen, setIsGrantModalOpen] = useState(false);
@@ -60,6 +62,45 @@ export const Members: React.FC = () => {
   const showToast = (type: 'success' | 'error', text: string) => {
     setToastMessage({ type, text });
     setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  // Download CSV Report for Members
+  const handleDownloadReport = () => {
+    setIsExporting(true);
+    setTimeout(() => {
+      try {
+        const headers = ['Member ID', 'Name', 'Household No', 'Relationship', 'Phone', 'Email', 'Portal Access', 'Status'];
+        const rows = filteredMembers.map((m) => {
+          const house = households.find((h) => h.id === m.household_id);
+          return [
+            `"${m.id}"`,
+            `"${m.name.replace(/"/g, '""')}"`,
+            `"${house ? `H-${house.house_number}` : 'N/A'}"`,
+            `"${m.relationship || 'N/A'}"`,
+            `"${m.phone || 'N/A'}"`,
+            `"${m.email || 'N/A'}"`,
+            `"${(m.portal_status || 'not_granted').toUpperCase()}"`,
+            `"${m.status}"`,
+          ];
+        });
+
+        const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `Mahallu_Members_Directory_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        showToast('success', '✓ Members Directory report downloaded successfully!');
+      } catch (err) {
+        showToast('error', 'Failed to generate members report.');
+      } finally {
+        setIsExporting(false);
+      }
+    }, 600);
   };
 
   const relationshipsList = [
@@ -286,6 +327,26 @@ export const Members: React.FC = () => {
               <option value="inactive">{t('member.inactive')}</option>
             </select>
           </div>
+
+          {/* Dynamic Download Report Button */}
+          <button 
+            className="report-export-btn" 
+            onClick={handleDownloadReport} 
+            disabled={isExporting}
+            title="Download Members CSV Report"
+          >
+            {isExporting ? (
+              <>
+                <Loader2 size={15} className="spinner-icon" />
+                <span>Generating...</span>
+              </>
+            ) : (
+              <>
+                <Download size={15} />
+                <span>Download Report</span>
+              </>
+            )}
+          </button>
 
           {(searchQuery || selectedHouseholdId || selectedRelationship || selectedStatus || selectedPortalStatus) && (
             <button className="clear-filters-link" onClick={clearFilters}>
@@ -1135,6 +1196,24 @@ export const Members: React.FC = () => {
         .delete-danger-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 22px; border-radius: var(--radius-pill); background: #dc2626; color: #ffffff; font-weight: 700; font-size: 13.5px; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35); transition: var(--transition-all); }
         .delete-danger-btn:hover { background: #b91c1c; }
 
+        .report-export-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          padding: 10px 14px;
+          border-radius: var(--radius-pill);
+          background: #ffffff;
+          border: 1.5px solid var(--primary);
+          color: var(--primary);
+          font-weight: 700;
+          font-size: 13px;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: var(--transition-all);
+        }
+        .report-export-btn:hover { background: #f0fdf4; }
+
         /* RESPONSIVE STYLES FOR SAMSUNG GALAXY S8 & SMARTPHONES */
         @media (max-width: 991px) {
           .members-content-split { flex-direction: column; }
@@ -1142,6 +1221,8 @@ export const Members: React.FC = () => {
         }
 
         @media (max-width: 768px) {
+          .analytics-stats-grid { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+          .stat-card { padding: 12px !important; }
           .page-header-actions { flex-direction: column; align-items: stretch; gap: 12px; }
           .add-btn.primary-btn { width: 100%; justify-content: center; }
 
