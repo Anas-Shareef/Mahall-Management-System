@@ -332,13 +332,13 @@ export const Donations: React.FC = () => {
       )}
 
       {/* 1. PAGE HEADER */}
-      <div className="page-header flex-between margin-bottom">
+      <div className="page-header-actions margin-bottom-md">
         <div>
-          <h1 className="page-title">Donation Records</h1>
-          <p className="page-subtitle">Manage donations, campaigns & official receipts.</p>
+          <h3 className="text-dark font-weight-800">Donation Records (സംഭാവനകൾ)</h3>
+          <p className="page-subtitle">Manage donations, campaigns, & official payment receipts.</p>
         </div>
 
-        <div className="header-cta-group flex-row-gap-sm">
+        <div className="header-cta-group">
           <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={() => setIsImportModalOpen(true)}>
             <FileSpreadsheet size={15} className="text-emerald" />
             <span>Import Data</span>
@@ -349,7 +349,7 @@ export const Donations: React.FC = () => {
           </button>
           <button className="add-btn primary-btn" onClick={openAddDrawer}>
             <Plus size={16} />
-            <span>+ Record Donation</span>
+            <span>Record Donation</span>
           </button>
         </div>
       </div>
@@ -532,23 +532,26 @@ export const Donations: React.FC = () => {
               </button>
             )}
           </div>
-
-          {/* Mobile Filter Trigger */}
-          <div className="mobile-filter-trigger">
-            <button className="pill-btn-secondary" onClick={() => setIsMobileFilterOpen(true)}>
-              <Filter size={15} />
-              <span>Filters</span>
-            </button>
-          </div>
         </div>
 
-        {/* Bulk Actions Bar */}
+        {/* Dynamic Bulk Action Bar */}
         {selectedIds.length > 0 && (
-          <div className="bulk-selection-bar flex-between p-xs bg-primary-light border-rounded margin-sm">
-            <span className="font-weight-600 font-sm">{selectedIds.length} selected</span>
-            <button className="pill-btn-danger font-xs" onClick={() => setIsBulkDeleteModalOpen(true)}>
-              <Trash2 size={13} /> Delete Selected
-            </button>
+          <div className="bulk-actions-toolbar animate-fade-in">
+            <div className="bulk-actions-info">
+              <span className="bulk-count-badge">{selectedIds.length}</span>
+              <span className="bulk-actions-text">
+                {selectedIds.length === 1 ? '1 donation record selected' : `${selectedIds.length} donation records selected`}
+              </span>
+            </div>
+            <div className="bulk-actions-right">
+              <button className="bulk-deselect-btn" onClick={() => setSelectedIds([])}>
+                Deselect All
+              </button>
+              <button className="bulk-delete-action-btn" onClick={() => setIsBulkDeleteModalOpen(true)}>
+                <Trash2 size={15} />
+                <span>Delete Selected ({selectedIds.length})</span>
+              </button>
+            </div>
           </div>
         )}
 

@@ -484,14 +484,24 @@ export const Payments: React.FC = () => {
             </button>
           )}
         </div>
-        {/* Bulk Action Bar */}
+      {/* Dynamic Bulk Action Bar */}
       {selectedIds.length > 0 && (
-        <div className="bulk-actions-toolbar glass-card margin-bottom-md">
-          <span className="font-weight-700 font-sm">{selectedIds.length} payments selected</span>
-          <button className="pill-btn-danger font-xs" onClick={() => setIsBulkDeleteModalOpen(true)}>
-            <Trash2 size={15} />
-            <span>Delete Selected ({selectedIds.length})</span>
-          </button>
+        <div className="bulk-actions-toolbar animate-fade-in">
+          <div className="bulk-actions-info">
+            <span className="bulk-count-badge">{selectedIds.length}</span>
+            <span className="bulk-actions-text">
+              {selectedIds.length === 1 ? '1 payment receipt selected' : `${selectedIds.length} payment receipts selected`}
+            </span>
+          </div>
+          <div className="bulk-actions-right">
+            <button className="bulk-deselect-btn" onClick={() => setSelectedIds([])}>
+              Deselect All
+            </button>
+            <button className="bulk-delete-action-btn" onClick={() => setIsBulkDeleteModalOpen(true)}>
+              <Trash2 size={15} />
+              <span>Delete Selected ({selectedIds.length})</span>
+            </button>
+          </div>
         </div>
       )}
       </div>
