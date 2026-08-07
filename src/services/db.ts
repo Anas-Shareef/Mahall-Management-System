@@ -2364,18 +2364,6 @@ export const db = {
       saveLocalData('mahal_donations', list);
       return newRecord;
     },
-
-      const list = getLocalData<Donation>('mahal_donations');
-      const newRecord: Donation = {
-        ...data,
-        id: 'don-' + Math.random().toString(36).substr(2, 9),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      list.push(newRecord);
-      saveLocalData('mahal_donations', list);
-      return newRecord;
-    },
     update: async (id: string, updates: Partial<Donation>): Promise<Donation> => {
       const cleanUpdates: Partial<Donation> = {
         ...updates,
