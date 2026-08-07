@@ -189,7 +189,7 @@ export interface Donation {
   id: string;
   donation_type: 'general' | 'campaign';
   campaign_id: string | null;
-  donor_type?: 'member' | 'external' | 'anonymous';
+  donor_type?: 'member' | 'household' | 'external' | 'anonymous';
   donor_name: string | null;
   donor_phone: string | null;
   donor_email?: string | null;
@@ -2269,13 +2269,6 @@ export const db = {
       const validCampaignId = sanitizeUuid(data.campaign_id);
       const validMemberId = sanitizeUuid(data.donor_member_id);
       const validRecordedBy = sanitizeUuid(data.recorded_by);
-
-      const cleanData = {
-        ...data,
-        campaign_id: validCampaignId,
-        donor_member_id: validMemberId,
-        recorded_by: validRecordedBy,
-      };
 
       if (isSupabaseConfigured && supabase) {
         const fullPayload: any = {
