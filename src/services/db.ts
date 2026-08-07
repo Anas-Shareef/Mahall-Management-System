@@ -2146,15 +2146,22 @@ export const db = {
   // DONATION CAMPAIGNS
   donationCampaigns: {
     get: async (): Promise<DonationCampaign[]> => {
+      let supaCampaigns: DonationCampaign[] = [];
       if (isSupabaseConfigured && supabase) {
         try {
           const { data, error } = await supabase.from('donation_campaigns').select('*').order('created_at', { ascending: false });
-          if (!error && data) return data as DonationCampaign[];
+          if (!error && data) supaCampaigns = data as DonationCampaign[];
         } catch (e) {
           console.warn('Supabase donationCampaigns fetch notice:', e);
         }
       }
-      return getLocalData<DonationCampaign>('mahal_campaigns');
+      const localCampaigns = getLocalData<DonationCampaign>('mahal_campaigns');
+      const supaIds = new Set(supaCampaigns.map((c) => c.id));
+      const combined = [
+        ...supaCampaigns,
+        ...localCampaigns.filter((c) => !supaIds.has(c.id)),
+      ];
+      return combined;
     },
     create: async (data: Omit<DonationCampaign, 'id' | 'created_at' | 'updated_at'>): Promise<DonationCampaign> => {
       const cleanData = { ...data, created_by: sanitizeUuid(data.created_by) };
@@ -2238,88 +2245,125 @@ export const db = {
   // DONATIONS
   donations: {
     get: async (): Promise<Donation[]> => {
+      let supaDonations: Donation[] = [];
       if (isSupabaseConfigured && supabase) {
         try {
           const { data, error } = await supabase.from('donations').select('*').order('donation_date', { ascending: false });
-          if (!error && data) return data as Donation[];
+          if (!error && data) supaDonations = data as Donation[];
         } catch (e) {
           console.warn('Supabase donations fetch notice:', e);
         }
       }
-      return getLocalData<Donation>('mahal_donations').sort(
-        (a, b) => new Date(b.donation_date).getTime() - new Date(a.donation_date).getTime()
+      const localDonations = getLocalData<Donation>('mahal_donations');
+      // Merge: keep all supaDonations + any localDonations that aren't in Supabase yet
+      const supaIds = new Set(supaDonations.map((d) => d.id));
+      const combined = [
+        ...supaDonations,
+        ...localDonations.filter((d) => !supaIds.has(d.id)),
+      ];
+      return combined.sort(
+        (a, b) => new Date(b.donation_date || b.created_at || 0).getTime() - new Date(a.donation_date || a.created_at || 0).getTime()
       );
     },
     create: async (data: Omit<Donation, 'id' | 'created_at' | 'updated_at'>): Promise<Donation> => {
+      const validCampaignId = sanitizeUuid(data.campaign_id);
+      const validMemberId = sanitizeUuid(data.donor_member_id);
+      const validRecordedBy = sanitizeUuid(data.recorded_by);
+
       const cleanData = {
         ...data,
-        campaign_id: sanitizeUuid(data.campaign_id),
-        donor_member_id: sanitizeUuid(data.donor_member_id),
-        recorded_by: sanitizeUuid(data.recorded_by),
+        campaign_id: validCampaignId,
+        donor_member_id: validMemberId,
+        recorded_by: validRecordedBy,
       };
 
       if (isSupabaseConfigured && supabase) {
-        // Try full payload first
         const fullPayload: any = {
-          donation_type: cleanData.donation_type || 'general',
-          campaign_id: cleanData.campaign_id,
-          donor_type: cleanData.donor_type || 'external',
-          donor_member_id: cleanData.donor_member_id,
-          donor_name: cleanData.donor_name || 'Anonymous',
-          donor_phone: cleanData.donor_phone,
-          donor_email: cleanData.donor_email,
-          is_anonymous: cleanData.is_anonymous || false,
-          amount: cleanData.amount || 0,
-          payment_method: cleanData.payment_method || 'cash',
-          donation_date: cleanData.donation_date || new Date().toISOString().split('T')[0],
-          receipt_number: cleanData.receipt_number,
-          reference_number: cleanData.reference_number,
-          notes: cleanData.notes,
-          recorded_by: cleanData.recorded_by,
+          donation_type: data.donation_type || 'general',
+          campaign_id: validCampaignId,
+          donor_type: data.donor_type || 'external',
+          donor_member_id: validMemberId,
+          donor_name: data.donor_name || 'Anonymous',
+          donor_phone: data.donor_phone,
+          donor_email: data.donor_email,
+          is_anonymous: data.is_anonymous || false,
+          amount: data.amount || 0,
+          payment_method: data.payment_method || 'cash',
+          donation_date: data.donation_date || new Date().toISOString().split('T')[0],
+          receipt_number: data.receipt_number,
+          reference_number: data.reference_number,
+          notes: data.notes,
+          recorded_by: validRecordedBy,
         };
 
         try {
           const { data: created, error } = await supabase.from('donations').insert([fullPayload]).select().maybeSingle();
           if (!error && created) {
-            const result = { ...cleanData, ...created } as Donation;
+            // Ensure data.campaign_id is preserved if it was set
+            const result = {
+              ...created,
+              campaign_id: created.campaign_id || data.campaign_id || null,
+              donor_type: data.donor_type || created.donor_type || 'external',
+            } as Donation;
             const list = getLocalData<Donation>('mahal_donations');
             list.push(result);
             saveLocalData('mahal_donations', list);
             return result;
           }
+          if (error) {
+            console.error('Supabase donations insert error:', error);
+          }
         } catch (e) {
-          console.warn('Supabase donations full insert notice:', e);
+          console.warn('Supabase donations insert exception:', e);
         }
 
         // Retry with base payload if full insert encountered schema mismatch
         const basePayload: any = {
-          donor_name: cleanData.donor_name || 'Anonymous',
-          amount: cleanData.amount || 0,
-          payment_method: cleanData.payment_method || 'cash',
-          donation_date: cleanData.donation_date || new Date().toISOString().split('T')[0],
+          donor_name: data.donor_name || 'Anonymous',
+          amount: data.amount || 0,
+          payment_method: data.payment_method || 'cash',
+          donation_date: data.donation_date || new Date().toISOString().split('T')[0],
         };
-        if (cleanData.donor_phone) basePayload.donor_phone = cleanData.donor_phone;
-        if (cleanData.donor_email) basePayload.donor_email = cleanData.donor_email;
-        if (cleanData.receipt_number) basePayload.receipt_number = cleanData.receipt_number;
-        if (cleanData.reference_number) basePayload.reference_number = cleanData.reference_number;
-        if (cleanData.notes) basePayload.notes = cleanData.notes;
-        if (cleanData.campaign_id) basePayload.campaign_id = cleanData.campaign_id;
-        if (cleanData.donor_member_id) basePayload.donor_member_id = cleanData.donor_member_id;
-        if (cleanData.recorded_by) basePayload.recorded_by = cleanData.recorded_by;
+        if (data.donor_phone) basePayload.donor_phone = data.donor_phone;
+        if (data.donor_email) basePayload.donor_email = data.donor_email;
+        if (data.receipt_number) basePayload.receipt_number = data.receipt_number;
+        if (data.reference_number) basePayload.reference_number = data.reference_number;
+        if (data.notes) basePayload.notes = data.notes;
+        if (validCampaignId) basePayload.campaign_id = validCampaignId;
+        if (validMemberId) basePayload.donor_member_id = validMemberId;
+        if (validRecordedBy) basePayload.recorded_by = validRecordedBy;
 
         try {
           const { data: created, error } = await supabase.from('donations').insert([basePayload]).select().maybeSingle();
           if (!error && created) {
-            const result = { ...cleanData, ...created } as Donation;
+            const result = {
+              ...created,
+              campaign_id: created.campaign_id || data.campaign_id || null,
+              donor_type: data.donor_type || created.donor_type || 'external',
+            } as Donation;
             const list = getLocalData<Donation>('mahal_donations');
             list.push(result);
             saveLocalData('mahal_donations', list);
             return result;
           }
         } catch (e) {
-          console.warn('Supabase donations base insert notice:', e);
+          console.warn('Supabase donations base insert exception:', e);
         }
       }
+
+      // Local fallback — preserve exact campaign_id
+      const list = getLocalData<Donation>('mahal_donations');
+      const newRecord: Donation = {
+        ...data,
+        campaign_id: data.campaign_id || null,
+        id: 'don-' + Math.random().toString(36).substr(2, 9),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      list.push(newRecord);
+      saveLocalData('mahal_donations', list);
+      return newRecord;
+    },
 
       const list = getLocalData<Donation>('mahal_donations');
       const newRecord: Donation = {

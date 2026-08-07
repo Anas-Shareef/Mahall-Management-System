@@ -700,10 +700,14 @@ export const Donations: React.FC = () => {
             ) : (
               <div className="campaigns-management-grid">
                 {campaigns.map((c) => {
-                  const collected = donations
-                    .filter((d) => d.campaign_id === c.id)
-                    .reduce((sum, d) => sum + (d.amount || 0), 0);
-                  const donorCount = donations.filter((d) => d.campaign_id === c.id).length;
+                  const isMatch = (d: Donation) => 
+                    d.campaign_id === c.id || 
+                    (c.campaign_name && d.notes && d.notes.toLowerCase().includes(c.campaign_name.toLowerCase())) ||
+                    (c.campaign_name && d.purpose && d.purpose.toLowerCase().includes(c.campaign_name.toLowerCase()));
+
+                  const campaignDonations = donations.filter((d) => isMatch(d) || (d.donation_type === 'campaign' && d.campaign_id === c.id));
+                  const collected = campaignDonations.reduce((sum, d) => sum + (d.amount || 0), 0);
+                  const donorCount = campaignDonations.length;
                   const progress = c.target_amount > 0 ? Math.min(100, Math.round((collected / c.target_amount) * 100)) : 0;
                   const statusConfig: Record<string, { label: string; cls: string; icon: React.ReactElement }> = {
                     active: { label: 'Active', cls: 'success', icon: <CheckCircle size={12} /> },
@@ -860,7 +864,8 @@ export const Donations: React.FC = () => {
                   <tbody>
                     {paginatedDonations.map((d) => {
                       const isSelected = selectedIds.includes(d.id);
-                      const campaign = campaigns.find((c) => c.id === d.campaign_id);
+                      const campaign = campaigns.find((c) => c.id === d.campaign_id) || campaigns.find((c) => c.campaign_name && d.notes && d.notes.toLowerCase().includes(c.campaign_name.toLowerCase()));
+                      const isHousehold = d.donor_type === 'household' || (d.notes && d.notes.includes('Household:'));
 
                       return (
                         <tr key={d.id} className={isSelected ? 'selected-row' : ''}>
@@ -883,13 +888,13 @@ export const Donations: React.FC = () => {
                             </div>
                           </td>
                           <td style={{ textAlign: 'left' }}>
-                            <span className={`status-pill ${d.donor_type === 'member' ? 'paid' : 'unpaid'}`}>
-                              {d.donor_type ? d.donor_type.toUpperCase() : 'EXTERNAL'}
+                            <span className={`status-pill ${d.donor_type === 'member' ? 'paid' : isHousehold ? 'paid' : 'unpaid'}`}>
+                              {isHousehold ? 'HOUSEHOLD' : d.donor_type ? d.donor_type.toUpperCase() : 'EXTERNAL'}
                             </span>
                           </td>
                           <td style={{ textAlign: 'left' }}>
                             <span className="font-xs font-weight-600 text-dark">
-                              {d.donation_type === 'campaign' ? (campaign?.campaign_name || 'Special Campaign') : 'General Donation'}
+                              {d.donation_type === 'campaign' ? (campaign?.campaign_name || 'Special Campaign') : campaign?.campaign_name ? campaign.campaign_name : 'General Donation'}
                             </span>
                           </td>
                           <td style={{ textAlign: 'left' }}>
