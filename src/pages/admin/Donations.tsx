@@ -96,6 +96,8 @@ export const Donations: React.FC = () => {
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [receiptRecord, setReceiptRecord] = useState<Donation | null>(null);
 
+  // Single Donation Deletion States
+
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const showToast = (type: 'success' | 'error', text: string) => {
@@ -254,26 +256,6 @@ export const Donations: React.FC = () => {
     navigate(`/admin/donations/${d.id}/edit`);
   };
 
-  const handleDeleteDonation = (id: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setDeleteTargetId(id);
-  };
-
-  const handleConfirmDeleteDonation = async () => {
-    if (!deleteTargetId) return;
-    setIsDeleting(true);
-    try {
-      await db.donations.delete(deleteTargetId);
-      showToast('success', 'Donation deleted from Supabase');
-      setDeleteTargetId(null);
-      loadData();
-    } catch (err) {
-      showToast('error', 'Failed to delete donation');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   const handleSelectAll = () => {
     if (selectedIds.length === paginatedDonations.length) {
       setSelectedIds([]);
@@ -371,6 +353,34 @@ export const Donations: React.FC = () => {
       showToast('error', 'Failed to delete campaign');
     } finally {
       setIsDeletingCampaign(false);
+    }
+  };
+
+  const handleDeleteDonation = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setDeleteTargetId(id);
+  };
+
+  const handleConfirmDeleteDonation = async () => {
+    if (!deleteTargetId) return;
+    setIsDeleting(true);
+    try {
+      await db.donations.delete(deleteTargetId);
+      // Remove from local storage cache array
+      const localList = JSON.parse(localStorage.getItem('mahal_donations') || '[]');
+      const filteredLocal = localList.filter((d: any) => d.id !== deleteTargetId);
+      localStorage.setItem('mahal_donations', JSON.stringify(filteredLocal));
+
+      // Remove from React state immediately
+      setDonations((prev) => prev.filter((d) => d.id !== deleteTargetId));
+      showToast('success', 'Donation record deleted successfully');
+      setDeleteTargetId(null);
+      loadData();
+    } catch (err: any) {
+      console.error('Failed to delete donation:', err);
+      showToast('error', `Failed to delete donation: ${err?.message || String(err)}`);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
