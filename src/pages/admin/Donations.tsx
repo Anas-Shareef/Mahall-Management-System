@@ -385,9 +385,23 @@ export const Donations: React.FC = () => {
     setSelectedCampaignId('');
     setSelectedMethod('');
     setSelectedDonorType('');
-    setSelectedStatus('');
-    setSortBy('newest');
     setCurrentPage(1);
+  };
+
+  // Utility helper to reliably get campaign display name
+  const getCampaignDisplayName = (d: Donation): string => {
+    if (d.campaign_id) {
+      const c = campaigns.find((x) => x.id === d.campaign_id);
+      if (c) return c.campaign_name;
+    }
+    if (d.purpose && d.purpose.trim() !== '') return d.purpose;
+    if (d.notes) {
+      const matched = campaigns.find((c) => c.campaign_name && d.notes?.toLowerCase().includes(c.campaign_name.toLowerCase()));
+      if (matched) return matched.campaign_name;
+      const notesMatch = d.notes.match(/Campaign:\s*([^—•\]\n]+)/i);
+      if (notesMatch && notesMatch[1]) return notesMatch[1].trim();
+    }
+    return d.donation_type === 'campaign' ? 'Special Campaign' : 'General Donation';
   };
 
   const exportCSV = () => {
@@ -403,7 +417,7 @@ export const Donations: React.FC = () => {
       d.amount,
       d.payment_method,
       d.donation_date,
-      campaigns.find((c) => c.id === d.campaign_id)?.campaign_name || 'General',
+      getCampaignDisplayName(d),
       d.status || 'received',
     ]);
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
@@ -864,7 +878,7 @@ export const Donations: React.FC = () => {
                   <tbody>
                     {paginatedDonations.map((d) => {
                       const isSelected = selectedIds.includes(d.id);
-                      const campaign = campaigns.find((c) => c.id === d.campaign_id) || campaigns.find((c) => c.campaign_name && d.notes && d.notes.toLowerCase().includes(c.campaign_name.toLowerCase()));
+                      const campaignDisplayName = getCampaignDisplayName(d);
                       const isHousehold = d.donor_type === 'household' || (d.notes && d.notes.includes('Household:'));
 
                       return (
@@ -894,7 +908,7 @@ export const Donations: React.FC = () => {
                           </td>
                           <td style={{ textAlign: 'left' }}>
                             <span className="font-xs font-weight-600 text-dark">
-                              {d.donation_type === 'campaign' ? (campaign?.campaign_name || 'Special Campaign') : campaign?.campaign_name ? campaign.campaign_name : 'General Donation'}
+                              {campaignDisplayName}
                             </span>
                           </td>
                           <td style={{ textAlign: 'left' }}>

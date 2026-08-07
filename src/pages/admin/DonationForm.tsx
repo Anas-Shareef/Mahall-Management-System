@@ -188,10 +188,13 @@ export const DonationForm: React.FC = () => {
           : donorType === 'household' ? (selectedHouse?.house_owner_phone || null)
           : (donorPhone.trim() || null);
 
+      const selectedCampaign = campaigns.find((c) => c.id === campaignId);
+
       const payload = {
         donation_type: donationType,
         campaign_id: donationType === 'campaign' ? (campaignId || null) : null,
-        donor_type: donorType === 'household' ? 'external' as const : donorType,
+        purpose: donationType === 'campaign' ? (selectedCampaign?.campaign_name || null) : null,
+        donor_type: donorType,
         donor_member_id: donorType === 'member' ? (donorMemberId || null) : null,
         donor_name: resolvedDonorName,
         donor_phone: resolvedDonorPhone,
@@ -202,8 +205,8 @@ export const DonationForm: React.FC = () => {
         receipt_number: receiptNumber.trim() || `REC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
         reference_number: referenceNumber.trim() || null,
         notes: donorType === 'household' 
-          ? `Household: ${selectedHouse?.house_number || ''} — ${notes.trim() || ''}`.trim().replace(/ —\s*$/, '')
-          : (notes.trim() || null),
+          ? `Household: ${selectedHouse?.house_number || ''}${selectedCampaign?.campaign_name ? ` • Campaign: ${selectedCampaign.campaign_name}` : ''} ${notes.trim() ? `— ${notes.trim()}` : ''}`.trim()
+          : (selectedCampaign?.campaign_name && !notes.includes(selectedCampaign.campaign_name) ? `[Campaign: ${selectedCampaign.campaign_name}] ${notes.trim()}`.trim() : (notes.trim() || null)),
         recorded_by: user?.id || null,
         is_anonymous: donorType === 'anonymous'
       };
@@ -462,7 +465,17 @@ export const DonationForm: React.FC = () => {
             >
               <div className="form-group">
                 <label className="form-label">Fund Category</label>
-                <select className="form-control" value={donationType} onChange={(e) => setDonationType(e.target.value as any)}>
+                <select
+                  className="form-control"
+                  value={donationType}
+                  onChange={(e) => {
+                    const newType = e.target.value as any;
+                    setDonationType(newType);
+                    if (newType === 'campaign' && !campaignId && campaigns.length > 0) {
+                      setCampaignId(campaigns[0].id);
+                    }
+                  }}
+                >
                   <option value="general">General Community Fund</option>
                   <option value="campaign">Special Campaign</option>
                 </select>

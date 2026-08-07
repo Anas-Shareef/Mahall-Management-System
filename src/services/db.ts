@@ -2285,6 +2285,7 @@ export const db = {
           donation_date: data.donation_date || new Date().toISOString().split('T')[0],
           receipt_number: data.receipt_number,
           reference_number: data.reference_number,
+          purpose: data.purpose || null,
           notes: data.notes,
           recorded_by: validRecordedBy,
         };
@@ -2296,6 +2297,7 @@ export const db = {
             const result = {
               ...created,
               campaign_id: created.campaign_id || data.campaign_id || null,
+              purpose: created.purpose || data.purpose || null,
               donor_type: data.donor_type || created.donor_type || 'external',
             } as Donation;
             const list = getLocalData<Donation>('mahal_donations');
@@ -2321,6 +2323,7 @@ export const db = {
         if (data.donor_email) basePayload.donor_email = data.donor_email;
         if (data.receipt_number) basePayload.receipt_number = data.receipt_number;
         if (data.reference_number) basePayload.reference_number = data.reference_number;
+        if (data.purpose) basePayload.purpose = data.purpose;
         if (data.notes) basePayload.notes = data.notes;
         if (validCampaignId) basePayload.campaign_id = validCampaignId;
         if (validMemberId) basePayload.donor_member_id = validMemberId;
@@ -2332,6 +2335,7 @@ export const db = {
             const result = {
               ...created,
               campaign_id: created.campaign_id || data.campaign_id || null,
+              purpose: created.purpose || data.purpose || null,
               donor_type: data.donor_type || created.donor_type || 'external',
             } as Donation;
             const list = getLocalData<Donation>('mahal_donations');
