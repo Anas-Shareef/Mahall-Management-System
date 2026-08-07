@@ -10,7 +10,7 @@ import {
   Download, Edit2, Trash2, User,
   Printer, RefreshCw, HeartHandshake,
   TrendingUp, CalendarDays, Target, Award, QrCode, ChevronLeft, ChevronRight,
-  Wallet, FileSpreadsheet, Megaphone, BarChart3, Star, Clock, CheckSquare, Ban
+  Wallet, FileSpreadsheet, Megaphone, Clock, CheckSquare, Ban
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { Modal } from '../../components/Modal';
@@ -694,7 +694,7 @@ export const Donations: React.FC = () => {
                     .reduce((sum, d) => sum + (d.amount || 0), 0);
                   const donorCount = donations.filter((d) => d.campaign_id === c.id).length;
                   const progress = c.target_amount > 0 ? Math.min(100, Math.round((collected / c.target_amount) * 100)) : 0;
-                  const statusConfig: Record<string, { label: string; cls: string; icon: JSX.Element }> = {
+                  const statusConfig: Record<string, { label: string; cls: string; icon: React.ReactElement }> = {
                     active: { label: 'Active', cls: 'success', icon: <CheckCircle size={12} /> },
                     draft: { label: 'Draft', cls: 'warning', icon: <Clock size={12} /> },
                     completed: { label: 'Completed', cls: 'primary', icon: <CheckSquare size={12} /> },
