@@ -394,14 +394,19 @@ export const Donations: React.FC = () => {
       const c = campaigns.find((x) => x.id === d.campaign_id);
       if (c) return c.campaign_name;
     }
-    if (d.purpose && d.purpose.trim() !== '') return d.purpose;
+    if (d.purpose && d.purpose.trim() !== '' && d.purpose !== 'Special Campaign') return d.purpose;
     if (d.notes) {
       const matched = campaigns.find((c) => c.campaign_name && d.notes?.toLowerCase().includes(c.campaign_name.toLowerCase()));
       if (matched) return matched.campaign_name;
-      const notesMatch = d.notes.match(/Campaign:\s*([^—•\]\n]+)/i);
+      const notesMatch = d.notes.match(/(?:Campaign|Fund):\s*([^—•\]\n]+)/i);
       if (notesMatch && notesMatch[1]) return notesMatch[1].trim();
     }
-    return d.donation_type === 'campaign' ? 'Special Campaign' : 'General Donation';
+    if (d.donation_type === 'campaign') {
+      const activeCamp = campaigns.find((c) => c.status === 'active') || campaigns[0];
+      if (activeCamp) return activeCamp.campaign_name;
+      return 'Special Campaign';
+    }
+    return 'General Donation';
   };
 
   const exportCSV = () => {
