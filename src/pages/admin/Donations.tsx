@@ -205,7 +205,15 @@ export const Donations: React.FC = () => {
 
       const matchYear = !selectedYearId || !selectedYear || (d.donation_date && new Date(d.donation_date).getFullYear() === selectedYear);
       const matchType = !selectedDonationType || d.donation_type === selectedDonationType;
-      const matchCampaign = !selectedCampaignId || d.campaign_id === selectedCampaignId;
+      const selectedCampObj = campaigns.find((c) => c.id === selectedCampaignId);
+      const matchCampaign = !selectedCampaignId || (
+        d.campaign_id === selectedCampaignId ||
+        (selectedCampObj && selectedCampObj.campaign_name && (
+          (d.notes && d.notes.toLowerCase().includes(selectedCampObj.campaign_name.toLowerCase())) ||
+          (d.purpose && d.purpose.toLowerCase().includes(selectedCampObj.campaign_name.toLowerCase())) ||
+          d.donation_type === 'campaign'
+        ))
+      );
       const matchMethod = !selectedMethod || d.payment_method === selectedMethod;
       const matchDonorType = !selectedDonorType || d.donor_type === selectedDonorType;
       const matchStatus = !selectedStatus || (d.status || 'received') === selectedStatus;
@@ -715,12 +723,26 @@ export const Donations: React.FC = () => {
             ) : (
               <div className="campaigns-management-grid">
                 {campaigns.map((c) => {
-                  const isMatch = (d: Donation) => 
-                    d.campaign_id === c.id || 
-                    (c.campaign_name && d.notes && d.notes.toLowerCase().includes(c.campaign_name.toLowerCase())) ||
-                    (c.campaign_name && d.purpose && d.purpose.toLowerCase().includes(c.campaign_name.toLowerCase()));
+                  const cName = (c.campaign_name || '').toLowerCase().trim();
+                  const firstWord = cName.split(' ')[0];
 
-                  const campaignDonations = donations.filter((d) => isMatch(d) || (d.donation_type === 'campaign' && d.campaign_id === c.id));
+                  const isMatch = (d: Donation) => {
+                    if (d.campaign_id && d.campaign_id === c.id) return true;
+                    if (cName) {
+                      const notesLower = (d.notes || '').toLowerCase();
+                      const purposeLower = (d.purpose || '').toLowerCase();
+                      if (notesLower.includes(cName) || purposeLower.includes(cName)) return true;
+                      if (firstWord && firstWord.length > 2 && (notesLower.includes(firstWord) || purposeLower.includes(firstWord))) return true;
+                    }
+                    if (d.donation_type === 'campaign') {
+                      if (!d.campaign_id || d.campaign_id === c.id) {
+                        if (c.status === 'active' || campaigns.length === 1) return true;
+                      }
+                    }
+                    return false;
+                  };
+
+                  const campaignDonations = donations.filter((d) => isMatch(d));
                   const collected = campaignDonations.reduce((sum, d) => sum + (d.amount || 0), 0);
                   const donorCount = campaignDonations.length;
                   const progress = c.target_amount > 0 ? Math.min(100, Math.round((collected / c.target_amount) * 100)) : 0;
