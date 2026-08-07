@@ -460,26 +460,22 @@ export const Donations: React.FC = () => {
         </div>
 
         <div className="donations-header-actions">
-          {/* Row 1: Secondary utility buttons */}
-          <div className="donations-btn-row">
-            <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={() => setIsImportModalOpen(true)}>
-              <FileSpreadsheet size={15} className="text-emerald" />
-              <span>Import</span>
-            </button>
-            <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={exportCSV}>
-              <Download size={15} />
-              <span>Export</span>
-            </button>
-            <button
-              className="btn-campaign-outline font-xs flex-row-gap-xs"
-              onClick={() => { openCreateCampaign(); }}
-              title="Create a new fundraising campaign"
-            >
-              <Megaphone size={14} />
-              <span>New Campaign</span>
-            </button>
-          </div>
-          {/* Row 2: Primary CTA */}
+          <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={() => setIsImportModalOpen(true)}>
+            <FileSpreadsheet size={15} className="text-emerald" />
+            <span>Import</span>
+          </button>
+          <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={exportCSV}>
+            <Download size={15} />
+            <span>Export</span>
+          </button>
+          <button
+            className="btn-campaign-outline font-xs flex-row-gap-xs"
+            onClick={() => { openCreateCampaign(); }}
+            title="Create a new fundraising campaign"
+          >
+            <Megaphone size={14} />
+            <span>New Campaign</span>
+          </button>
           <button className="add-btn primary-btn" onClick={openAddDrawer}>
             <Plus size={16} />
             <span>Record Donation</span>
@@ -1655,19 +1651,13 @@ export const Donations: React.FC = () => {
           .voucher-grid-layout { grid-template-columns: 1fr !important; gap: 16px !important; }
         }
 
-        /* HEADER ACTIONS LAYOUT */
+        /* HEADER ACTIONS LAYOUT — SINGLE FLEX ROW */
         .donations-header-actions {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
           flex-wrap: wrap;
           justify-content: flex-end;
-        }
-        .donations-btn-row {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          flex-wrap: wrap;
         }
 
         /* CAMPAIGN BUTTON — distinct teal/purple outline style */
@@ -1694,10 +1684,12 @@ export const Donations: React.FC = () => {
           box-shadow: 0 4px 12px rgba(124,58,237,0.25) !important;
         }
 
-        /* Mobile: stack rows */
+        /* Mobile layout */
         @media (max-width: 640px) {
-          .donations-header-actions { flex-direction: column; align-items: flex-end; gap: 8px; }
-          .donations-btn-row { width: 100%; justify-content: flex-end; }
+          .donations-header-actions {
+            width: 100%;
+            justify-content: flex-start;
+          }
         }
       `}</style>
     </div>
