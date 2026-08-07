@@ -2,14 +2,14 @@
 -- Fix RLS policies on donation_campaigns so that authenticated admin users
 -- can insert/update/delete regardless of FK on created_by column.
 
--- Drop existing restrictive policies
+-- Drop ALL existing policies on donation_campaigns (safe - IF EXISTS prevents errors)
 DROP POLICY IF EXISTS "Admins have full access to donation_campaigns" ON public.donation_campaigns;
 DROP POLICY IF EXISTS "Allow all operations for donation_campaigns" ON public.donation_campaigns;
+DROP POLICY IF EXISTS "Admins full access donation_campaigns" ON public.donation_campaigns;
+DROP POLICY IF EXISTS "Everyone can view donation_campaigns" ON public.donation_campaigns;
+DROP POLICY IF EXISTS "Service role full access donation_campaigns" ON public.donation_campaigns;
 
--- Re-create a permissive policy:
--- Allow ALL operations for any authenticated user whose role is admin OR
--- when the session has no profile match (service role / anon token fallback).
--- This covers cases where created_by = NULL is passed.
+-- Create permissive admin policy (covers FK violations when created_by = null)
 CREATE POLICY "Admins full access donation_campaigns" ON public.donation_campaigns
     FOR ALL
     USING (
@@ -25,13 +25,6 @@ CREATE POLICY "Admins full access donation_campaigns" ON public.donation_campaig
         )
     );
 
--- Also allow service-role / anon access for server-side inserts
-CREATE POLICY "Service role full access donation_campaigns" ON public.donation_campaigns
-    FOR ALL
-    USING (auth.role() = 'service_role' OR auth.role() = 'anon')
-    WITH CHECK (auth.role() = 'service_role' OR auth.role() = 'anon');
-
--- Keep read-only SELECT for everyone (already existed)
-DROP POLICY IF EXISTS "Everyone can view donation_campaigns" ON public.donation_campaigns;
+-- Keep read access for everyone
 CREATE POLICY "Everyone can view donation_campaigns" ON public.donation_campaigns
     FOR SELECT USING (true);

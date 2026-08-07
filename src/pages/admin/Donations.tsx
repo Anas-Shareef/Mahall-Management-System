@@ -328,16 +328,24 @@ export const Donations: React.FC = () => {
         created_by: null,
       };
       if (editingCampaign) {
-        await db.donationCampaigns.update(editingCampaign.id, payload);
+        const result = await db.donationCampaigns.update(editingCampaign.id, payload);
+        console.log('Campaign update result:', result);
         showToast('success', 'Campaign updated successfully');
       } else {
-        await db.donationCampaigns.create(payload);
-        showToast('success', 'Campaign created successfully');
+        const result = await db.donationCampaigns.create(payload);
+        console.log('Campaign create result:', result);
+        // Check if it was stored locally only (no UUID means Supabase failed)
+        if (result.id && result.id.startsWith('camp-')) {
+          showToast('error', 'Campaign saved locally only — Supabase insert failed. Check RLS policies.');
+        } else {
+          showToast('success', 'Campaign created and saved to Supabase');
+        }
       }
       setIsCampaignModalOpen(false);
       loadData();
-    } catch (err) {
-      showToast('error', 'Failed to save campaign');
+    } catch (err: any) {
+      console.error('Campaign save error:', err);
+      showToast('error', `Failed to save campaign: ${err?.message || String(err)}`);
     } finally {
       setIsSavingCampaign(false);
     }
@@ -432,28 +440,31 @@ export const Donations: React.FC = () => {
           <p className="page-subtitle">Manage donations, campaigns, & official payment receipts.</p>
         </div>
 
-        <div className="header-cta-group">
-          {activeTab === 'manage_campaigns' ? (
-            <button className="add-btn primary-btn" onClick={openCreateCampaign}>
-              <Megaphone size={16} />
+        <div className="donations-header-actions">
+          {/* Row 1: Secondary utility buttons */}
+          <div className="donations-btn-row">
+            <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={() => setIsImportModalOpen(true)}>
+              <FileSpreadsheet size={15} className="text-emerald" />
+              <span>Import</span>
+            </button>
+            <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={exportCSV}>
+              <Download size={15} />
+              <span>Export</span>
+            </button>
+            <button
+              className="btn-campaign-outline font-xs flex-row-gap-xs"
+              onClick={() => { openCreateCampaign(); }}
+              title="Create a new fundraising campaign"
+            >
+              <Megaphone size={14} />
               <span>New Campaign</span>
             </button>
-          ) : (
-            <>
-              <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={() => setIsImportModalOpen(true)}>
-                <FileSpreadsheet size={15} className="text-emerald" />
-                <span>Import Data</span>
-              </button>
-              <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={exportCSV}>
-                <Download size={15} />
-                <span>Export CSV</span>
-              </button>
-              <button className="add-btn primary-btn" onClick={openAddDrawer}>
-                <Plus size={16} />
-                <span>Record Donation</span>
-              </button>
-            </>
-          )}
+          </div>
+          {/* Row 2: Primary CTA */}
+          <button className="add-btn primary-btn" onClick={openAddDrawer}>
+            <Plus size={16} />
+            <span>Record Donation</span>
+          </button>
         </div>
       </div>
 
@@ -1618,6 +1629,51 @@ export const Donations: React.FC = () => {
       <style>{`
         @media (max-width: 768px) {
           .voucher-grid-layout { grid-template-columns: 1fr !important; gap: 16px !important; }
+        }
+
+        /* HEADER ACTIONS LAYOUT */
+        .donations-header-actions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+        }
+        .donations-btn-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+
+        /* CAMPAIGN BUTTON — distinct teal/purple outline style */
+        .btn-campaign-outline {
+          display: inline-flex !important;
+          align-items: center !important;
+          gap: 5px !important;
+          padding: 7px 13px !important;
+          border-radius: 9999px !important;
+          font-size: 12.5px !important;
+          font-weight: 700 !important;
+          background: linear-gradient(135deg, #faf5ff, #f3e8ff) !important;
+          border: 1.5px solid #c4b5fd !important;
+          color: #7c3aed !important;
+          cursor: pointer !important;
+          transition: all 0.18s ease !important;
+          white-space: nowrap !important;
+        }
+        .btn-campaign-outline:hover {
+          background: #7c3aed !important;
+          color: #ffffff !important;
+          border-color: #7c3aed !important;
+          transform: translateY(-1px) !important;
+          box-shadow: 0 4px 12px rgba(124,58,237,0.25) !important;
+        }
+
+        /* Mobile: stack rows */
+        @media (max-width: 640px) {
+          .donations-header-actions { flex-direction: column; align-items: flex-end; gap: 8px; }
+          .donations-btn-row { width: 100%; justify-content: flex-end; }
         }
       `}</style>
     </div>
