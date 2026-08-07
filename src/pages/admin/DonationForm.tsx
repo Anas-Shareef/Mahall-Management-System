@@ -89,6 +89,11 @@ export const DonationForm: React.FC = () => {
           }
 
           const isCampaign = Boolean(current.donation_type === 'campaign' || resolvedCampaignId || current.purpose);
+          if (isCampaign && !resolvedCampaignId && allCampaigns.length > 0) {
+            const activeCamp = allCampaigns.find((c) => c.status === 'active') || allCampaigns[0];
+            resolvedCampaignId = activeCamp.id;
+          }
+
           setDonationType(isCampaign ? 'campaign' : 'general');
           setCampaignId(resolvedCampaignId);
 
@@ -521,7 +526,7 @@ export const DonationForm: React.FC = () => {
                   </div>
                   <select
                     className={`form-control margin-top-xs ${fieldErrors.campaignId ? 'is-invalid' : ''}`}
-                    value={campaignId}
+                    value={campaignId || (campaigns.length > 0 ? campaigns[0].id : '')}
                     onChange={(e) => setCampaignId(e.target.value)}
                   >
                     <option value="">-- Choose Active Campaign --</option>
