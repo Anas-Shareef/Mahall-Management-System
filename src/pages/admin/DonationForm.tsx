@@ -80,9 +80,34 @@ export const DonationForm: React.FC = () => {
         const allDonations = await db.donations.get();
         const current = allDonations.find((d) => d.id === id);
         if (current) {
-          setDonationType(current.donation_type || 'general');
-          setCampaignId(current.campaign_id || '');
-          setDonorType((current.donor_type as any) || 'member');
+          // Detect campaign matching by ID, purpose, or notes
+          let resolvedCampaignId = current.campaign_id || '';
+          if (!resolvedCampaignId && (current.purpose || current.notes)) {
+            const searchStr = `${current.purpose || ''} ${current.notes || ''}`.toLowerCase();
+            const matchedCamp = allCampaigns.find((c) => c.campaign_name && searchStr.includes(c.campaign_name.toLowerCase()));
+            if (matchedCamp) resolvedCampaignId = matchedCamp.id;
+          }
+
+          const isCampaign = Boolean(current.donation_type === 'campaign' || resolvedCampaignId || current.purpose);
+          setDonationType(isCampaign ? 'campaign' : 'general');
+          setCampaignId(resolvedCampaignId);
+
+          // Detect household donor type matching from notes or donor_type
+          let resolvedDonorType: 'member' | 'household' | 'external' | 'anonymous' = (current.donor_type as any) || 'member';
+          let resolvedHouseholdId = '';
+
+          if (current.notes && current.notes.includes('Household:')) {
+            resolvedDonorType = 'household';
+            const houseMatch = current.notes.match(/Household:\s*([^\s—•]+)/i);
+            if (houseMatch && houseMatch[1]) {
+              const houseNo = houseMatch[1].trim();
+              const foundHouse = allHouseholds.find((h) => h.house_number === houseNo);
+              if (foundHouse) resolvedHouseholdId = foundHouse.id;
+            }
+          }
+
+          setDonorType(resolvedDonorType);
+          setDonorHouseholdId(resolvedHouseholdId);
           setDonorMemberId(current.donor_member_id || '');
           setDonorName(current.donor_name || '');
           setDonorPhone(current.donor_phone || '');
