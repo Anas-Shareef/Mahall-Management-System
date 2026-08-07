@@ -2161,11 +2161,36 @@ export const db = {
       if (isSupabaseConfigured && supabase) {
         try {
           const { data: created, error } = await supabase.from('donation_campaigns').insert([cleanData]).select().single();
-          if (!error && created) return created as DonationCampaign;
+          if (!error && created) {
+            // Also sync to local cache
+            const list = getLocalData<DonationCampaign>('mahal_campaigns');
+            list.push(created as DonationCampaign);
+            saveLocalData('mahal_campaigns', list);
+            return created as DonationCampaign;
+          }
+          if (error && (error.code === '23503' || error.message?.includes('foreign key'))) {
+            // FK violation on created_by — retry with null
+            const { data: retryData, error: retryErr } = await supabase
+              .from('donation_campaigns')
+              .insert([{ ...cleanData, created_by: null }])
+              .select()
+              .single();
+            if (!retryErr && retryData) {
+              const list = getLocalData<DonationCampaign>('mahal_campaigns');
+              list.push(retryData as DonationCampaign);
+              saveLocalData('mahal_campaigns', list);
+              return retryData as DonationCampaign;
+            }
+            if (retryErr) console.error('Supabase donationCampaigns retry insert error:', retryErr);
+          }
+          if (error) {
+            console.error('Supabase donationCampaigns insert error:', error);
+          }
         } catch (e) {
-          console.warn('Supabase donationCampaigns create notice:', e);
+          console.error('Supabase donationCampaigns create exception:', e);
         }
       }
+      // Local-only fallback
       const list = getLocalData<DonationCampaign>('mahal_campaigns');
       const newRecord: DonationCampaign = {
         ...data,
