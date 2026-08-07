@@ -6,7 +6,7 @@ import type { Household, Member, MemberSubscription, SubscriptionYear } from '..
 import { 
   Plus, Edit2, Trash2, Search, Filter, Home, Users, X, AlertCircle, 
   CheckCircle, CheckCircle2, TrendingUp, Phone, MapPin, Download, Calendar,
-  FileSpreadsheet, ShieldCheck
+  FileSpreadsheet, ShieldCheck, FileText, Share2
 } from 'lucide-react';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { HouseholdDetailsModal } from '../../components/HouseholdDetailsModal';
@@ -385,6 +385,218 @@ export const Households: React.FC = () => {
   const totalOutstandingBalance = useMemo(() => {
     return households.reduce((sum, h) => sum + getHouseholdFinancials(h.id).balance, 0);
   }, [households, getHouseholdFinancials]);
+
+  // WhatsApp Share Helper for Selected Household
+  const handleShareHouseholdWhatsApp = () => {
+    if (!selectedHouseholdDetails) return;
+    const h = selectedHouseholdDetails;
+    const membersList = householdMembersDetails;
+    const totals = {
+      due: membersList.reduce((sum, m) => sum + m.totalDue, 0),
+      paid: membersList.reduce((sum, m) => sum + m.totalPaid, 0),
+      balance: membersList.reduce((sum, m) => sum + m.balance, 0),
+    };
+
+    let text = `🏡 *MAHALLU HOUSEHOLD STATEMENT & ROSTER*\n`;
+    text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+    text += `📌 *House No:* ${formatHouseNumber(h.house_number)}\n`;
+    text += `👤 *House Owner:* ${h.house_owner_name}\n`;
+    text += `📞 *Phone:* ${h.house_owner_phone || 'N/A'}\n`;
+    text += `📍 *Area/Zone:* ${h.area || 'Mahallu Central'}\n`;
+    if (h.address) text += `🏠 *Address:* ${h.address}\n`;
+    text += `👥 *Total Family Members:* ${membersList.length}\n\n`;
+
+    text += `📊 *FINANCIAL SUMMARY*\n`;
+    text += `• Total Expected: ${formatCurrency(totals.due)}\n`;
+    text += `• Total Paid: ${formatCurrency(totals.paid)}\n`;
+    text += `• *Outstanding Balance:* ${formatCurrency(totals.balance)}\n\n`;
+
+    text += `📋 *FAMILY MEMBERS ROSTER*\n`;
+    membersList.forEach((m, idx) => {
+      text += `${idx + 1}. *${m.name}* (${m.relationship})\n   Paid: ${formatCurrency(m.totalPaid)} | Bal: ${formatCurrency(m.balance)}\n`;
+    });
+
+    text += `\n━━━━━━━━━━━━━━━━━━━━━\n`;
+    text += `_Shared via ${branding.organizationName || 'Mahall Management System'}_`;
+
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  // PDF Form Download Helper for Selected Household
+  const handleDownloadHouseholdFormPDF = () => {
+    if (!selectedHouseholdDetails) return;
+    const h = selectedHouseholdDetails;
+    const membersList = householdMembersDetails;
+    const totals = {
+      due: membersList.reduce((sum, m) => sum + m.totalDue, 0),
+      paid: membersList.reduce((sum, m) => sum + m.totalPaid, 0),
+      balance: membersList.reduce((sum, m) => sum + m.balance, 0),
+    };
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showToast('error', 'Popup blocked. Please allow popups to download/print PDF.');
+      return;
+    }
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Household Form - ${formatHouseNumber(h.house_number)}</title>
+        <style>
+          @page { size: A4; margin: 15mm; }
+          body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; color: #0f172a; background: #fff; line-height: 1.4; }
+          .form-header { text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; position: relative; }
+          .org-title { font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; }
+          .form-subtitle { font-size: 13px; font-weight: 700; color: #00966b; text-transform: uppercase; margin-top: 4px; }
+          .form-meta-row { display: flex; justify-content: space-between; font-size: 11px; color: #64748b; margin-top: 8px; }
+          
+          .info-box-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px; margin-bottom: 20px; }
+          .info-field { font-size: 12px; }
+          .info-field label { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; display: block; }
+          .info-field span { font-weight: 700; color: #0f172a; font-size: 13px; }
+          
+          .section-title { font-size: 13px; font-weight: 800; text-transform: uppercase; color: #0f172a; margin-bottom: 8px; border-left: 3px solid #00966b; padding-left: 8px; }
+          
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; }
+          th { background: #0f172a; color: #fff; font-size: 11px; text-transform: uppercase; padding: 8px; text-align: left; }
+          td { padding: 8px; border-bottom: 1px solid #e2e8f0; }
+          tr.total-row { background: #f1f5f9; font-weight: 800; border-top: 2px solid #0f172a; }
+          
+          .financial-summary-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 30px; }
+          .fin-card { border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 10px; text-align: center; }
+          .fin-card label { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+          .fin-card .val { font-size: 16px; font-weight: 800; margin-top: 2px; }
+          
+          .signature-section { margin-top: 40px; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 20px; border-top: 1px dashed #cbd5e1; }
+          .sig-box { text-align: center; width: 180px; }
+          .sig-line { border-bottom: 1px solid #0f172a; height: 35px; margin-bottom: 6px; }
+          .sig-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; }
+          
+          @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="no-print" style="margin-bottom: 15px; text-align: right;">
+          <button onclick="window.print()" style="background: #00966b; color: white; border: none; padding: 8px 16px; font-weight: bold; border-radius: 6px; cursor: pointer;">🖨️ Save as PDF / Print Form</button>
+        </div>
+
+        <div class="form-header">
+          <h1 class="org-title">${branding.organizationName || 'VELLIKKEEL MAHALLU JAMA-ATH'}</h1>
+          <div class="form-subtitle">OFFICIAL HOUSEHOLD ROSTER & FINANCIAL STATEMENT FORM</div>
+          <div class="form-meta-row">
+            <span>FORM REF: FORM-${h.id.slice(0, 8).toUpperCase()}</span>
+            <span>DATE: ${new Date().toLocaleDateString('en-IN')}</span>
+          </div>
+        </div>
+
+        <div class="info-box-grid">
+          <div class="info-field">
+            <label>House Number</label>
+            <span>${formatHouseNumber(h.house_number)}</span>
+          </div>
+          <div class="info-field">
+            <label>House Owner Name</label>
+            <span>${h.house_owner_name}</span>
+          </div>
+          <div class="info-field">
+            <label>Contact Phone</label>
+            <span>${h.house_owner_phone || 'N/A'}</span>
+          </div>
+          <div class="info-field">
+            <label>Mahallu Ward / Area</label>
+            <span>${h.area || 'Mahallu Central'}</span>
+          </div>
+          <div class="info-field" style="grid-column: span 2;">
+            <label>Residential Address</label>
+            <span>${h.address || 'N/A'}</span>
+          </div>
+        </div>
+
+        <div class="section-title">FAMILY ROSTER & INDIVIDUAL FINANCIAL SUMMARY</div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Member Name</th>
+              <th>Relationship</th>
+              <th>Member ID</th>
+              <th style="text-align: right;">Total Due</th>
+              <th style="text-align: right;">Total Paid</th>
+              <th style="text-align: right;">Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${membersList.map((m, idx) => {
+              const fullM = members.find((mem) => mem.id === m.id);
+              const mNo = fullM?.member_number || `MEM-${m.id.slice(0, 6)}`;
+              return `
+                <tr>
+                  <td>${idx + 1}</td>
+                  <td><strong>${m.name}</strong></td>
+                  <td>${m.relationship}</td>
+                  <td>${mNo}</td>
+                  <td style="text-align: right;">₹${m.totalDue.toLocaleString('en-IN')}</td>
+                  <td style="text-align: right; color: #00966b; font-weight: bold;">₹${m.totalPaid.toLocaleString('en-IN')}</td>
+                  <td style="text-align: right; color: ${m.balance > 0 ? '#dc2626' : '#00966b'}; font-weight: bold;">₹${m.balance.toLocaleString('en-IN')}</td>
+                </tr>
+              `;
+            }).join('')}
+            <tr class="total-row">
+              <td colspan="4">CONSOLIDATED HOUSEHOLD TOTAL (${membersList.length} MEMBERS)</td>
+              <td style="text-align: right;">₹${totals.due.toLocaleString('en-IN')}</td>
+              <td style="text-align: right; color: #00966b;">₹${totals.paid.toLocaleString('en-IN')}</td>
+              <td style="text-align: right; color: ${totals.balance > 0 ? '#dc2626' : '#00966b'};">₹${totals.balance.toLocaleString('en-IN')}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="section-title">CONSOLIDATED FINANCIAL STATEMENT</div>
+        <div class="financial-summary-cards">
+          <div class="fin-card">
+            <label>Expected Fees</label>
+            <div class="val">₹${totals.due.toLocaleString('en-IN')}</div>
+          </div>
+          <div class="fin-card">
+            <label>Total Amount Paid</label>
+            <div class="val" style="color: #00966b;">₹${totals.paid.toLocaleString('en-IN')}</div>
+          </div>
+          <div class="fin-card">
+            <label>Outstanding Balance</label>
+            <div class="val" style="color: ${totals.balance > 0 ? '#dc2626' : '#00966b'};">₹${totals.balance.toLocaleString('en-IN')}</div>
+          </div>
+        </div>
+
+        <div class="signature-section">
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">House Owner Signature</div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">Mahallu Secretary</div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">Official Seal & Date</div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 400);
+  };
 
   return (
     <div className="households-page animate-fade-in">
@@ -921,6 +1133,29 @@ export const Households: React.FC = () => {
                     )}
                   </tbody>
                 </table>
+              </div>
+
+              {/* PDF FORM DOWNLOAD & WHATSAPP SHARE ACTION BAR */}
+              <div className="household-table-actions-bar margin-top-sm flex-between align-items-center flex-wrap gap-xs padding-top-xs" style={{ borderTop: '1px solid #f1f5f9' }}>
+                <button
+                  type="button"
+                  className="btn-download-pdf-form font-xs flex-row-gap-xs"
+                  onClick={handleDownloadHouseholdFormPDF}
+                  title="Download Official Household Form PDF"
+                >
+                  <FileText size={15} className="text-primary" />
+                  <span>Download PDF (Form Look)</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-whatsapp-share font-xs flex-row-gap-xs"
+                  onClick={handleShareHouseholdWhatsApp}
+                  title="Share Household Details via WhatsApp"
+                >
+                  <Share2 size={15} className="text-emerald" />
+                  <span>Share Details via WhatsApp</span>
+                </button>
               </div>
             </div>
           </div>
