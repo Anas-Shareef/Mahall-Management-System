@@ -397,7 +397,7 @@ export const Households: React.FC = () => {
       balance: membersList.reduce((sum, m) => sum + m.balance, 0),
     };
 
-    let text = `🏡 *MAHALLU HOUSEHOLD STATEMENT & ROSTER*\n`;
+    let text = `🏡 *MAHALLU DEVELOPMENT FUND (MDF)*\n`;
     text += `━━━━━━━━━━━━━━━━━━━━━\n`;
     text += `📌 *House No:* ${formatHouseNumber(h.house_number)}\n`;
     text += `👤 *House Owner:* ${h.house_owner_name}\n`;
@@ -487,8 +487,8 @@ export const Households: React.FC = () => {
         </div>
 
         <div class="form-header">
-          <h1 class="org-title">${branding.organizationName || 'VELLIKKEEL MAHALLU JAMA-ATH'}</h1>
-          <div class="form-subtitle">OFFICIAL HOUSEHOLD ROSTER & FINANCIAL STATEMENT FORM</div>
+          <h1 class="org-title">${branding.organizationName ? `${branding.organizationName} | MDF | MAHALLU DEVELOPMENT FUND` : 'MDF | MAHALLU DEVELOPMENT FUND'}</h1>
+          <div class="form-subtitle">Official Household Registry & Financial Summary</div>
           <div class="form-meta-row">
             <span>FORM REF: FORM-${h.id.slice(0, 8).toUpperCase()}</span>
             <span>DATE: ${new Date().toLocaleDateString('en-IN')}</span>
