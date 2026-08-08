@@ -441,27 +441,47 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
             )}
           </div>
         )}
-        {/* PDF FORM DOWNLOAD & WHATSAPP SHARE ACTION BAR */}
-        <div className="flex-between align-items-center flex-wrap gap-xs margin-top-sm padding-top-xs" style={{ borderTop: '1px solid #f1f5f9' }}>
-          <button
-            type="button"
-            className="pill-btn-ghost font-xs flex-row-gap-xs"
-            onClick={handleDownloadHouseholdFormPDF}
-            style={{ border: '1.5px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontWeight: 700 }}
-          >
-            <FileText size={15} className="text-primary" />
-            <span>Download PDF (Form Look)</span>
-          </button>
+        {/* DOCUMENT & WHATSAPP SHARE ACTION CARD */}
+        <div className="household-actions-card">
+          <div className="actions-card-header">
+            <div className="actions-card-title">
+              <FileText size={15} className="text-primary" />
+              <span>REPORT & SHARE ACTIONS</span>
+            </div>
+            <span className="actions-card-subtitle">Official Statement & Roster</span>
+          </div>
 
-          <button
-            type="button"
-            className="pill-btn-ghost font-xs flex-row-gap-xs"
-            onClick={handleShareHouseholdWhatsApp}
-            style={{ border: '1.5px solid #86efac', background: '#f0fdf4', color: '#15803d', fontWeight: 700 }}
-          >
-            <Share2 size={15} className="text-emerald" />
-            <span>Share Details via WhatsApp</span>
-          </button>
+          <div className="actions-grid">
+            <button
+              type="button"
+              className="action-btn pdf-btn"
+              onClick={handleDownloadHouseholdFormPDF}
+              title="Download Official Household Form PDF"
+            >
+              <div className="btn-icon-wrapper pdf">
+                <FileText size={16} />
+              </div>
+              <div className="btn-content">
+                <span className="btn-title">Download PDF</span>
+                <span className="btn-desc">Official Form Look</span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              className="action-btn whatsapp-btn"
+              onClick={handleShareHouseholdWhatsApp}
+              title="Share Household Details via WhatsApp"
+            >
+              <div className="btn-icon-wrapper whatsapp">
+                <Share2 size={16} />
+              </div>
+              <div className="btn-content">
+                <span className="btn-title">Share via WhatsApp</span>
+                <span className="btn-desc">Send Summary</span>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
     </SidePanel>

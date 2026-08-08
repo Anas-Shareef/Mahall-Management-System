@@ -1134,27 +1134,47 @@ export const Households: React.FC = () => {
                   </tbody>
                 </table>
               </div>
+            </div>
 
-              {/* PDF FORM DOWNLOAD & WHATSAPP SHARE ACTION BAR */}
-              <div className="household-table-actions-bar margin-top-sm flex-between align-items-center flex-wrap gap-xs padding-top-xs" style={{ borderTop: '1px solid #f1f5f9' }}>
+            {/* DOCUMENT & WHATSAPP SHARE ACTION CARD */}
+            <div className="household-actions-card">
+              <div className="actions-card-header">
+                <div className="actions-card-title">
+                  <FileText size={15} className="text-primary" />
+                  <span>REPORT & SHARE ACTIONS</span>
+                </div>
+                <span className="actions-card-subtitle">Official Statement & Roster</span>
+              </div>
+
+              <div className="actions-grid">
                 <button
                   type="button"
-                  className="btn-download-pdf-form font-xs flex-row-gap-xs"
+                  className="action-btn pdf-btn"
                   onClick={handleDownloadHouseholdFormPDF}
                   title="Download Official Household Form PDF"
                 >
-                  <FileText size={15} className="text-primary" />
-                  <span>Download PDF (Form Look)</span>
+                  <div className="btn-icon-wrapper pdf">
+                    <FileText size={16} />
+                  </div>
+                  <div className="btn-content">
+                    <span className="btn-title">Download PDF</span>
+                    <span className="btn-desc">Official Form Look</span>
+                  </div>
                 </button>
 
                 <button
                   type="button"
-                  className="btn-whatsapp-share font-xs flex-row-gap-xs"
+                  className="action-btn whatsapp-btn"
                   onClick={handleShareHouseholdWhatsApp}
                   title="Share Household Details via WhatsApp"
                 >
-                  <Share2 size={15} className="text-emerald" />
-                  <span>Share Details via WhatsApp</span>
+                  <div className="btn-icon-wrapper whatsapp">
+                    <Share2 size={16} />
+                  </div>
+                  <div className="btn-content">
+                    <span className="btn-title">Share via WhatsApp</span>
+                    <span className="btn-desc">Send Summary</span>
+                  </div>
                 </button>
               </div>
             </div>
