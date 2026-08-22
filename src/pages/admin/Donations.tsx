@@ -10,7 +10,7 @@ import {
   Download, Edit2, Trash2, User,
   Printer, RefreshCw, HeartHandshake,
   TrendingUp, CalendarDays, Target, Award, QrCode, ChevronLeft, ChevronRight,
-  Wallet, FileSpreadsheet, Megaphone, Clock, CheckSquare, Ban
+  Wallet, FileSpreadsheet, Megaphone, Clock, CheckSquare, Ban, ChevronDown, FileText
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { Modal } from '../../components/Modal';
@@ -59,6 +59,11 @@ export const Donations: React.FC = () => {
   });
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
+  // Excel & Reports Actions Dropdown & Campaign PDF Modal States
+  const [isActionsDropdownOpen, setIsActionsDropdownOpen] = useState(false);
+  const [isCampaignPdfModalOpen, setIsCampaignPdfModalOpen] = useState(false);
+  const [pdfReportCampaignId, setPdfReportCampaignId] = useState<string>('');
+
   // Data States
   const [years, setYears] = useState<SubscriptionYear[]>([]);
   const [selectedYearId, setSelectedYearId] = useState<string>('');
@@ -104,6 +109,18 @@ export const Donations: React.FC = () => {
     setToastMessage({ type, text });
     setTimeout(() => setToastMessage(null), 3500);
   };
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.donations-actions-dropdown-container')) {
+        setIsActionsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -460,6 +477,201 @@ export const Donations: React.FC = () => {
     setIsReceiptModalOpen(true);
   };
 
+  // 📄 Campaign Analytical PDF Report Generator Function
+  const handlePrintCampaignPdf = (targetCampaignId?: string) => {
+    const selectedCamp = targetCampaignId 
+      ? campaigns.find(c => c.id === targetCampaignId) 
+      : (selectedCampaignId ? campaigns.find(c => c.id === selectedCampaignId) : null);
+
+    const targetDonations = selectedCamp 
+      ? donations.filter(d => 
+          d.campaign_id === selectedCamp.id || 
+          (d.purpose && d.purpose.toLowerCase().includes(selectedCamp.campaign_name.toLowerCase())) ||
+          (d.notes && d.notes.toLowerCase().includes(selectedCamp.campaign_name.toLowerCase()))
+        )
+      : donations;
+
+    const totalCollected = targetDonations.reduce((sum, d) => sum + (d.amount || 0), 0);
+    const targetGoal = selectedCamp?.target_amount || 0;
+    const progressPct = targetGoal > 0 ? Math.min(100, Math.round((totalCollected / targetGoal) * 100)) : 0;
+
+    const upiTotal = targetDonations.filter(d => (d.payment_method || '').toLowerCase() === 'upi').reduce((s, d) => s + (d.amount || 0), 0);
+    const cashTotal = targetDonations.filter(d => (d.payment_method || '').toLowerCase() === 'cash').reduce((s, d) => s + (d.amount || 0), 0);
+    const bankTotal = targetDonations.filter(d => (d.payment_method || '').toLowerCase() === 'bank_transfer').reduce((s, d) => s + (d.amount || 0), 0);
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showToast('error', 'Popup blocked. Please allow popups to generate PDF statement.');
+      return;
+    }
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Campaign Statement - ${selectedCamp ? selectedCamp.campaign_name : 'All Campaigns'}</title>
+        <style>
+          @page { size: A4; margin: 12mm; }
+          body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; color: #0f172a; background: #fff; line-height: 1.4; }
+          .report-header { text-align: center; border-bottom: 2px solid #00966b; padding-bottom: 12px; margin-bottom: 20px; }
+          .org-title { font-size: 20px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin: 0; }
+          .doc-title { font-size: 13px; font-weight: 800; color: #00966b; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px; }
+          .meta-row { display: flex; justify-content: space-between; font-size: 11px; color: #64748b; margin-top: 8px; }
+          
+          .campaign-summary-box { background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 16px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+          .summary-card { font-size: 12px; }
+          .summary-card label { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 3px; }
+          .summary-card .val { font-size: 15px; font-weight: 800; color: #0f172a; }
+          .summary-card .val.emerald { color: #00966b; }
+          
+          .progress-bar-container { grid-column: 1 / -1; margin-top: 6px; }
+          .progress-bar-bg { background: #e2e8f0; height: 10px; border-radius: 999px; overflow: hidden; width: 100%; }
+          .progress-bar-fill { background: #00966b; height: 100%; border-radius: 999px; width: ${progressPct}%; }
+
+          .section-title { font-size: 13px; font-weight: 800; text-transform: uppercase; color: #0f172a; margin-bottom: 10px; border-left: 3.5px solid #00966b; padding-left: 8px; }
+
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11.5px; }
+          th { background: #0f172a; color: #ffffff; font-size: 10.5px; text-transform: uppercase; padding: 8px 10px; text-align: left; }
+          td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; color: #334155; }
+          tr:nth-child(even) { background: #f8fafc; }
+          tr.total-row { background: #f1f5f9; font-weight: 800; border-top: 2px solid #0f172a; border-bottom: 2px solid #0f172a; }
+
+          .payment-breakdown-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 25px; }
+          .pay-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; text-align: center; background: #fafafa; }
+          .pay-card label { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+          .pay-card .val { font-size: 14px; font-weight: 800; color: #0f172a; margin-top: 2px; }
+
+          .signatures { margin-top: 40px; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 20px; border-top: 1px dashed #cbd5e1; }
+          .sig-box { text-align: center; width: 180px; }
+          .sig-line { border-bottom: 1px solid #0f172a; height: 30px; margin-bottom: 6px; }
+          .sig-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; }
+
+          @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="no-print" style="margin-bottom: 15px; text-align: right;">
+          <button onclick="window.print()" style="background: #00966b; color: white; border: none; padding: 8px 18px; font-weight: bold; border-radius: 6px; cursor: pointer;">🖨️ Save as PDF / Print Statement</button>
+        </div>
+
+        <div class="report-header">
+          <h1 class="org-title">${branding?.organizationName || 'VELLIKKEEL MAHALLU JAMA-ATH'}</h1>
+          <div class="doc-title">CAMPAIGN FINANCIAL STATEMENT & ANALYTICAL REPORT</div>
+          <div class="meta-row">
+            <span>REPORT FOR: <strong>${selectedCamp ? selectedCamp.campaign_name.toUpperCase() : 'ALL CAMPAIGNS & SPECIAL FUNDS'}</strong></span>
+            <span>DATE GENERATED: ${new Date().toLocaleDateString('en-IN')}</span>
+          </div>
+        </div>
+
+        <div class="campaign-summary-box">
+          <div class="summary-card">
+            <label>Campaign Name</label>
+            <div class="val">${selectedCamp ? selectedCamp.campaign_name : 'Consolidated Campaigns'}</div>
+          </div>
+          <div class="summary-card">
+            <label>Target Goal</label>
+            <div class="val">${targetGoal > 0 ? '₹' + targetGoal.toLocaleString('en-IN') : 'Open Ended'}</div>
+          </div>
+          <div class="summary-card">
+            <label>Total Collected</label>
+            <div class="val emerald">₹${totalCollected.toLocaleString('en-IN')}</div>
+          </div>
+          <div class="summary-card">
+            <label>Total Donors</label>
+            <div class="val">${targetDonations.length} Contributions</div>
+          </div>
+          ${targetGoal > 0 ? `
+            <div class="progress-bar-container">
+              <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; color: #64748b; margin-bottom: 3px;">
+                <span>Goal Progress</span>
+                <span>${progressPct}% Achieved</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill"></div>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+
+        <div class="section-title">PAYMENT METHOD BREAKDOWN</div>
+        <div class="payment-breakdown-grid">
+          <div class="pay-card">
+            <label>UPI / Online Payments</label>
+            <div class="val">₹${upiTotal.toLocaleString('en-IN')}</div>
+          </div>
+          <div class="pay-card">
+            <label>Cash Collections</label>
+            <div class="val">₹${cashTotal.toLocaleString('en-IN')}</div>
+          </div>
+          <div class="pay-card">
+            <label>Bank Transfer</label>
+            <div class="val">₹${bankTotal.toLocaleString('en-IN')}</div>
+          </div>
+        </div>
+
+        <div class="section-title">CONTRIBUTIONS & DONOR ROSTER</div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Receipt No</th>
+              <th>Donor Name</th>
+              <th>Donor Type</th>
+              <th>Category / Campaign</th>
+              <th>Date</th>
+              <th>Method</th>
+              <th style="text-align: right;">Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${targetDonations.map((d, idx) => `
+              <tr>
+                <td>${idx + 1}</td>
+                <td><code>${d.receipt_number || 'REC-' + d.id.slice(0, 5)}</code></td>
+                <td><strong>${d.donor_name || 'Anonymous Donor'}</strong></td>
+                <td><span style="text-transform: uppercase; font-size: 10px; font-weight: 700;">${d.donor_type || 'external'}</span></td>
+                <td>${d.purpose || selectedCamp?.campaign_name || 'Special Campaign'}</td>
+                <td>${d.donation_date}</td>
+                <td>${(d.payment_method || 'UPI').toUpperCase()}</td>
+                <td style="text-align: right; font-weight: 800; color: #00966b;">₹${(d.amount || 0).toLocaleString('en-IN')}</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td colspan="7">CONSOLIDATED TOTAL COLLECTION (${targetDonations.length} RECORDS)</td>
+              <td style="text-align: right; font-size: 13px; color: #00966b;">₹${totalCollected.toLocaleString('en-IN')}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="signatures">
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">Prepared By</div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">Mahallu Treasurer</div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">President / Secretary Seal</div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 400);
+  };
+
   return (
     <div className="donations-page animate-fade-in">
       {/* Toast Notification */}
@@ -478,15 +690,73 @@ export const Donations: React.FC = () => {
         </div>
 
         <div className="donations-header-actions">
-          <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={() => setIsImportModalOpen(true)}>
-            <FileSpreadsheet size={15} className="text-emerald" />
-            <span>Import</span>
-          </button>
-          <button className="pill-btn-ghost font-xs flex-row-gap-xs" onClick={exportCSV}>
-            <Download size={15} />
-            <span>Export</span>
-          </button>
+          {/* Actions & Reports Dropdown Menu */}
+          <div className="donations-actions-dropdown-container">
+            <button
+              type="button"
+              className="pill-btn-ghost font-xs flex-row-gap-xs dropdown-trigger-btn"
+              onClick={() => setIsActionsDropdownOpen(!isActionsDropdownOpen)}
+              title="Excel Import, Export & PDF Reports"
+            >
+              <FileSpreadsheet size={15} className="text-emerald" />
+              <span>Excel & Reports</span>
+              <ChevronDown size={14} className={`dropdown-arrow ${isActionsDropdownOpen ? 'open' : ''}`} />
+            </button>
+
+            {isActionsDropdownOpen && (
+              <div className="donations-dropdown-menu animate-scale-in">
+                <button
+                  type="button"
+                  className="dropdown-item"
+                  onClick={() => {
+                    setIsActionsDropdownOpen(false);
+                    setIsImportModalOpen(true);
+                  }}
+                >
+                  <FileSpreadsheet size={15} className="text-emerald" />
+                  <div>
+                    <div className="item-title">Import Excel</div>
+                    <div className="item-sub">Batch import donation data</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  className="dropdown-item"
+                  onClick={() => {
+                    setIsActionsDropdownOpen(false);
+                    exportCSV();
+                  }}
+                >
+                  <Download size={15} className="text-primary" />
+                  <div>
+                    <div className="item-title">Export CSV / Excel</div>
+                    <div className="item-sub">Download filtered records</div>
+                  </div>
+                </button>
+
+                <div className="dropdown-divider"></div>
+
+                <button
+                  type="button"
+                  className="dropdown-item"
+                  onClick={() => {
+                    setIsActionsDropdownOpen(false);
+                    setIsCampaignPdfModalOpen(true);
+                  }}
+                >
+                  <Printer size={15} className="text-purple" />
+                  <div>
+                    <div className="item-title">Print Campaign PDF</div>
+                    <div className="item-sub">Analytical statement & roster</div>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
+
           <button
+            type="button"
             className="btn-campaign-outline font-xs flex-row-gap-xs"
             onClick={() => { openCreateCampaign(); }}
             title="Create a new fundraising campaign"
@@ -494,7 +764,7 @@ export const Donations: React.FC = () => {
             <Megaphone size={14} />
             <span>New Campaign</span>
           </button>
-          <button className="add-btn primary-btn" onClick={openAddDrawer}>
+          <button type="button" className="add-btn primary-btn" onClick={openAddDrawer}>
             <Plus size={16} />
             <span>Record Donation</span>
           </button>
@@ -822,7 +1092,14 @@ export const Donations: React.FC = () => {
                           className="pill-btn-ghost font-xs"
                           onClick={() => { setActiveTab('campaigns'); setSelectedCampaignId(c.id); }}
                         >
-                          <Eye size={13} /> View Donations
+                          <Eye size={13} /> View
+                        </button>
+                        <button
+                          className="pill-btn-ghost font-xs text-purple"
+                          onClick={() => handlePrintCampaignPdf(c.id)}
+                          title="Print Campaign Analytical PDF Report"
+                        >
+                          <Printer size={13} /> PDF Report
                         </button>
                         <button className="pill-btn-ghost font-xs" onClick={() => openEditCampaign(c)}>
                           <Edit2 size={13} /> Edit
@@ -1574,6 +1851,76 @@ export const Donations: React.FC = () => {
         </p>
       </Modal>
 
+      {/* CAMPAIGN PDF STATEMENT GENERATOR MODAL */}
+      <Modal
+        isOpen={isCampaignPdfModalOpen}
+        onClose={() => setIsCampaignPdfModalOpen(false)}
+        title="Campaign Analytical PDF Statement"
+        subtitle="Generate and download printable PDF report formatted by campaign analysis."
+        icon={<Printer size={20} className="text-purple" />}
+        size="md"
+        footer={
+          <div className="flex-between width-100">
+            <button className="pill-btn-ghost" onClick={() => setIsCampaignPdfModalOpen(false)}>
+              Cancel
+            </button>
+            <button
+              className="add-btn primary-btn"
+              onClick={() => {
+                setIsCampaignPdfModalOpen(false);
+                handlePrintCampaignPdf(pdfReportCampaignId || undefined);
+              }}
+            >
+              <Printer size={15} />
+              <span>Generate & Download PDF</span>
+            </button>
+          </div>
+        }
+      >
+        <div className="form-group">
+          <label className="form-label">Select Campaign to Analyze <span className="text-danger">*</span></label>
+          <select
+            className="form-control"
+            value={pdfReportCampaignId}
+            onChange={(e) => setPdfReportCampaignId(e.target.value)}
+          >
+            <option value="">-- All Campaigns & General Special Funds --</option>
+            {campaigns.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.campaign_name} {c.target_amount > 0 ? `(Goal: ₹${c.target_amount.toLocaleString('en-IN')})` : ''}
+              </option>
+            ))}
+          </select>
+          <span className="font-2xs color-subtle margin-top-xs display-block">
+            Select a specific campaign to filter payments, target progress %, donor roster, and payment methods breakdown.
+          </span>
+        </div>
+
+        {pdfReportCampaignId && (() => {
+          const selectedC = campaigns.find(c => c.id === pdfReportCampaignId);
+          if (!selectedC) return null;
+          const campDonations = donations.filter(d => 
+            d.campaign_id === selectedC.id || 
+            (d.purpose && d.purpose.toLowerCase().includes(selectedC.campaign_name.toLowerCase())) ||
+            (d.notes && d.notes.toLowerCase().includes(selectedC.campaign_name.toLowerCase()))
+          );
+          const totalCol = campDonations.reduce((sum, d) => sum + (d.amount || 0), 0);
+          const pct = selectedC.target_amount > 0 ? Math.min(100, Math.round((totalCol / selectedC.target_amount) * 100)) : 0;
+
+          return (
+            <div className="glass-card padding-sm margin-top-sm border-purple-light" style={{ background: '#faf5ff', borderRadius: 12, border: '1px solid #e9d5ff' }}>
+              <div className="font-xs font-weight-700 text-purple flex-between">
+                <span>{selectedC.campaign_name}</span>
+                <span>{pct}% Achieved</span>
+              </div>
+              <div className="font-2xs color-subtle margin-top-xs">
+                Total Collected: <strong>₹{totalCol.toLocaleString('en-IN')}</strong> of ₹{selectedC.target_amount.toLocaleString('en-IN')} Goal • {campDonations.length} Contributions
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
+
       {/* EMBEDDED STYLES FOR ABSOLUTE DESIGN CONSISTENCY */}
       <style>{`
         .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 16px; }
@@ -1683,6 +2030,75 @@ export const Donations: React.FC = () => {
           .voucher-grid-layout { grid-template-columns: 1fr !important; gap: 16px !important; }
         }
 
+        /* EXCEL & REPORTS ACTION DROPDOWN */
+        .donations-actions-dropdown-container {
+          position: relative;
+          display: inline-block;
+        }
+
+        .dropdown-trigger-btn {
+          cursor: pointer !important;
+          user-select: none !important;
+        }
+
+        .dropdown-arrow {
+          transition: transform 0.2s ease;
+        }
+        .dropdown-arrow.open {
+          transform: rotate(180deg);
+        }
+
+        .donations-dropdown-menu {
+          position: absolute;
+          top: calc(100% + 6px);
+          right: 0;
+          min-width: 250px;
+          background: #ffffff;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 14px;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+          padding: 8px;
+          z-index: 1000;
+        }
+
+        .donations-dropdown-menu .dropdown-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          width: 100%;
+          padding: 9px 12px;
+          border: none;
+          background: transparent;
+          border-radius: 10px;
+          cursor: pointer;
+          text-align: left;
+          transition: background 0.15s ease;
+          color: #1e293b;
+        }
+
+        .donations-dropdown-menu .dropdown-item:hover {
+          background: #f1f5f9;
+        }
+
+        .donations-dropdown-menu .item-title {
+          font-size: 13px;
+          font-weight: 700;
+          color: #0f172a;
+          line-height: 1.2;
+        }
+
+        .donations-dropdown-menu .item-sub {
+          font-size: 11px;
+          color: #64748b;
+          margin-top: 2px;
+        }
+
+        .donations-dropdown-menu .dropdown-divider {
+          height: 1px;
+          background: #e2e8f0;
+          margin: 6px 0;
+        }
+
         /* HEADER ACTIONS LAYOUT — SINGLE FLEX ROW */
         .donations-header-actions {
           display: flex;
@@ -1690,6 +2106,40 @@ export const Donations: React.FC = () => {
           gap: 8px;
           flex-wrap: wrap;
           justify-content: flex-end;
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 640px) {
+          .donations-header-actions {
+            width: 100%;
+            display: grid !important;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px !important;
+          }
+          .donations-header-actions .donations-actions-dropdown-container {
+            grid-column: 1;
+            width: 100%;
+          }
+          .donations-header-actions .donations-actions-dropdown-container .dropdown-trigger-btn {
+            width: 100%;
+            justify-content: center;
+          }
+          .donations-header-actions .btn-campaign-outline {
+            grid-column: 2;
+            width: 100%;
+            justify-content: center;
+          }
+          .donations-header-actions .add-btn.primary-btn {
+            grid-column: 1 / -1;
+            width: 100%;
+            justify-content: center;
+          }
+          .donations-dropdown-menu {
+            right: auto;
+            left: 0;
+            width: 100%;
+            min-width: unset;
+          }
         }
 
         /* CAMPAIGN BUTTON — distinct teal/purple outline style */
