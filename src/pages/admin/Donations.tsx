@@ -10,7 +10,7 @@ import {
   Download, Edit2, Trash2, User,
   Printer, RefreshCw, HeartHandshake,
   TrendingUp, CalendarDays, Target, Award, QrCode, ChevronLeft, ChevronRight,
-  Wallet, FileSpreadsheet, Megaphone, Clock, CheckSquare, Ban, ChevronDown, FileText
+  Wallet, FileSpreadsheet, Megaphone, Clock, CheckSquare, Ban, ChevronDown
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 import { Modal } from '../../components/Modal';
