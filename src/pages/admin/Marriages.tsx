@@ -5,8 +5,9 @@ import type { MarriageRecord, Household, SubscriptionYear } from '../../services
 import { 
   Heart, Plus, Search, 
   Trash2, Edit2, Eye, CheckCircle, AlertCircle, 
-  FileSpreadsheet, Download, Calendar, Users, MapPin, CheckCircle2
+  FileSpreadsheet, Download, Calendar, Users, MapPin, CheckCircle2, Printer
 } from 'lucide-react';
+import { useOrganization } from '../../contexts/OrganizationContext';
 import { YearFilter } from '../../components/YearFilter';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { SidePanel } from '../../components/SidePanel';
@@ -14,6 +15,7 @@ import { ExcelImportModal } from '../../components/ExcelImportModal';
 
 export const Marriages: React.FC = () => {
   const navigate = useNavigate();
+  const { branding } = useOrganization();
 
   // Data States
   const [marriages, setMarriages] = useState<MarriageRecord[]>([]);
@@ -174,6 +176,177 @@ export const Marriages: React.FC = () => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
+  };
+
+  // 📜 Marriage Certificate & Registration Form PDF Generator Helper
+  const handleDownloadMarriageCertificatePDF = (m: MarriageRecord, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showToast('error', 'Popup blocked. Please allow popups to print certificate PDF.');
+      return;
+    }
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Marriage Certificate - ${m.registration_number || m.id.slice(0,6)}</title>
+        <style>
+          @page { size: A4; margin: 15mm; }
+          body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; color: #0f172a; background: #fff; line-height: 1.5; }
+          .cert-header { text-align: center; border-bottom: 3px double #0f172a; padding-bottom: 14px; margin-bottom: 24px; position: relative; }
+          .org-title { font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin: 0; letter-spacing: 0.5px; }
+          .cert-title { font-size: 14px; font-weight: 800; color: #00966b; text-transform: uppercase; margin-top: 6px; letter-spacing: 1.5px; }
+          .ref-row { display: flex; justify-content: space-between; font-size: 11.5px; color: #64748b; margin-top: 10px; font-weight: 600; }
+          
+          .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+          .party-card { background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 14px; }
+          .party-card.groom { border-top: 4px solid #0746D3; }
+          .party-card.bride { border-top: 4px solid #ec4899; }
+          .party-card h3 { font-size: 13px; font-weight: 800; text-transform: uppercase; margin: 0 0 10px 0; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; }
+          
+          .info-row { margin-bottom: 8px; font-size: 12px; }
+          .info-row label { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; display: block; }
+          .info-row span { font-weight: 700; color: #0f172a; font-size: 13px; }
+
+          .nikah-details-box { background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px; padding: 16px; margin-bottom: 20px; }
+          .nikah-title { font-size: 13px; font-weight: 800; text-transform: uppercase; color: #166534; margin-bottom: 10px; border-bottom: 1px solid #bbf7d0; padding-bottom: 6px; }
+
+          .mahr-badge { background: #dcfce7; border: 1px solid #86efac; padding: 8px 12px; border-radius: 8px; font-weight: 800; color: #15803d; font-size: 13px; margin-top: 8px; }
+
+          .signatures { margin-top: 50px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding-top: 20px; border-top: 1px dashed #cbd5e1; text-align: center; }
+          .sig-box { text-align: center; }
+          .sig-line { border-bottom: 1px solid #0f172a; height: 35px; margin-bottom: 6px; }
+          .sig-title { font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: #64748b; }
+
+          @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="no-print" style="margin-bottom: 15px; text-align: right;">
+          <button onclick="window.print()" style="background: #00966b; color: white; border: none; padding: 8px 18px; font-weight: bold; border-radius: 6px; cursor: pointer;">🖨️ Print Official Marriage Certificate</button>
+        </div>
+
+        <div class="cert-header">
+          <h1 class="org-title">${branding?.organizationName || 'VELLIKKEEL MAHALLU JAMA-ATH'}</h1>
+          <div class="cert-title">OFFICIAL NIKAH & MARRIAGE REGISTRATION CERTIFICATE</div>
+          <div class="ref-row">
+            <span>REGISTRATION NO: <strong>${m.registration_number || 'MAR-' + m.id.slice(0,8).toUpperCase()}</strong></span>
+            <span>ISSUE DATE: ${new Date().toLocaleDateString('en-IN')}</span>
+          </div>
+        </div>
+
+        <div class="grid-2col">
+          <!-- GROOM DETAILS -->
+          <div class="party-card groom">
+            <h3> Groom Details (വരന്റെ വിവരങ്ങൾ)</h3>
+            <div class="info-row">
+              <label>Groom Name</label>
+              <span>${m.groom_name}</span>
+            </div>
+            <div class="info-row">
+              <label>Contact Phone</label>
+              <span>${m.groom_phone || 'N/A'}</span>
+            </div>
+            <div class="info-row">
+              <label>Father's Name</label>
+              <span>${m.groom_father_name || 'N/A'}</span>
+            </div>
+            <div class="info-row">
+              <label>House No & Address</label>
+              <span>H-${m.groom_house_number || 'N/A'}, ${m.groom_address || ''}</span>
+            </div>
+            <div class="info-row">
+              <label>Mahallu / Ward</label>
+              <span>${m.groom_ward || 'Mahallu Central'}</span>
+            </div>
+          </div>
+
+          <!-- BRIDE DETAILS -->
+          <div class="party-card bride">
+            <h3> Bride Details (വധുവിന്റെ വിവരങ്ങൾ)</h3>
+            <div class="info-row">
+              <label>Bride Name</label>
+              <span>${m.bride_name}</span>
+            </div>
+            <div class="info-row">
+              <label>Contact Phone</label>
+              <span>${m.bride_phone || 'N/A'}</span>
+            </div>
+            <div class="info-row">
+              <label>Father's Name</label>
+              <span>${m.bride_father_name || 'N/A'}</span>
+            </div>
+            <div class="info-row">
+              <label>Address</label>
+              <span>${m.bride_address || 'N/A'}</span>
+            </div>
+            <div class="info-row">
+              <label>Mahallu / Ward</label>
+              <span>${m.bride_ward || 'External Mahal'} (${(m.bride_type || 'external').toUpperCase()})</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- NIKAH CEREMONY DETAILS -->
+        <div class="nikah-details-box">
+          <div class="nikah-title"> Nikah Ceremony Details (നിക്കാഹ് വിവരങ്ങൾ)</div>
+          <div class="grid-2col" style="margin-bottom: 0;">
+            <div>
+              <div class="info-row">
+                <label>Date & Time of Solemnization</label>
+                <span>${m.nikah_date} ${m.nikah_time || ''}</span>
+              </div>
+              <div class="info-row">
+                <label>Venue / Masjid</label>
+                <span>${m.nikah_venue || 'Central Mahallu Juma Masjid'}</span>
+              </div>
+            </div>
+            <div>
+              <div class="info-row">
+                <label>Officiating Imam / Qazi</label>
+                <span>${m.conducted_by || 'Mahallu Qazi'}</span>
+              </div>
+              <div class="info-row">
+                <label>Wali (Guardian Name)</label>
+                <span>${m.wali_name || 'Father'} (${m.wali_relationship || 'Guardian'})</span>
+              </div>
+            </div>
+          </div>
+          <div class="mahr-badge">
+            MAHR SPECIFICATION: ${(m.mahr_type || 'Standard').toUpperCase()}
+          </div>
+        </div>
+
+        <!-- SIGNATURE & SEAL BLOCK -->
+        <div class="signatures">
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">Groom / Guardian Signature</div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">Officiating Qazi / Imam</div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">President & Secretary Seal</div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 400);
   };
 
   const handleBulkDelete = async () => {
@@ -420,6 +593,7 @@ export const Marriages: React.FC = () => {
                         </td>
                         <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                           <div className="actions-button-wrapper justify-content-end">
+                            <button className="action-icon-btn print" title="Print Marriage Certificate PDF" onClick={(e) => handleDownloadMarriageCertificatePDF(m, e)}><Printer size={15} className="text-purple" /></button>
                             <button className="action-icon-btn view" title="View Details" onClick={(e) => { e.stopPropagation(); setSelectedMarriage(m); setIsDetailsOpen(true); }}><Eye size={15} /></button>
                             <button className="action-icon-btn edit" title="Edit Record" onClick={(e) => openEditModal(m, e)}><Edit2 size={15} /></button>
                             <button className="action-icon-btn delete" title="Delete Record" onClick={(e) => handleDelete(m.id, e)}><Trash2 size={15} /></button>
@@ -521,6 +695,30 @@ export const Marriages: React.FC = () => {
             <div className="form-card bg-emerald-soft">
               <div className="detail-item-label">Mahr Specification</div>
               <div className="font-weight-700 text-success font-sm">{selectedMarriage.mahr_type} — {selectedMarriage.mahr_description || 'Standard Mahr'}</div>
+            </div>
+
+            {/* ACTION CARD FOR PDF CERTIFICATE */}
+            <div className="household-actions-card margin-top-md">
+              <div className="actions-card-header">
+                <div className="actions-card-title">
+                  <Printer size={15} className="text-purple" />
+                  <span>OFFICIAL CERTIFICATE</span>
+                </div>
+                <span className="actions-card-subtitle">Printable Nikah Form</span>
+              </div>
+              <button
+                type="button"
+                className="action-btn pdf-btn"
+                onClick={() => handleDownloadMarriageCertificatePDF(selectedMarriage)}
+              >
+                <div className="btn-icon-wrapper pdf">
+                  <Printer size={16} />
+                </div>
+                <div className="btn-content">
+                  <span className="btn-title">Download Certificate PDF</span>
+                  <span className="btn-desc">Official Nikah Registration Form</span>
+                </div>
+              </button>
             </div>
           </div>
         )}

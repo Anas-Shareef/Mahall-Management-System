@@ -8,8 +8,9 @@ import type {
 import { 
   Plus, Search, Filter, Calendar, X, AlertCircle, 
   CheckCircle, Loader2, Home, CreditCard, 
-  Layers, Sparkles, UserCheck, DollarSign, Edit2, Trash2, ShieldCheck
+  Layers, Sparkles, UserCheck, DollarSign, Edit2, Trash2, ShieldCheck, Printer
 } from 'lucide-react';
+import { useOrganization } from '../../contexts/OrganizationContext';
 import { YearFilter } from '../../components/YearFilter';
 import { SidePanel } from '../../components/SidePanel';
 import { Modal } from '../../components/Modal';
@@ -18,6 +19,7 @@ import { ConfirmModal } from '../../components/ConfirmModal';
 export const Subscriptions: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { branding } = useOrganization();
 
   // Primary Sub-Tab State ('overview' | 'ledgers' | 'years')
   const [activeTab, setActiveTab] = useState<'overview' | 'ledgers' | 'years'>('overview');
@@ -193,6 +195,155 @@ export const Subscriptions: React.FC = () => {
       totalOutstanding,
     };
   }, [subscriptions, selectedYearId, members]);
+
+  // 💳 MDF Subscription Ledger & Annual Dues Statement PDF Helper
+  const handleDownloadSubLedgerPDF = (member?: Member | null) => {
+    const targetYear = years.find(y => y.id === selectedYearId) || years[0];
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showToast('error', 'Popup blocked. Please allow popups to print PDF statement.');
+      return;
+    }
+
+    const targetSubs = member 
+      ? subscriptions.filter(s => s.member_id === member.id)
+      : (selectedYearId ? subscriptions.filter(s => s.subscription_year_id === selectedYearId) : subscriptions);
+
+    const totalDue = targetSubs.reduce((sum, s) => sum + (s.total_due || 0), 0);
+    const totalPaid = targetSubs.reduce((sum, s) => sum + (s.total_paid || 0), 0);
+    const totalBal = targetSubs.reduce((sum, s) => sum + (s.balance || 0), 0);
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>MDF Subscription Ledger - ${member ? member.name : (targetYear ? targetYear.year : 'Summary')}</title>
+        <style>
+          @page { size: A4; margin: 12mm; }
+          body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; color: #0f172a; background: #fff; line-height: 1.4; }
+          .header { text-align: center; border-bottom: 2px solid #00966b; padding-bottom: 12px; margin-bottom: 20px; }
+          .org-title { font-size: 20px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin: 0; }
+          .doc-title { font-size: 13px; font-weight: 800; color: #00966b; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px; }
+          .meta-row { display: flex; justify-content: space-between; font-size: 11px; color: #64748b; margin-top: 8px; }
+          
+          .summary-box { background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 14px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; text-align: center; }
+          .stat-card label { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; display: block; }
+          .stat-card .val { font-size: 16px; font-weight: 800; margin-top: 2px; }
+          .val.emerald { color: #00966b; }
+          .val.danger { color: #dc2626; }
+
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11.5px; }
+          th { background: #0f172a; color: #ffffff; font-size: 10.5px; text-transform: uppercase; padding: 8px 10px; text-align: left; }
+          td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; color: #334155; }
+          tr:nth-child(even) { background: #f8fafc; }
+          tr.total-row { background: #f1f5f9; font-weight: 800; border-top: 2px solid #0f172a; border-bottom: 2px solid #0f172a; }
+
+          .signatures { margin-top: 40px; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 20px; border-top: 1px dashed #cbd5e1; }
+          .sig-box { text-align: center; width: 180px; }
+          .sig-line { border-bottom: 1px solid #0f172a; height: 30px; margin-bottom: 6px; }
+          .sig-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; }
+
+          @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="no-print" style="margin-bottom: 15px; text-align: right;">
+          <button onclick="window.print()" style="background: #00966b; color: white; border: none; padding: 8px 18px; font-weight: bold; border-radius: 6px; cursor: pointer;">🖨️ Print Subscription Ledger PDF</button>
+        </div>
+
+        <div class="header">
+          <h1 class="org-title">${branding?.organizationName || 'VELLIKKEEL MAHALLU JAMA-ATH'}</h1>
+          <div class="doc-title">MAHALLU DEVELOPMENT FUND (MDF) — SUBSCRIPTION LEDGER STATEMENT</div>
+          <div class="meta-row">
+            <span>MEMBER / LEDGER: <strong>${member ? member.name.toUpperCase() : 'CONSOLIDATED COMMUNITY LEDGER'}</strong></span>
+            <span>DATE: ${new Date().toLocaleDateString('en-IN')}</span>
+          </div>
+        </div>
+
+        <div class="summary-box">
+          <div class="stat-card">
+            <label>Total Expected</label>
+            <div class="val">₹${totalDue.toLocaleString('en-IN')}</div>
+          </div>
+          <div class="stat-card">
+            <label>Total Collected</label>
+            <div class="val emerald">₹${totalPaid.toLocaleString('en-IN')}</div>
+          </div>
+          <div class="stat-card">
+            <label>Outstanding Balance</label>
+            <div class="val danger">₹${totalBal.toLocaleString('en-IN')}</div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Member Name</th>
+              <th>House No</th>
+              <th>Year</th>
+              <th>Fee (₹)</th>
+              <th>Paid (₹)</th>
+              <th>Balance (₹)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${targetSubs.map((s, idx) => {
+              const mem = members.find(m => m.id === s.member_id);
+              const house = households.find(h => h.id === mem?.household_id);
+              const yr = years.find(y => y.id === s.subscription_year_id);
+              return `
+                <tr>
+                  <td>${idx + 1}</td>
+                  <td><strong>${mem?.name || 'Member'}</strong></td>
+                  <td>H-${house?.house_number || 'N/A'}</td>
+                  <td>${yr?.year || '2026'}</td>
+                  <td>₹${(s.total_due || 0).toLocaleString('en-IN')}</td>
+                  <td style="color: #00966b; font-weight: 700;">₹${(s.total_paid || 0).toLocaleString('en-IN')}</td>
+                  <td style="color: #dc2626; font-weight: 700;">₹${(s.balance || 0).toLocaleString('en-IN')}</td>
+                  <td><span style="text-transform: uppercase; font-size: 10px; font-weight: 700;">${s.status}</span></td>
+                </tr>
+              `;
+            }).join('')}
+            <tr class="total-row">
+              <td colspan="4">TOTAL (${targetSubs.length} LEDGERS)</td>
+              <td>₹${totalDue.toLocaleString('en-IN')}</td>
+              <td style="color: #00966b;">₹${totalPaid.toLocaleString('en-IN')}</td>
+              <td style="color: #dc2626;">₹${totalBal.toLocaleString('en-IN')}</td>
+              <td>-</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="signatures">
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">Collector Signature</div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">Mahallu Treasurer</div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">President / Secretary Seal</div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 400);
+  };
 
   // Open Configure Year Modal
   const openConfigureYearModal = () => {
@@ -412,6 +563,16 @@ export const Subscriptions: React.FC = () => {
             showAllOption={true}
             showFee={true}
           />
+
+          <button
+            type="button"
+            className="pill-btn-ghost font-xs flex-row-gap-xs"
+            onClick={() => handleDownloadSubLedgerPDF()}
+            title="Print MDF Subscription Ledger PDF Report"
+          >
+            <Printer size={15} className="text-purple" />
+            <span>Print Ledger PDF</span>
+          </button>
 
           <button className="add-btn secondary-btn" onClick={openConfigureYearModal}>
             <Plus size={15} />

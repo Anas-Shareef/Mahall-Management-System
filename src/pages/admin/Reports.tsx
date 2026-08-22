@@ -7,13 +7,15 @@ import type {
 import { 
   Download, Search, Filter, Users, Home, 
   CreditCard, AlertCircle, CheckCircle, X, 
-  Sparkles, Loader2, Layers 
+  Sparkles, Loader2, Layers, Printer
 } from 'lucide-react';
+import { useOrganization } from '../../contexts/OrganizationContext';
 import { YearFilter } from '../../components/YearFilter';
 import { SidePanel } from '../../components/SidePanel';
 
 export const Reports: React.FC = () => {
   const { t } = useTranslation();
+  const { branding } = useOrganization();
 
   // Data States
   const [households, setHouseholds] = useState<Household[]>([]);
@@ -384,6 +386,146 @@ export const Reports: React.FC = () => {
     }).format(val);
   };
 
+  // 📑 Official Financial Cashbook & Executive Analytics PDF Generator
+  const handleDownloadFinancialPdfReport = () => {
+    const targetYear = years.find(y => y.id === selectedYearId) || years[0];
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showToast('error', 'Popup blocked. Please allow popups to print PDF report.');
+      return;
+    }
+
+    const yearSubs = subscriptions.filter((s) => !selectedYearId || s.subscription_year_id === selectedYearId);
+    const totalExpected = yearSubs.reduce((sum, s) => sum + (s.total_due || 0), 0);
+    const totalCollected = yearSubs.reduce((sum, s) => sum + (s.total_paid || 0), 0);
+    const totalOutstanding = yearSubs.reduce((sum, s) => sum + (s.balance || 0), 0);
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Financial Report - ${targetYear ? targetYear.year : 'Consolidated'}</title>
+        <style>
+          @page { size: A4; margin: 12mm; }
+          body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; color: #0f172a; background: #fff; line-height: 1.4; }
+          .header { text-align: center; border-bottom: 2px solid #00966b; padding-bottom: 12px; margin-bottom: 20px; }
+          .org-title { font-size: 20px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin: 0; }
+          .doc-title { font-size: 13px; font-weight: 800; color: #00966b; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px; }
+          .meta-row { display: flex; justify-content: space-between; font-size: 11px; color: #64748b; margin-top: 8px; }
+          
+          .summary-grid { background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 16px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; text-align: center; }
+          .stat-card label { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; display: block; }
+          .stat-card .val { font-size: 17px; font-weight: 800; margin-top: 2px; }
+          .val.emerald { color: #00966b; }
+          .val.danger { color: #dc2626; }
+
+          .section-title { font-size: 13px; font-weight: 800; text-transform: uppercase; color: #0f172a; margin-bottom: 10px; border-left: 3.5px solid #00966b; padding-left: 8px; }
+
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11.5px; }
+          th { background: #0f172a; color: #ffffff; font-size: 10.5px; text-transform: uppercase; padding: 8px 10px; text-align: left; }
+          td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; color: #334155; }
+          tr:nth-child(even) { background: #f8fafc; }
+          tr.total-row { background: #f1f5f9; font-weight: 800; border-top: 2px solid #0f172a; border-bottom: 2px solid #0f172a; }
+
+          .signatures { margin-top: 40px; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 20px; border-top: 1px dashed #cbd5e1; }
+          .sig-box { text-align: center; width: 180px; }
+          .sig-line { border-bottom: 1px solid #0f172a; height: 30px; margin-bottom: 6px; }
+          .sig-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; }
+
+          @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="no-print" style="margin-bottom: 15px; text-align: right;">
+          <button onclick="window.print()" style="background: #00966b; color: white; border: none; padding: 8px 18px; font-weight: bold; border-radius: 6px; cursor: pointer;">🖨️ Print Financial Statement PDF</button>
+        </div>
+
+        <div class="header">
+          <h1 class="org-title">${branding?.organizationName || 'VELLIKKEEL MAHALLU JAMA-ATH'}</h1>
+          <div class="doc-title">EXECUTIVE FINANCIAL CASHBOOK & ANALYTICS REPORT</div>
+          <div class="meta-row">
+            <span>REPORT CATEGORY: <strong>${activeTab.toUpperCase()} STATEMENT</strong></span>
+            <span>PERIOD: ${targetYear ? 'YEAR ' + targetYear.year : 'ALL TIME'}</span>
+            <span>DATE: ${new Date().toLocaleDateString('en-IN')}</span>
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <div class="stat-card">
+            <label>Total Expected Dues</label>
+            <div class="val">₹${totalExpected.toLocaleString('en-IN')}</div>
+          </div>
+          <div class="stat-card">
+            <label>Total Collected Income</label>
+            <div class="val emerald">₹${totalCollected.toLocaleString('en-IN')}</div>
+          </div>
+          <div class="stat-card">
+            <label>Total Pending Balance</label>
+            <div class="val danger">₹${totalOutstanding.toLocaleString('en-IN')}</div>
+          </div>
+        </div>
+
+        <div class="section-title">${activeTab.toUpperCase()} BREAKDOWN LISTING</div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Reference / Name</th>
+              <th>Category / Info</th>
+              <th>Total Due (₹)</th>
+              <th>Paid Amount (₹)</th>
+              <th>Balance (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${householdReportRows.slice(0, 50).map((r, idx) => `
+              <tr>
+                <td>${idx + 1}</td>
+                <td><strong>H-${r.houseNumber} — ${r.ownerName}</strong></td>
+                <td>${r.area} • ${r.membersCount} Members</td>
+                <td>₹${r.totalDue.toLocaleString('en-IN')}</td>
+                <td style="color: #00966b; font-weight: 700;">₹${r.totalPaid.toLocaleString('en-IN')}</td>
+                <td style="color: #dc2626; font-weight: 700;">₹${r.balance.toLocaleString('en-IN')}</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td colspan="3">CONSOLIDATED FINANCIAL TOTALS</td>
+              <td>₹${totalExpected.toLocaleString('en-IN')}</td>
+              <td style="color: #00966b;">₹${totalCollected.toLocaleString('en-IN')}</td>
+              <td style="color: #dc2626;">₹${totalOutstanding.toLocaleString('en-IN')}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="signatures">
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">Auditor Signature</div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">Treasurer Signature</div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">President & Secretary Seal</div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 400);
+  };
+
   return (
     <div className="reports-page animate-fade-in">
       {/* TOAST NOTIFICATION */}
@@ -408,6 +550,16 @@ export const Reports: React.FC = () => {
             years={years}
             showAllOption={true}
           />
+
+          <button
+            type="button"
+            className="pill-btn-ghost font-xs flex-row-gap-xs"
+            onClick={handleDownloadFinancialPdfReport}
+            title="Print Official Financial Statement PDF Report"
+          >
+            <Printer size={15} className="text-purple" />
+            <span>Print Financial PDF</span>
+          </button>
 
           <button className="add-btn secondary-btn" onClick={openReportGeneratorModal}>
             <Sparkles size={15} />

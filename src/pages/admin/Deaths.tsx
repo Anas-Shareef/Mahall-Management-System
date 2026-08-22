@@ -273,6 +273,149 @@ export const Deaths: React.FC = () => {
     setIsCertificateModalOpen(true);
   };
 
+  // 📜 Official Death Certificate & Burial Record PDF Generator Helper
+  const handleDownloadDeathCertificatePDF = (d: DeathRecord, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showToast('error', 'Popup blocked. Please allow popups to print certificate PDF.');
+      return;
+    }
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Death Certificate - ${d.deceased_name || 'Member'}</title>
+        <style>
+          @page { size: A4; margin: 15mm; }
+          body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; color: #0f172a; background: #fff; line-height: 1.5; }
+          .cert-header { text-align: center; border-bottom: 3px double #0f172a; padding-bottom: 14px; margin-bottom: 24px; }
+          .org-title { font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin: 0; letter-spacing: 0.5px; }
+          .cert-title { font-size: 14px; font-weight: 800; color: #dc2626; text-transform: uppercase; margin-top: 6px; letter-spacing: 1.5px; }
+          .ref-row { display: flex; justify-content: space-between; font-size: 11.5px; color: #64748b; margin-top: 10px; font-weight: 600; }
+          
+          .info-card { background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 16px; margin-bottom: 20px; }
+          .info-card h3 { font-size: 13px; font-weight: 800; text-transform: uppercase; margin: 0 0 12px 0; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; }
+
+          .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+          .info-field { margin-bottom: 10px; font-size: 12px; }
+          .info-field label { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; display: block; }
+          .info-field span { font-weight: 700; color: #0f172a; font-size: 13.5px; }
+
+          .signatures { margin-top: 60px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding-top: 20px; border-top: 1px dashed #cbd5e1; text-align: center; }
+          .sig-box { text-align: center; }
+          .sig-line { border-bottom: 1px solid #0f172a; height: 35px; margin-bottom: 6px; }
+          .sig-title { font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: #64748b; }
+
+          @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="no-print" style="margin-bottom: 15px; text-align: right;">
+          <button onclick="window.print()" style="background: #00966b; color: white; border: none; padding: 8px 18px; font-weight: bold; border-radius: 6px; cursor: pointer;">🖨️ Print Official Death Certificate</button>
+        </div>
+
+        <div class="cert-header">
+          <h1 class="org-title">${branding?.organizationName || 'VELLIKKEEL MAHALLU JAMA-ATH'}</h1>
+          <div class="cert-title">OFFICIAL DEATH CERTIFICATE & BURIAL REGISTRATION FORM</div>
+          <div class="ref-row">
+            <span>REGISTRATION REF: <strong>DC-${new Date().getFullYear()}-${d.id.slice(0, 5).toUpperCase()}</strong></span>
+            <span>ISSUE DATE: ${new Date().toLocaleDateString('en-IN')}</span>
+          </div>
+        </div>
+
+        <!-- DECEASED PERSON DETAILS -->
+        <div class="info-card">
+          <h3> Deceased Person Details (മരണപ്പെട്ടയാളുടെ വിവരങ്ങൾ)</h3>
+          <div class="grid-2col">
+            <div class="info-field">
+              <label>Full Name</label>
+              <span>${d.deceased_name}</span>
+            </div>
+            <div class="info-field">
+              <label>Age & Gender</label>
+              <span>${d.age || 'N/A'} Yrs • ${(d.gender || 'N/A').toUpperCase()}</span>
+            </div>
+            <div class="info-field">
+              <label>Father / Husband Name</label>
+              <span>${d.father_or_husband_name || 'N/A'}</span>
+            </div>
+            <div class="info-field">
+              <label>Mahallu Ward / Area</label>
+              <span>${d.ward_or_area || 'Mahallu Central'}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- EVENT & BURIAL DETAILS -->
+        <div class="info-card" style="background: #fef2f2; border-color: #fca5a5;">
+          <h3 style="color: #991b1b; border-color: #fecaca;"> Death & Janaza Details (മരണവും ഖബറടക്കവും)</h3>
+          <div class="grid-2col">
+            <div class="info-field">
+              <label>Date of Death</label>
+              <span>${d.date_of_death}</span>
+            </div>
+            <div class="info-field">
+              <label>Burial Date & Time</label>
+              <span>${d.burial_date || 'N/A'} ${d.burial_time || ''}</span>
+            </div>
+            <div class="info-field">
+              <label>Place of Death</label>
+              <span>${d.place_of_death || 'Home'}</span>
+            </div>
+            <div class="info-field">
+              <label>Cause of Death</label>
+              <span>${d.cause_of_death || 'Natural'}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- INFORMANT / NEXT OF KIN -->
+        <div class="info-card">
+          <h3> Registration Details (രജിസ്ട്രേഷൻ വിവരങ്ങൾ)</h3>
+          <div class="grid-2col">
+            <div class="info-field">
+              <label>Medical Certification</label>
+              <span>${d.medically_certified ? 'Medically Certified' : 'Non-Certified Record'}</span>
+            </div>
+            <div class="info-field">
+              <label>Certifier / Notes</label>
+              <span>${d.certifier_name || d.notes || 'Official Mahallu Record'}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SIGNATURE & SEAL BLOCK -->
+        <div class="signatures">
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">Informant Signature</div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">Mahallu Imam / Officiant</div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">President / Secretary Seal</div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 400);
+  };
+
   return (
     <div className="deaths-page animate-fade-in">
       {/* Toast Notification */}
@@ -608,6 +751,13 @@ export const Deaths: React.FC = () => {
                           <td style={{ textAlign: 'right' }}>
                             <div className="action-row-buttons flex-end gap-xs">
                               <button
+                                className="icon-btn-ghost text-purple"
+                                title="Print Death Certificate PDF"
+                                onClick={(e) => handleDownloadDeathCertificatePDF(d, e)}
+                              >
+                                <Printer size={15} />
+                              </button>
+                              <button
                                 className="icon-btn-ghost text-primary"
                                 title="Generate Certificate"
                                 onClick={(e) => openCertificateModal(d, e)}
@@ -778,10 +928,16 @@ export const Deaths: React.FC = () => {
               Close
             </button>
             <div className="flex-row-gap-xs">
-              <button className="pill-btn-ghost" onClick={() => window.print()}>
+              <button
+                className="pill-btn-ghost"
+                onClick={() => certificateRecord && handleDownloadDeathCertificatePDF(certificateRecord)}
+              >
                 <Printer size={15} /> Print Certificate
               </button>
-              <button className="pill-btn-primary" onClick={exportCSV}>
+              <button
+                className="pill-btn-primary"
+                onClick={() => certificateRecord && handleDownloadDeathCertificatePDF(certificateRecord)}
+              >
                 <Download size={15} /> Download PDF
               </button>
             </div>
