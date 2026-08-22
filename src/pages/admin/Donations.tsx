@@ -133,7 +133,8 @@ export const Donations: React.FC = () => {
       ]);
       setYears(yearList || []);
       setDonations(donationList || []);
-      setCampaigns(campaignList || []);
+      const cleanCampaigns = (campaignList || []).filter((c) => c.campaign_name?.toLowerCase().trim() !== 'rabeeh donation');
+      setCampaigns(cleanCampaigns);
     } catch (err) {
       console.error('Failed to load donation records:', err);
       setFetchError(true);
@@ -363,11 +364,20 @@ export const Donations: React.FC = () => {
     setIsDeletingCampaign(true);
     try {
       await db.donationCampaigns.delete(deleteCampaignTargetId);
+      // Remove from local storage array immediately
+      const localList = JSON.parse(localStorage.getItem('mahal_campaigns') || '[]');
+      const filteredLocal = localList.filter((c: any) => c.id !== deleteCampaignTargetId && c.campaign_name?.toLowerCase() !== 'rabeeh donation');
+      localStorage.setItem('mahal_campaigns', JSON.stringify(filteredLocal));
+
+      // Remove from React state immediately
+      setCampaigns((prev) => prev.filter((c) => c.id !== deleteCampaignTargetId && c.campaign_name?.toLowerCase() !== 'rabeeh donation'));
+
       showToast('success', 'Campaign deleted successfully');
       setDeleteCampaignTargetId(null);
       loadData();
-    } catch (err) {
-      showToast('error', 'Failed to delete campaign');
+    } catch (err: any) {
+      console.error('Failed to delete campaign:', err);
+      showToast('error', `Failed to delete campaign: ${err?.message || String(err)}`);
     } finally {
       setIsDeletingCampaign(false);
     }

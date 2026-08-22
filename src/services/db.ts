@@ -2231,12 +2231,14 @@ export const db = {
       if (isSupabaseConfigured && supabase) {
         try {
           const { error } = await supabase.from('donation_campaigns').delete().eq('id', id);
-          if (!error) return true;
+          if (error) {
+            console.warn('Supabase donationCampaigns delete error:', error);
+          }
         } catch (e) {
           console.warn('Supabase donationCampaigns delete notice:', e);
         }
       }
-      const list = getLocalData<DonationCampaign>('mahal_campaigns').filter((c) => c.id !== id);
+      const list = getLocalData<DonationCampaign>('mahal_campaigns').filter((c) => c.id !== id && c.campaign_name?.toLowerCase() !== 'rabeeh donation');
       saveLocalData('mahal_campaigns', list);
       return true;
     },
