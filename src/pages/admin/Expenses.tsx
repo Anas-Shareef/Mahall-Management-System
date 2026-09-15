@@ -1,30 +1,37 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  TrendingDown, Plus, Search, Calendar, CreditCard,
-  CheckCircle, XCircle, Clock, Ban, Eye, Edit2, Trash2, Download,
-  Printer, Tag, RefreshCw, Paperclip, AlertCircle, Layers, X
-} from 'lucide-react';
 import { db } from '../../services/db';
-import type { Expense, ExpenseCategory, ExpenseAuditLog } from '../../services/db';
+import type { Expense, ExpenseCategory, ExpenseAuditLog, SubscriptionYear } from '../../services/db';
+import {
+  TrendingDown, Plus, Search, Calendar, CreditCard, CheckCircle, XCircle,
+  Clock, Ban, Eye, Edit2, Trash2, Download, Printer, Tag, RefreshCw,
+  AlertCircle, Layers, X, Sparkles, PieChart, ChevronRight
+} from 'lucide-react';
+import { YearFilter } from '../../components/YearFilter';
 
 export const Expenses: React.FC = () => {
-  const navigate = useNavigate();
+
+  // Primary Sub-Tab State ('overview' | 'expenses' | 'categories')
+  const [activeTab, setActiveTab] = useState<'overview' | 'expenses' | 'categories'>('overview');
 
   // Data State
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
+  const [years, setYears] = useState<SubscriptionYear[]>([]);
+  const [selectedYearId, setSelectedYearId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
 
-  // Filter States
+  // Filter States for Expenses Tab
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedYear, setSelectedYear] = useState<string>('2026');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedFund, setSelectedFund] = useState<string>('all');
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
+
+  // Category Filter States
+  const [categorySearch, setCategorySearch] = useState('');
+  const [categoryStatusFilter, setCategoryStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,6 +54,12 @@ export const Expenses: React.FC = () => {
   const [voidReason, setVoidReason] = useState('');
 
   const [editReasonRequired, setEditReasonRequired] = useState('');
+
+  // Category Modal State
+  const [isCatModalOpen, setIsCatModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<ExpenseCategory | null>(null);
+  const [catFormData, setCatFormData] = useState({ name: '', description: '', is_active: true });
+  const [isSubmittingCat, setIsSubmittingCat] = useState(false);
 
   // Form State
   const todayStr = new Date().toISOString().split('T')[0];
@@ -81,14 +94,21 @@ export const Expenses: React.FC = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [expList, catList] = await Promise.all([
+      const [expList, catList, yearList] = await Promise.all([
         db.expenses.getAll(),
         db.expenseCategories.getAll(),
+        db.years.get(),
       ]);
       setExpenses(expList || []);
       setCategories(catList || []);
+      setYears(yearList || []);
+
+      if (yearList && yearList.length > 0 && !selectedYearId) {
+        const activeYr = yearList.find((y) => y.status === 'active') || yearList[0];
+        setSelectedYearId(activeYr.id);
+      }
     } catch (err) {
-      console.error('Failed to load expenses:', err);
+      console.error('Failed to load expenses data:', err);
       showToast('error', 'Failed to load expense records');
     } finally {
       setIsLoading(false);
@@ -99,22 +119,11 @@ export const Expenses: React.FC = () => {
     loadData();
   }, []);
 
-  // Available Years List for Filter
-  const availableYears = useMemo(() => {
-    const yearsSet = new Set<string>();
-    const currentYear = new Date().getFullYear().toString();
-    yearsSet.add(currentYear);
-    yearsSet.add('2025');
-    yearsSet.add('2024');
+  const selectedYearObj = useMemo(() => {
+    return years.find((y) => y.id === selectedYearId) || null;
+  }, [years, selectedYearId]);
 
-    expenses.forEach((e) => {
-      if (e.expense_date) {
-        const y = new Date(e.expense_date).getFullYear().toString();
-        if (y && !isNaN(Number(y))) yearsSet.add(y);
-      }
-    });
-    return ['all', ...Array.from(yearsSet).sort((a, b) => Number(b) - Number(a))];
-  }, [expenses]);
+  const targetYearVal = selectedYearObj ? selectedYearObj.year : null;
 
   // Filtered Expenses List
   const filteredExpenses = useMemo(() => {
@@ -131,8 +140,8 @@ export const Expenses: React.FC = () => {
 
       // 2. Year Filter
       const matchYear =
-        selectedYear === 'all' ||
-        (e.expense_date && new Date(e.expense_date).getFullYear().toString() === selectedYear);
+        !targetYearVal ||
+        (e.expense_date && new Date(e.expense_date).getFullYear() === targetYearVal);
 
       // 3. Category Filter
       const matchCategory =
@@ -172,7 +181,7 @@ export const Expenses: React.FC = () => {
   }, [
     expenses,
     searchQuery,
-    selectedYear,
+    targetYearVal,
     selectedCategory,
     selectedPaymentMethod,
     selectedStatus,
@@ -181,31 +190,64 @@ export const Expenses: React.FC = () => {
     toDate,
   ]);
 
-  // Top Dashboard Summary Cards Calculation
+  // Dashboard Stats Metrics
   const topMetrics = useMemo(() => {
     const currentMonthPrefix = new Date().toISOString().slice(0, 7); // YYYY-MM
 
-    // Filtered approved expenses for Total Expense calculation
-    const approvedFiltered = filteredExpenses.filter((e) => e.status === 'approved');
-    const totalApprovedAmount = approvedFiltered.reduce((sum, e) => sum + (e.amount || 0), 0);
+    // Year filtered expenses
+    const yearFilteredExps = targetYearVal
+      ? expenses.filter((e) => e.expense_date && new Date(e.expense_date).getFullYear() === targetYearVal)
+      : expenses;
 
-    // This month approved expenses
-    const thisMonthAmount = expenses
+    // Approved Expenses Total
+    const approvedList = yearFilteredExps.filter((e) => e.status === 'approved');
+    const totalApproved = approvedList.reduce((sum, e) => sum + (e.amount || 0), 0);
+
+    // This Month Approved Disbursements
+    const thisMonthApproved = expenses
       .filter((e) => e.status === 'approved' && e.expense_date && e.expense_date.startsWith(currentMonthPrefix))
       .reduce((sum, e) => sum + (e.amount || 0), 0);
 
-    // Pending approval expenses total
-    const pendingAmount = expenses
-      .filter((e) => e.status === 'pending')
-      .reduce((sum, e) => sum + (e.amount || 0), 0);
+    // Pending Approval Total
+    const pendingList = yearFilteredExps.filter((e) => e.status === 'pending');
+    const totalPending = pendingList.reduce((sum, e) => sum + (e.amount || 0), 0);
 
     return {
-      totalExpenses: totalApprovedAmount,
-      thisMonth: thisMonthAmount,
-      pendingApproval: pendingAmount,
-      count: filteredExpenses.length,
+      totalApproved,
+      thisMonthApproved,
+      totalPending,
+      pendingCount: pendingList.length,
+      approvedCount: approvedList.length,
+      totalCount: yearFilteredExps.length,
     };
-  }, [filteredExpenses, expenses]);
+  }, [expenses, targetYearVal]);
+
+  // Category Spending Distribution
+  const categoryDistribution = useMemo(() => {
+    const yearExps = targetYearVal
+      ? expenses.filter((e) => e.status === 'approved' && e.expense_date && new Date(e.expense_date).getFullYear() === targetYearVal)
+      : expenses.filter((e) => e.status === 'approved');
+
+    const catMap: Record<string, { name: string; amount: number; count: number }> = {};
+    let grandTotal = 0;
+
+    yearExps.forEach((e) => {
+      const cName = e.category_name || 'Uncategorized';
+      if (!catMap[cName]) {
+        catMap[cName] = { name: cName, amount: 0, count: 0 };
+      }
+      catMap[cName].amount += e.amount || 0;
+      catMap[cName].count += 1;
+      grandTotal += e.amount || 0;
+    });
+
+    return Object.values(catMap)
+      .map((item) => ({
+        ...item,
+        percentage: grandTotal > 0 ? Math.round((item.amount / grandTotal) * 100) : 0,
+      }))
+      .sort((a, b) => b.amount - a.amount);
+  }, [expenses, targetYearVal]);
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredExpenses.length / itemsPerPage) || 1;
@@ -216,7 +258,6 @@ export const Expenses: React.FC = () => {
 
   const handleClearFilters = () => {
     setSearchQuery('');
-    setSelectedYear('all');
     setSelectedCategory('all');
     setSelectedPaymentMethod('all');
     setSelectedStatus('all');
@@ -226,7 +267,7 @@ export const Expenses: React.FC = () => {
     setCurrentPage(1);
   };
 
-  // Open Add Modal
+  // Open Add Expense Modal
   const handleOpenAddModal = () => {
     setEditingExpense(null);
     setEditReasonRequired('');
@@ -255,7 +296,7 @@ export const Expenses: React.FC = () => {
     setIsFormModalOpen(true);
   };
 
-  // Open Edit Modal
+  // Open Edit Expense Modal
   const handleOpenEditModal = (exp: Expense) => {
     setEditingExpense(exp);
     setEditReasonRequired('');
@@ -282,7 +323,7 @@ export const Expenses: React.FC = () => {
     setIsFormModalOpen(true);
   };
 
-  // Save Form Handler
+  // Save Expense Handler
   const handleSaveExpense = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -313,7 +354,6 @@ export const Expenses: React.FC = () => {
       const catName = selectedCat ? selectedCat.name : formData.category_name || 'General';
 
       if (editingExpense) {
-        // Update Expense
         const oldValues = { ...editingExpense };
         const updatedRecord: Partial<Expense> = {
           expense_date: formData.expense_date,
@@ -343,7 +383,6 @@ export const Expenses: React.FC = () => {
 
         await db.expenses.update(editingExpense.id, updatedRecord);
 
-        // Record Audit Log
         await db.expenseAuditLogs.create({
           expense_id: editingExpense.id,
           action: 'UPDATE',
@@ -355,8 +394,6 @@ export const Expenses: React.FC = () => {
 
         showToast('success', `✓ Expense ${editingExpense.expense_number} updated successfully`);
       } else {
-        // Create Expense
-        // Auto-generate expense_number
         let expNum = 'EXP-001';
         if (expenses.length > 0) {
           const numbers = expenses
@@ -393,7 +430,6 @@ export const Expenses: React.FC = () => {
           created_by: 'admin',
         });
 
-        // Record Audit Log for Creation
         await db.expenseAuditLogs.create({
           expense_id: newRecord.id,
           action: 'CREATE',
@@ -415,7 +451,7 @@ export const Expenses: React.FC = () => {
     }
   };
 
-  // View Details Modal
+  // Details Modal
   const handleOpenDetails = async (exp: Expense) => {
     setViewingExpense(exp);
     setIsDetailsModalOpen(true);
@@ -454,7 +490,7 @@ export const Expenses: React.FC = () => {
     }
   };
 
-  // Open Reject Modal
+  // Reject Modal
   const handleOpenRejectModal = (exp: Expense, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     setRejectingExpense(exp);
@@ -491,7 +527,7 @@ export const Expenses: React.FC = () => {
     }
   };
 
-  // Open Delete / Void Modal
+  // Delete / Void Modal
   const handleOpenDeleteVoidModal = (exp: Expense, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (exp.status === 'approved') {
@@ -499,7 +535,6 @@ export const Expenses: React.FC = () => {
       setVoidReason('');
       setIsVoidModalOpen(true);
     } else {
-      // Pending or Rejected can be soft deleted directly with confirmation
       if (window.confirm(`Are you sure you want to delete expense ${exp.expense_number}?`)) {
         db.expenses.delete(exp.id).then(() => {
           showToast('success', `✓ Expense ${exp.expense_number} deleted`);
@@ -600,7 +635,6 @@ export const Expenses: React.FC = () => {
     const approvedList = filteredExpenses.filter((e) => e.status === 'approved');
     const totalAmount = approvedList.reduce((s, e) => s + (e.amount || 0), 0);
 
-    // Group by category
     const catTotals: Record<string, number> = {};
     approvedList.forEach((e) => {
       catTotals[e.category_name] = (catTotals[e.category_name] || 0) + e.amount;
@@ -610,7 +644,7 @@ export const Expenses: React.FC = () => {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Mahallu Expense Report - ${selectedYear === 'all' ? 'All Time' : selectedYear}</title>
+        <title>Mahallu Expense Report - ${targetYearVal ? 'Year ' + targetYearVal : 'All Time'}</title>
         <style>
           body { font-family: 'Segoe UI', Arial, sans-serif; padding: 25px; color: #1e293b; background: #fff; }
           .header { text-align: center; border-bottom: 2px solid #7c3aed; padding-bottom: 15px; margin-bottom: 20px; }
@@ -640,7 +674,7 @@ export const Expenses: React.FC = () => {
         <div class="meta-grid">
           <div class="metric-card">
             <div class="metric-title">Period / Year</div>
-            <div class="metric-val" style="color:#0f172a;">${selectedYear === 'all' ? 'All Recorded Years' : 'Year ' + selectedYear}</div>
+            <div class="metric-val" style="color:#0f172a;">${targetYearVal ? 'Year ' + targetYearVal : 'All Time'}</div>
           </div>
           <div class="metric-card">
             <div class="metric-title">Approved Expenses Total</div>
@@ -737,414 +771,709 @@ export const Expenses: React.FC = () => {
     }, 400);
   };
 
+  // Add / Edit Category Handlers
+  const handleOpenCatModal = (cat?: ExpenseCategory) => {
+    if (cat) {
+      setEditingCategory(cat);
+      setCatFormData({ name: cat.name, description: cat.description || '', is_active: cat.is_active });
+    } else {
+      setEditingCategory(null);
+      setCatFormData({ name: '', description: '', is_active: true });
+    }
+    setIsCatModalOpen(true);
+  };
+
+  const handleSaveCat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!catFormData.name.trim()) {
+      showToast('error', 'Category name is required');
+      return;
+    }
+    setIsSubmittingCat(true);
+    try {
+      if (editingCategory) {
+        await db.expenseCategories.update(editingCategory.id, {
+          name: catFormData.name.trim(),
+          description: catFormData.description.trim() || null,
+          is_active: catFormData.is_active,
+        });
+        showToast('success', '✓ Expense category updated');
+      } else {
+        await db.expenseCategories.create({
+          name: catFormData.name.trim(),
+          description: catFormData.description.trim() || null,
+          is_active: catFormData.is_active,
+        });
+        showToast('success', '✓ New expense category created');
+      }
+      setIsCatModalOpen(false);
+      loadData();
+    } catch (err: any) {
+      showToast('error', `Failed to save category: ${err?.message || String(err)}`);
+    } finally {
+      setIsSubmittingCat(false);
+    }
+  };
+
+  const handleToggleCatActive = async (cat: ExpenseCategory) => {
+    try {
+      await db.expenseCategories.update(cat.id, { is_active: !cat.is_active });
+      showToast('success', `Category "${cat.name}" updated`);
+      loadData();
+    } catch (err) {
+      showToast('error', 'Failed to update category status');
+    }
+  };
+
+  const filteredCategories = useMemo(() => {
+    return categories.filter((c) => {
+      const q = categorySearch.toLowerCase().trim();
+      const matchQ = !q || c.name.toLowerCase().includes(q) || (c.description && c.description.toLowerCase().includes(q));
+      const matchSt = categoryStatusFilter === 'all' || (categoryStatusFilter === 'active' && c.is_active) || (categoryStatusFilter === 'inactive' && !c.is_active);
+      return matchQ && matchSt;
+    });
+  }, [categories, categorySearch, categoryStatusFilter]);
+
   return (
-    <div className="page-container padding-lg">
-      {/* Toast Banner */}
+    <div className="subscriptions-page animate-fade-in">
+      {/* TOAST BANNER */}
       {toast && (
-        <div className={`toast-notification ${toast.type}`} style={{ position: 'fixed', top: 20, right: 20, zIndex: 9999 }}>
-          {toast.message}
+        <div className={`toast-notification ${toast.type} animate-bounce-in`} style={{ position: 'fixed', top: 20, right: 20, zIndex: 9999 }}>
+          {toast.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+          <span>{toast.message}</span>
         </div>
       )}
 
-      {/* Page Header */}
-      <div className="page-header flex-between margin-bottom-lg flex-wrap gap-md">
+      {/* PAGE HEADER & CTA GROUP */}
+      <div className="page-header-actions">
         <div>
-          <h1 className="font-xl font-weight-700 color-heading flex-center gap-sm">
-            <TrendingDown className="text-purple" size={28} /> Expenses Management
-          </h1>
-          <p className="color-subtle font-sm margin-top-xs">
-            Record, categorize, track approval workflows, and audit every expense made by the Mahall.
-          </p>
+          <h3>Expenses & Disbursements</h3>
+          <p className="page-subtitle">Record, categorize, track approval workflows, and audit every expense made by the Mahall.</p>
         </div>
 
-        <div className="flex-center gap-sm flex-wrap">
+        <div className="header-cta-group">
+          <YearFilter
+            selectedYearId={selectedYearId}
+            onChange={setSelectedYearId}
+            years={years}
+            showAllOption={true}
+            allOptionLabel="All Years"
+          />
+
           <button
-            className="btn btn-ghost btn-sm text-purple flex-center gap-xs border-purple-light"
-            onClick={() => navigate('/admin/settings/expense-categories')}
+            type="button"
+            className="pill-btn-ghost font-xs flex-row-gap-xs"
+            onClick={handlePrintExpensesPdf}
+            title="Print Expenses PDF Report"
           >
-            <Tag size={16} /> Manage Categories
+            <Printer size={15} className="text-purple" />
+            <span>Print Report</span>
           </button>
 
-          <button className="btn btn-ghost btn-sm text-subtle flex-center gap-xs" onClick={handleExportCSV}>
-            <Download size={16} /> Export CSV
+          <button className="add-btn secondary-btn" onClick={handleExportCSV}>
+            <Download size={15} />
+            <span>Export CSV</span>
           </button>
 
-          <button className="btn btn-ghost btn-sm text-subtle flex-center gap-xs" onClick={handlePrintExpensesPdf}>
-            <Printer size={16} /> Print Report
-          </button>
-
-          <button className="btn btn-primary flex-center gap-xs shadow-purple" onClick={handleOpenAddModal}>
-            <Plus size={18} /> Add Expense
+          <button className="add-btn primary-btn" onClick={handleOpenAddModal}>
+            <Plus size={16} />
+            <span>Add Expense</span>
           </button>
         </div>
       </div>
 
-      {/* 4 SUMMARY METRIC CARDS */}
-      <div className="grid-layout cols-4 margin-bottom-lg gap-md">
-        {/* Card 1: Total Expenses */}
-        <div className="glass-card padding-md flex-between align-center">
-          <div>
-            <span className="font-2xs font-weight-700 color-subtle text-uppercase display-block margin-bottom-xs">
-              Total Expenses {selectedYear !== 'all' ? `(${selectedYear})` : ''}
-            </span>
-            <div className="font-xl font-weight-800 text-purple">
-              ₹{topMetrics.totalExpenses.toLocaleString('en-IN')}
-            </div>
-            <span className="font-3xs color-subtle display-block margin-top-2xs">
-              Based on approved records
-            </span>
-          </div>
-          <div className="stat-icon-wrap bg-purple-light text-purple">
-            <TrendingDown size={24} />
-          </div>
-        </div>
-
-        {/* Card 2: This Month */}
-        <div className="glass-card padding-md flex-between align-center">
-          <div>
-            <span className="font-2xs font-weight-700 color-subtle text-uppercase display-block margin-bottom-xs">
-              This Month
-            </span>
-            <div className="font-xl font-weight-800 text-primary">
-              ₹{topMetrics.thisMonth.toLocaleString('en-IN')}
-            </div>
-            <span className="font-3xs color-subtle display-block margin-top-2xs">
-              Disbursed in {new Date().toLocaleString('en-US', { month: 'short', year: 'numeric' })}
-            </span>
-          </div>
-          <div className="stat-icon-wrap bg-primary-light text-primary">
-            <Calendar size={24} />
-          </div>
-        </div>
-
-        {/* Card 3: Pending Approval */}
-        <div className="glass-card padding-md flex-between align-center">
-          <div>
-            <span className="font-2xs font-weight-700 color-subtle text-uppercase display-block margin-bottom-xs">
-              Pending Approval
-            </span>
-            <div className="font-xl font-weight-800 text-warning">
-              ₹{topMetrics.pendingApproval.toLocaleString('en-IN')}
-            </div>
-            <span className="font-3xs color-subtle display-block margin-top-2xs">
-              Awaiting committee review
-            </span>
-          </div>
-          <div className="stat-icon-wrap bg-warning-light text-warning">
-            <Clock size={24} />
-          </div>
-        </div>
-
-        {/* Card 4: Expense Transactions Count */}
-        <div className="glass-card padding-md flex-between align-center">
-          <div>
-            <span className="font-2xs font-weight-700 color-subtle text-uppercase display-block margin-bottom-xs">
-              Expenses Count
-            </span>
-            <div className="font-xl font-weight-800 color-heading">
-              {topMetrics.count}
-            </div>
-            <span className="font-3xs color-subtle display-block margin-top-2xs">
-              Filtered records count
-            </span>
-          </div>
-          <div className="stat-icon-wrap bg-subtle">
-            <Layers size={24} className="color-subtle" />
-          </div>
-        </div>
+      {/* MOBILE-ONLY VIEW SELECTOR DROPDOWN */}
+      <div className="mobile-subscriptions-select-container margin-bottom-md">
+        <label htmlFor="mobile-exp-view-select" className="font-xs font-weight-700 color-subtle display-block margin-bottom-xs">
+          Select View:
+        </label>
+        <select
+          id="mobile-exp-view-select"
+          className="form-control font-weight-700 text-purple"
+          value={activeTab}
+          onChange={(e) => setActiveTab(e.target.value as 'overview' | 'expenses' | 'categories')}
+          style={{
+            borderRadius: 12,
+            padding: '12px 16px',
+            border: '1.5px solid #7c3aed',
+            background: '#ffffff',
+            color: '#7c3aed',
+            fontWeight: 700,
+            fontSize: '14px',
+            width: '100%',
+          }}
+        >
+          <option value="overview">📊 Analytics & Overview</option>
+          <option value="expenses">💸 Expense Transactions</option>
+          <option value="categories">🏷️ Expense Categories</option>
+        </select>
       </div>
 
-      {/* FILTER ROW */}
-      <div className="glass-card padding-md margin-bottom-lg">
-        <div className="flex-between flex-wrap gap-md margin-bottom-sm">
-          {/* Search Box */}
-          <div className="search-input-wrapper flex-grow" style={{ minWidth: 260 }}>
-            <Search className="search-icon" size={18} />
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Search expense #, description, vendor / paid-to..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-            />
-          </div>
+      {/* DESKTOP & TABLET SELECTION TABS ONLY */}
+      <div className="subscription-nav-tabs desktop-subscriptions-tabs-only margin-bottom-md">
+        <button
+          className={`tab-pill-btn ${activeTab === 'overview' ? 'active' : ''}`}
+          onClick={() => setActiveTab('overview')}
+        >
+          <Layers size={16} />
+          <span>Analytics & Overview</span>
+        </button>
 
-          {/* Filters Group */}
-          <div className="flex-center gap-xs flex-wrap">
-            {/* Year Filter */}
-            <div className="flex-center gap-2xs">
-              <span className="font-xs font-weight-600 color-subtle">Year:</span>
-              <select
-                className="select-input font-xs"
-                value={selectedYear}
-                onChange={(e) => {
-                  setSelectedYear(e.target.value);
-                  setCurrentPage(1);
-                }}
-              >
-                {availableYears.map((y) => (
-                  <option key={y} value={y}>
-                    {y === 'all' ? 'All Years' : y}
-                  </option>
-                ))}
-              </select>
-            </div>
+        <button
+          className={`tab-pill-btn ${activeTab === 'expenses' ? 'active' : ''}`}
+          onClick={() => setActiveTab('expenses')}
+        >
+          <TrendingDown size={16} />
+          <span>Expense Transactions ({filteredExpenses.length})</span>
+        </button>
 
-            {/* Category Filter */}
-            <div className="flex-center gap-2xs">
-              <span className="font-xs font-weight-600 color-subtle">Category:</span>
-              <select
-                className="select-input font-xs"
-                value={selectedCategory}
-                onChange={(e) => {
-                  setSelectedCategory(e.target.value);
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="all">All Categories</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} {!c.is_active ? '(Inactive)' : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Payment Method Filter */}
-            <div className="flex-center gap-2xs">
-              <span className="font-xs font-weight-600 color-subtle">Method:</span>
-              <select
-                className="select-input font-xs"
-                value={selectedPaymentMethod}
-                onChange={(e) => {
-                  setSelectedPaymentMethod(e.target.value);
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="all">All Methods</option>
-                <option value="cash">Cash</option>
-                <option value="bank_transfer">Bank Transfer</option>
-                <option value="upi">UPI</option>
-                <option value="cheque">Cheque</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-
-            {/* Status Filter */}
-            <div className="flex-center gap-2xs">
-              <span className="font-xs font-weight-600 color-subtle">Status:</span>
-              <select
-                className="select-input font-xs"
-                value={selectedStatus}
-                onChange={(e) => {
-                  setSelectedStatus(e.target.value);
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="all">All Statuses</option>
-                <option value="approved">Approved</option>
-                <option value="pending">Pending</option>
-                <option value="rejected">Rejected</option>
-                <option value="voided">Voided</option>
-              </select>
-            </div>
-
-            <button
-              className="btn btn-ghost btn-xs text-danger flex-center gap-2xs"
-              onClick={handleClearFilters}
-              title="Clear all filters"
-            >
-              <X size={14} /> Clear
-            </button>
-          </div>
-        </div>
-
-        {/* Date Range Sub-Row */}
-        <div className="flex-start gap-md flex-wrap border-top padding-top-xs font-xs color-subtle">
-          <div className="flex-center gap-xs">
-            <span>From:</span>
-            <input
-              type="date"
-              className="form-input padding-2xs font-xs"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-            />
-          </div>
-          <div className="flex-center gap-xs">
-            <span>To:</span>
-            <input
-              type="date"
-              className="form-input padding-2xs font-xs"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-            />
-          </div>
-          <div className="flex-center gap-xs">
-            <span>Fund:</span>
-            <select
-              className="select-input padding-2xs font-xs"
-              value={selectedFund}
-              onChange={(e) => setSelectedFund(e.target.value)}
-            >
-              <option value="all">All Funds</option>
-              <option value="general_fund">General Fund</option>
-              <option value="mosque_fund">Mosque Fund</option>
-              <option value="madrasa_fund">Madrasa Fund</option>
-              <option value="zakat_fund">Zakat Fund</option>
-              <option value="welfare_fund">Welfare Fund</option>
-              <option value="construction_fund">Construction Fund</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-        </div>
+        <button
+          className={`tab-pill-btn ${activeTab === 'categories' ? 'active' : ''}`}
+          onClick={() => setActiveTab('categories')}
+        >
+          <Tag size={16} />
+          <span>Expense Categories ({categories.length})</span>
+        </button>
       </div>
 
-      {/* EXPENSE TABLE & RESPONSIVE CARDS */}
-      {isLoading ? (
-        <div className="glass-card padding-xl text-center">
-          <RefreshCw size={28} className="animate-spin text-purple margin-bottom-sm" />
-          <p className="color-subtle">Loading Mahall expense records...</p>
-        </div>
-      ) : filteredExpenses.length === 0 ? (
-        <div className="glass-card padding-xl text-center">
-          <TrendingDown size={44} className="color-subtle margin-bottom-sm opacity-40" />
-          <h3 className="font-lg font-weight-600 color-heading">No Expenses Found</h3>
-          <p className="color-subtle font-sm margin-top-xs">
-            {searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all'
-              ? 'No expenses match your current filters. Try resetting the filters.'
-              : 'Start recording your Mahall’s expenses to keep your financial records organized.'}
-          </p>
-          <div className="flex-center gap-sm margin-top-md justify-center">
-            {searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all' ? (
-              <button className="btn btn-ghost" onClick={handleClearFilters}>
-                Clear Filters
-              </button>
-            ) : null}
-            <button className="btn btn-primary" onClick={handleOpenAddModal}>
-              + Add Expense
-            </button>
+      {/* ════════════════════════════════════════════════
+          TAB 1: ANALYTICS & OVERVIEW DASHBOARD
+      ════════════════════════════════════════════════ */}
+      {activeTab === 'overview' && (
+        <div className="overview-tab-content animate-fade-in">
+          {/* STATS CARDS GRID */}
+          <div className="stats-dashboard-grid margin-bottom-lg">
+            <div className="stat-metric-card shadow-sm">
+              <div className="metric-icon-box purple" style={{ background: '#faf5ff', color: '#7c3aed' }}>
+                <TrendingDown size={22} />
+              </div>
+              <div className="metric-info">
+                <span className="metric-label">Approved Expenses</span>
+                <h3 className="metric-value text-purple">₹{topMetrics.totalApproved.toLocaleString('en-IN')}</h3>
+                <span className="metric-sub">{topMetrics.approvedCount} approved transactions {targetYearVal ? `(${targetYearVal})` : ''}</span>
+              </div>
+            </div>
+
+            <div className="stat-metric-card shadow-sm">
+              <div className="metric-icon-box emerald">
+                <Calendar size={22} />
+              </div>
+              <div className="metric-info">
+                <span className="metric-label">This Month Disbursed</span>
+                <h3 className="metric-value text-success">₹{topMetrics.thisMonthApproved.toLocaleString('en-IN')}</h3>
+                <span className="metric-sub">Current month disbursements</span>
+              </div>
+            </div>
+
+            <div className="stat-metric-card shadow-sm">
+              <div className="metric-icon-box amber">
+                <Clock size={22} />
+              </div>
+              <div className="metric-info">
+                <span className="metric-label">Pending Approval</span>
+                <h3 className="metric-value text-warning">₹{topMetrics.totalPending.toLocaleString('en-IN')}</h3>
+                <span className="metric-sub">{topMetrics.pendingCount} expenses awaiting review</span>
+              </div>
+            </div>
+
+            <div className="stat-metric-card shadow-sm">
+              <div className="metric-icon-box primary">
+                <Tag size={22} />
+              </div>
+              <div className="metric-info">
+                <span className="metric-label">Active Categories</span>
+                <h3 className="metric-value color-heading">{categories.filter(c => c.is_active).length}</h3>
+                <span className="metric-sub">Out of {categories.length} configured</span>
+              </div>
+            </div>
+          </div>
+
+          {/* SPENDING DISTRIBUTION & CATEGORIES BREAKDOWN */}
+          <div className="grid-layout cols-2 gap-lg margin-bottom-lg">
+            {/* Category Breakdown Progress */}
+            <div className="glass-card padding-lg">
+              <div className="flex-between margin-bottom-md border-bottom padding-bottom-xs">
+                <h4 className="font-md font-weight-700 color-heading flex-center gap-xs">
+                  <PieChart size={18} className="text-purple" /> Spending Distribution by Category
+                </h4>
+                <span className="font-xs color-subtle font-weight-600">{targetYearVal ? `Year ${targetYearVal}` : 'All Time'}</span>
+              </div>
+
+              {categoryDistribution.length === 0 ? (
+                <div className="padding-lg text-center color-subtle font-sm">
+                  No approved expenses recorded yet for category distribution analysis.
+                </div>
+              ) : (
+                <div className="category-progress-list">
+                  {categoryDistribution.slice(0, 7).map((item) => (
+                    <div key={item.name} className="margin-bottom-sm">
+                      <div className="flex-between font-xs margin-bottom-2xs">
+                        <span className="font-weight-600 color-heading">{item.name} ({item.count} exps)</span>
+                        <span className="font-weight-700 text-purple">
+                          ₹{item.amount.toLocaleString('en-IN')} <span className="color-subtle">({item.percentage}%)</span>
+                        </span>
+                      </div>
+                      <div style={{ height: 8, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
+                        <div
+                          style={{
+                            height: '100%',
+                            width: `${item.percentage}%`,
+                            background: 'linear-gradient(90deg, #7c3aed 0%, #a855f7 100%)',
+                            borderRadius: 4,
+                            transition: 'width 0.5s ease',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Quick Actions & Recent Pending Audit Banner */}
+            <div className="glass-card padding-lg flex-between flex-column">
+              <div>
+                <div className="flex-between margin-bottom-md border-bottom padding-bottom-xs">
+                  <h4 className="font-md font-weight-700 color-heading flex-center gap-xs">
+                    <Sparkles size={18} className="text-amber" /> Expense Governance & Audit Rules
+                  </h4>
+                </div>
+
+                <div className="font-sm color-subtle margin-bottom-md" style={{ lineHeight: 1.6 }}>
+                  <p className="margin-bottom-xs">
+                    <strong>✓ Financial Integrity:</strong> Only approved expenses subtract from the official Mahall cashbook balance.
+                  </p>
+                  <p className="margin-bottom-xs">
+                    <strong>✓ Audit Trail Compliance:</strong> Any edit to an approved expense requires a mandatory change justification and is recorded in immutable audit logs.
+                  </p>
+                  <p>
+                    <strong>✓ Permanent Preservation:</strong> Approved expenses cannot be deleted; they are marked as <em>Voided</em> to prevent accounting records from disappearing.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex-between gap-sm border-top padding-top-sm width-full">
+                <button
+                  className="btn btn-ghost font-xs text-purple flex-center gap-2xs"
+                  onClick={() => setActiveTab('categories')}
+                >
+                  <Tag size={15} /> Manage Categories
+                </button>
+                <button
+                  className="btn btn-primary font-xs flex-center gap-2xs"
+                  onClick={() => setActiveTab('expenses')}
+                >
+                  View All Expenses <ChevronRight size={15} />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      ) : (
-        <>
-          <div className="table-responsive glass-card margin-bottom-md">
+      )}
+
+      {/* ════════════════════════════════════════════════
+          TAB 2: EXPENSE TRANSACTIONS TABLE
+      ════════════════════════════════════════════════ */}
+      {activeTab === 'expenses' && (
+        <div className="expenses-tab-content animate-fade-in">
+          {/* SEARCH & FILTERS BAR */}
+          <div className="glass-card padding-md margin-bottom-lg">
+            <div className="flex-between flex-wrap gap-md margin-bottom-sm">
+              <div className="search-input-wrapper flex-grow" style={{ minWidth: 260 }}>
+                <Search className="search-icon" size={18} />
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="Search expense #, description, vendor / paid-to..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                />
+              </div>
+
+              <div className="flex-center gap-xs flex-wrap">
+                <div className="flex-center gap-2xs">
+                  <span className="font-xs font-weight-600 color-subtle">Category:</span>
+                  <select
+                    className="select-input font-xs"
+                    value={selectedCategory}
+                    onChange={(e) => {
+                      setSelectedCategory(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value="all">All Categories</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} {!c.is_active ? '(Inactive)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex-center gap-2xs">
+                  <span className="font-xs font-weight-600 color-subtle">Method:</span>
+                  <select
+                    className="select-input font-xs"
+                    value={selectedPaymentMethod}
+                    onChange={(e) => {
+                      setSelectedPaymentMethod(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value="all">All Methods</option>
+                    <option value="cash">Cash</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="upi">UPI</option>
+                    <option value="cheque">Cheque</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                <div className="flex-center gap-2xs">
+                  <span className="font-xs font-weight-600 color-subtle">Status:</span>
+                  <select
+                    className="select-input font-xs"
+                    value={selectedStatus}
+                    onChange={(e) => {
+                      setSelectedStatus(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="approved">Approved</option>
+                    <option value="pending">Pending</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="voided">Voided</option>
+                  </select>
+                </div>
+
+                <button
+                  className="btn btn-ghost btn-xs text-danger flex-center gap-2xs"
+                  onClick={handleClearFilters}
+                  title="Clear all filters"
+                >
+                  <X size={14} /> Clear
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-start gap-md flex-wrap border-top padding-top-xs font-xs color-subtle">
+              <div className="flex-center gap-xs">
+                <span>From Date:</span>
+                <input
+                  type="date"
+                  className="form-input padding-2xs font-xs"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                />
+              </div>
+              <div className="flex-center gap-xs">
+                <span>To Date:</span>
+                <input
+                  type="date"
+                  className="form-input padding-2xs font-xs"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                />
+              </div>
+              <div className="flex-center gap-xs">
+                <span>Fund / Account:</span>
+                <select
+                  className="select-input padding-2xs font-xs"
+                  value={selectedFund}
+                  onChange={(e) => setSelectedFund(e.target.value)}
+                >
+                  <option value="all">All Funds</option>
+                  <option value="general_fund">General Fund</option>
+                  <option value="mosque_fund">Mosque Fund</option>
+                  <option value="madrasa_fund">Madrasa Fund</option>
+                  <option value="zakat_fund">Zakat Fund</option>
+                  <option value="welfare_fund">Welfare Fund</option>
+                  <option value="construction_fund">Construction Fund</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* TABLE & CARDS */}
+          {isLoading ? (
+            <div className="glass-card padding-xl text-center">
+              <RefreshCw size={28} className="animate-spin text-purple margin-bottom-sm" />
+              <p className="color-subtle">Loading expense records...</p>
+            </div>
+          ) : filteredExpenses.length === 0 ? (
+            <div className="glass-card padding-xl text-center">
+              <TrendingDown size={44} className="color-subtle margin-bottom-sm opacity-40" />
+              <h3 className="font-lg font-weight-600 color-heading">No Expenses Found</h3>
+              <p className="color-subtle font-sm margin-top-xs">
+                {searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all'
+                  ? 'No expenses match your current filters. Try resetting your search or filters.'
+                  : 'Start recording your Mahall’s expenses to keep your financial records organized.'}
+              </p>
+              <div className="flex-center gap-sm margin-top-md justify-center">
+                {searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all' ? (
+                  <button className="btn btn-ghost" onClick={handleClearFilters}>
+                    Clear Filters
+                  </button>
+                ) : null}
+                <button className="btn btn-primary" onClick={handleOpenAddModal}>
+                  + Add Expense
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="table-responsive glass-card margin-bottom-md">
+                <table className="custom-table">
+                  <thead>
+                    <tr>
+                      <th>Expense No</th>
+                      <th>Date</th>
+                      <th>Category</th>
+                      <th>Description</th>
+                      <th>Paid To</th>
+                      <th>Amount</th>
+                      <th>Method</th>
+                      <th>Status</th>
+                      <th>Recorded By</th>
+                      <th className="text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedExpenses.map((exp) => {
+                      const statusBadges: Record<string, { cls: string; label: string; icon: any }> = {
+                        approved: { cls: 'badge-success', label: 'Approved', icon: CheckCircle },
+                        pending: { cls: 'badge-warning', label: 'Pending', icon: Clock },
+                        rejected: { cls: 'badge-danger', label: 'Rejected', icon: XCircle },
+                        voided: { cls: 'badge-subtle', label: 'Voided', icon: Ban },
+                      };
+                      const sb = statusBadges[exp.status] || statusBadges.approved;
+                      const IconComp = sb.icon;
+
+                      return (
+                        <tr
+                          key={exp.id}
+                          className="cursor-pointer hover-bg-subtle"
+                          onClick={() => handleOpenDetails(exp)}
+                        >
+                          <td>
+                            <span className="font-weight-700 text-purple font-xs">{exp.expense_number}</span>
+                          </td>
+                          <td>
+                            <span className="font-xs font-weight-500">{exp.expense_date}</span>
+                          </td>
+                          <td>
+                            <span className="badge badge-purple-light font-xs">{exp.category_name}</span>
+                          </td>
+                          <td>
+                            <div className="font-xs font-weight-500 color-heading line-clamp-1" title={exp.description}>
+                              {exp.description}
+                            </div>
+                          </td>
+                          <td>
+                            <span className="font-xs font-weight-600 color-heading">{exp.paid_to}</span>
+                          </td>
+                          <td>
+                            <span className="font-sm font-weight-800 text-purple">
+                              ₹{exp.amount.toLocaleString('en-IN')}
+                            </span>
+                          </td>
+                          <td>
+                            <span className="font-2xs font-weight-600 text-uppercase color-subtle flex-center gap-3xs">
+                              <CreditCard size={12} /> {exp.payment_method.replace('_', ' ')}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`badge ${sb.cls} font-xs flex-center gap-3xs`}>
+                              <IconComp size={12} /> {sb.label}
+                            </span>
+                          </td>
+                          <td>
+                            <span className="font-2xs color-subtle">{exp.created_by}</span>
+                          </td>
+                          <td onClick={(e) => e.stopPropagation()}>
+                            <div className="flex-center justify-end gap-xs">
+                              <button
+                                className="btn btn-ghost btn-xs text-subtle"
+                                title="View Expense Details"
+                                onClick={() => handleOpenDetails(exp)}
+                              >
+                                <Eye size={15} />
+                              </button>
+
+                              {exp.status === 'pending' && (
+                                <>
+                                  <button
+                                    className="btn btn-ghost btn-xs text-success"
+                                    title="Approve Expense"
+                                    onClick={(e) => handleApproveExpense(exp, e)}
+                                  >
+                                    <CheckCircle size={15} />
+                                  </button>
+                                  <button
+                                    className="btn btn-ghost btn-xs text-danger"
+                                    title="Reject Expense"
+                                    onClick={(e) => handleOpenRejectModal(exp, e)}
+                                  >
+                                    <XCircle size={15} />
+                                  </button>
+                                </>
+                              )}
+
+                              <button
+                                className="btn btn-ghost btn-xs text-primary"
+                                title="Edit Expense"
+                                onClick={() => handleOpenEditModal(exp)}
+                              >
+                                <Edit2 size={15} />
+                              </button>
+
+                              <button
+                                className="btn btn-ghost btn-xs text-danger"
+                                title={exp.status === 'approved' ? 'Void Expense' : 'Delete Expense'}
+                                onClick={(e) => handleOpenDeleteVoidModal(exp, e)}
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {totalPages > 1 && (
+                <div className="flex-between margin-top-md font-sm color-subtle">
+                  <span>
+                    Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
+                    {Math.min(currentPage * itemsPerPage, filteredExpenses.length)} of {filteredExpenses.length} records
+                  </span>
+
+                  <div className="flex-center gap-xs">
+                    <button
+                      className="btn btn-ghost btn-xs"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    >
+                      Previous
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                      <button
+                        key={p}
+                        className={`btn btn-xs ${currentPage === p ? 'btn-primary' : 'btn-ghost'}`}
+                        onClick={() => setCurrentPage(p)}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                    <button
+                      className="btn btn-ghost btn-xs"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════
+          TAB 3: EXPENSE CATEGORIES MANAGEMENT
+      ════════════════════════════════════════════════ */}
+      {activeTab === 'categories' && (
+        <div className="categories-tab-content animate-fade-in">
+          <div className="glass-card padding-md margin-bottom-lg">
+            <div className="flex-between flex-wrap gap-md">
+              <div className="search-input-wrapper flex-grow" style={{ minWidth: 260 }}>
+                <Search className="search-icon" size={18} />
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="Search category name or description..."
+                  value={categorySearch}
+                  onChange={(e) => setCategorySearch(e.target.value)}
+                />
+              </div>
+
+              <div className="flex-center gap-sm">
+                <select
+                  className="select-input font-sm"
+                  value={categoryStatusFilter}
+                  onChange={(e) => setCategoryStatusFilter(e.target.value as any)}
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="active">Active Only</option>
+                  <option value="inactive">Inactive Only</option>
+                </select>
+
+                <button className="btn btn-primary font-xs flex-center gap-2xs" onClick={() => handleOpenCatModal()}>
+                  <Plus size={16} /> Add Category
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="table-responsive glass-card">
             <table className="custom-table">
               <thead>
                 <tr>
-                  <th>Expense No</th>
-                  <th>Date</th>
-                  <th>Category</th>
+                  <th>Category Name</th>
                   <th>Description</th>
-                  <th>Paid To</th>
-                  <th>Amount</th>
-                  <th>Method</th>
                   <th>Status</th>
-                  <th>Recorded By</th>
+                  <th>Disbursed Total</th>
                   <th className="text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {paginatedExpenses.map((exp) => {
-                  const statusBadges: Record<string, { cls: string; label: string; icon: any }> = {
-                    approved: { cls: 'badge-success', label: 'Approved', icon: CheckCircle },
-                    pending: { cls: 'badge-warning', label: 'Pending', icon: Clock },
-                    rejected: { cls: 'badge-danger', label: 'Rejected', icon: XCircle },
-                    voided: { cls: 'badge-subtle', label: 'Voided', icon: Ban },
-                  };
-                  const sb = statusBadges[exp.status] || statusBadges.approved;
-                  const IconComp = sb.icon;
+                {filteredCategories.map((cat) => {
+                  const catExps = expenses.filter(e => e.status === 'approved' && (e.category_id === cat.id || e.category_name === cat.name));
+                  const catTotal = catExps.reduce((s, e) => s + (e.amount || 0), 0);
 
                   return (
-                    <tr
-                      key={exp.id}
-                      className="cursor-pointer hover-bg-subtle"
-                      onClick={() => handleOpenDetails(exp)}
-                    >
+                    <tr key={cat.id}>
                       <td>
-                        <span className="font-weight-700 text-purple font-xs">{exp.expense_number}</span>
-                      </td>
-                      <td>
-                        <span className="font-xs font-weight-500">{exp.expense_date}</span>
-                      </td>
-                      <td>
-                        <span className="badge badge-purple-light font-xs">{exp.category_name}</span>
-                      </td>
-                      <td>
-                        <div className="font-xs font-weight-500 color-heading line-clamp-1" title={exp.description}>
-                          {exp.description}
+                        <div className="flex-center gap-xs font-weight-600 color-heading">
+                          <Tag size={15} className="text-purple" />
+                          {cat.name}
                         </div>
                       </td>
                       <td>
-                        <span className="font-xs font-weight-600 color-heading">{exp.paid_to}</span>
+                        <span className="font-sm color-subtle">{cat.description || 'No description provided.'}</span>
                       </td>
                       <td>
-                        <span className="font-sm font-weight-800 text-purple">
-                          ₹{exp.amount.toLocaleString('en-IN')}
+                        <span className={`badge ${cat.is_active ? 'badge-success' : 'badge-subtle'}`}>
+                          {cat.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
                       <td>
-                        <span className="font-2xs font-weight-600 text-uppercase color-subtle flex-center gap-3xs">
-                          <CreditCard size={12} /> {exp.payment_method.replace('_', ' ')}
-                        </span>
+                        <span className="font-sm font-weight-700 text-purple">₹{catTotal.toLocaleString('en-IN')}</span>{' '}
+                        <span className="font-2xs color-subtle">({catExps.length} exps)</span>
                       </td>
                       <td>
-                        <span className={`badge ${sb.cls} font-xs flex-center gap-3xs`}>
-                          <IconComp size={12} /> {sb.label}
-                        </span>
-                      </td>
-                      <td>
-                        <span className="font-2xs color-subtle">{exp.created_by}</span>
-                      </td>
-                      <td onClick={(e) => e.stopPropagation()}>
                         <div className="flex-center justify-end gap-xs">
-                          {/* Details Button */}
-                          <button
-                            className="btn btn-ghost btn-xs text-subtle"
-                            title="View Expense Details"
-                            onClick={() => handleOpenDetails(exp)}
-                          >
-                            <Eye size={15} />
-                          </button>
-
-                          {/* Quick Approve/Reject Buttons for Pending */}
-                          {exp.status === 'pending' && (
-                            <>
-                              <button
-                                className="btn btn-ghost btn-xs text-success"
-                                title="Approve Expense"
-                                onClick={(e) => handleApproveExpense(exp, e)}
-                              >
-                                <CheckCircle size={15} />
-                              </button>
-                              <button
-                                className="btn btn-ghost btn-xs text-danger"
-                                title="Reject Expense"
-                                onClick={(e) => handleOpenRejectModal(exp, e)}
-                              >
-                                <XCircle size={15} />
-                              </button>
-                            </>
-                          )}
-
-                          {/* Edit Button */}
                           <button
                             className="btn btn-ghost btn-xs text-primary"
-                            title="Edit Expense"
-                            onClick={() => handleOpenEditModal(exp)}
+                            title="Edit Category"
+                            onClick={() => handleOpenCatModal(cat)}
                           >
-                            <Edit2 size={15} />
+                            <Edit2 size={15} /> Edit
                           </button>
-
-                          {/* Delete / Void Button */}
                           <button
-                            className="btn btn-ghost btn-xs text-danger"
-                            title={exp.status === 'approved' ? 'Void Expense' : 'Delete Expense'}
-                            onClick={(e) => handleOpenDeleteVoidModal(exp, e)}
+                            className={`btn btn-ghost btn-xs ${cat.is_active ? 'text-danger' : 'text-success'}`}
+                            title={cat.is_active ? 'Disable Category' : 'Enable Category'}
+                            onClick={() => handleToggleCatActive(cat)}
                           >
-                            <Trash2 size={15} />
+                            {cat.is_active ? 'Disable' : 'Enable'}
                           </button>
                         </div>
                       </td>
@@ -1154,43 +1483,7 @@ export const Expenses: React.FC = () => {
               </tbody>
             </table>
           </div>
-
-          {/* PAGINATION ROW */}
-          {totalPages > 1 && (
-            <div className="flex-between margin-top-md font-sm color-subtle">
-              <span>
-                Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
-                {Math.min(currentPage * itemsPerPage, filteredExpenses.length)} of {filteredExpenses.length} records
-              </span>
-
-              <div className="flex-center gap-xs">
-                <button
-                  className="btn btn-ghost btn-xs"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                >
-                  Previous
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                  <button
-                    key={p}
-                    className={`btn btn-xs ${currentPage === p ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={() => setCurrentPage(p)}
-                  >
-                    {p}
-                  </button>
-                ))}
-                <button
-                  className="btn btn-ghost btn-xs"
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
-        </>
+        </div>
       )}
 
       {/* ADD / EDIT EXPENSE FORM MODAL */}
@@ -1215,7 +1508,6 @@ export const Expenses: React.FC = () => {
             )}
 
             <form onSubmit={handleSaveExpense}>
-              {/* Section A: Basic Info */}
               <div className="grid-layout cols-2 gap-md margin-bottom-md">
                 <div>
                   <label className="form-label font-xs font-weight-600 margin-bottom-2xs display-block">
@@ -1257,7 +1549,6 @@ export const Expenses: React.FC = () => {
                 </div>
               </div>
 
-              {/* Section B: Details */}
               <div className="margin-bottom-md">
                 <label className="form-label font-xs font-weight-600 margin-bottom-2xs display-block">
                   Description <span className="text-danger">*</span>
@@ -1301,7 +1592,6 @@ export const Expenses: React.FC = () => {
                 </div>
               </div>
 
-              {/* Section C: Amount & Payment Method */}
               <div className="grid-layout cols-2 gap-md margin-bottom-md">
                 <div>
                   <label className="form-label font-xs font-weight-600 margin-bottom-2xs display-block">
@@ -1337,13 +1627,10 @@ export const Expenses: React.FC = () => {
                 </div>
               </div>
 
-              {/* Payment Method Specific Extra Fields */}
               {formData.payment_method === 'bank_transfer' && (
                 <div className="grid-layout cols-2 gap-md margin-bottom-md padding-sm bg-subtle radius-md">
                   <div>
-                    <label className="form-label font-2xs color-subtle margin-bottom-2xs display-block">
-                      Bank Account
-                    </label>
+                    <label className="form-label font-2xs color-subtle margin-bottom-2xs display-block">Bank Account</label>
                     <input
                       type="text"
                       className="form-input font-xs"
@@ -1353,9 +1640,7 @@ export const Expenses: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="form-label font-2xs color-subtle margin-bottom-2xs display-block">
-                      Transaction Reference
-                    </label>
+                    <label className="form-label font-2xs color-subtle margin-bottom-2xs display-block">Transaction Reference</label>
                     <input
                       type="text"
                       className="form-input font-xs"
@@ -1369,9 +1654,7 @@ export const Expenses: React.FC = () => {
 
               {formData.payment_method === 'upi' && (
                 <div className="margin-bottom-md padding-sm bg-subtle radius-md">
-                  <label className="form-label font-2xs color-subtle margin-bottom-2xs display-block">
-                    UPI Reference ID
-                  </label>
+                  <label className="form-label font-2xs color-subtle margin-bottom-2xs display-block">UPI Reference ID</label>
                   <input
                     type="text"
                     className="form-input font-xs"
@@ -1385,9 +1668,7 @@ export const Expenses: React.FC = () => {
               {formData.payment_method === 'cheque' && (
                 <div className="grid-layout cols-2 gap-md margin-bottom-md padding-sm bg-subtle radius-md">
                   <div>
-                    <label className="form-label font-2xs color-subtle margin-bottom-2xs display-block">
-                      Cheque Number
-                    </label>
+                    <label className="form-label font-2xs color-subtle margin-bottom-2xs display-block">Cheque Number</label>
                     <input
                       type="text"
                       className="form-input font-xs"
@@ -1397,9 +1678,7 @@ export const Expenses: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="form-label font-2xs color-subtle margin-bottom-2xs display-block">
-                      Bank Name
-                    </label>
+                    <label className="form-label font-2xs color-subtle margin-bottom-2xs display-block">Bank Name</label>
                     <input
                       type="text"
                       className="form-input font-xs"
@@ -1411,12 +1690,9 @@ export const Expenses: React.FC = () => {
                 </div>
               )}
 
-              {/* Section D: Fund / Account */}
               <div className="grid-layout cols-2 gap-md margin-bottom-md">
                 <div>
-                  <label className="form-label font-xs font-weight-600 margin-bottom-2xs display-block">
-                    Fund / Account
-                  </label>
+                  <label className="form-label font-xs font-weight-600 margin-bottom-2xs display-block">Fund / Account</label>
                   <select
                     className="select-input width-full"
                     value={formData.fund_id}
@@ -1433,9 +1709,7 @@ export const Expenses: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="form-label font-xs font-weight-600 margin-bottom-2xs display-block">
-                    Initial Status
-                  </label>
+                  <label className="form-label font-xs font-weight-600 margin-bottom-2xs display-block">Initial Status</label>
                   <select
                     className="select-input width-full"
                     value={formData.status}
@@ -1447,41 +1721,28 @@ export const Expenses: React.FC = () => {
                 </div>
               </div>
 
-              {/* Section E: Notes & Attachment */}
               <div className="margin-bottom-md">
-                <label className="form-label font-xs font-weight-600 margin-bottom-2xs display-block">
-                  Attachment (Receipt / Bill URL or filename)
-                </label>
-                <div className="flex-center gap-xs">
-                  <input
-                    type="text"
-                    className="form-input font-xs flex-grow"
-                    placeholder="e.g. electricity-bill-august.pdf or https://..."
-                    value={formData.attachment_url}
-                    onChange={(e) => setFormData({ ...formData, attachment_url: e.target.value })}
-                  />
-                  {formData.attachment_url && (
-                    <span className="font-2xs text-success flex-center gap-3xs">
-                      <Paperclip size={14} /> Attached
-                    </span>
-                  )}
-                </div>
+                <label className="form-label font-xs font-weight-600 margin-bottom-2xs display-block">Attachment (Receipt / Bill URL or filename)</label>
+                <input
+                  type="text"
+                  className="form-input font-xs"
+                  placeholder="e.g. electricity-bill-august.pdf"
+                  value={formData.attachment_url}
+                  onChange={(e) => setFormData({ ...formData, attachment_url: e.target.value })}
+                />
               </div>
 
               <div className="margin-bottom-md">
-                <label className="form-label font-xs font-weight-600 margin-bottom-2xs display-block">
-                  Notes / Internal Comments
-                </label>
+                <label className="form-label font-xs font-weight-600 margin-bottom-2xs display-block">Notes / Internal Comments</label>
                 <textarea
                   className="form-textarea font-xs"
                   rows={2}
-                  placeholder="Optional context (e.g. Emergency repair completed before Friday prayer)"
+                  placeholder="Optional context..."
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 />
               </div>
 
-              {/* Required Audit Reason when Editing Approved Record */}
               {editingExpense && editingExpense.status === 'approved' && (
                 <div className="margin-bottom-md border-top padding-top-sm">
                   <label className="form-label font-xs font-weight-700 text-danger margin-bottom-2xs display-block">
@@ -1498,20 +1759,9 @@ export const Expenses: React.FC = () => {
                 </div>
               )}
 
-              {/* Footer CTA */}
               <div className="flex-between gap-sm margin-top-md border-top padding-top-sm">
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => setIsFormModalOpen(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary flex-center gap-xs"
-                  disabled={isSubmitting}
-                >
+                <button type="button" className="btn btn-ghost" onClick={() => setIsFormModalOpen(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary flex-center gap-xs" disabled={isSubmitting}>
                   {isSubmitting ? 'Saving Expense...' : editingExpense ? 'Update Expense' : 'Record Expense'}
                 </button>
               </div>
@@ -1520,18 +1770,14 @@ export const Expenses: React.FC = () => {
         </div>
       )}
 
-      {/* VIEW EXPENSE DETAILS MODAL */}
+      {/* VIEW DETAILS MODAL */}
       {isDetailsModalOpen && viewingExpense && (
         <div className="modal-backdrop">
           <div className="modal-content padding-lg" style={{ maxWidth: 650 }}>
             <div className="flex-between border-bottom padding-bottom-sm margin-bottom-md">
               <div>
-                <span className="font-2xs font-weight-700 text-purple text-uppercase">
-                  Expense Record #{viewingExpense.expense_number}
-                </span>
-                <h2 className="font-lg font-weight-800 color-heading">
-                  ₹{viewingExpense.amount.toLocaleString('en-IN')}
-                </h2>
+                <span className="font-2xs font-weight-700 text-purple text-uppercase">Expense Record #{viewingExpense.expense_number}</span>
+                <h2 className="font-lg font-weight-800 color-heading">₹{viewingExpense.amount.toLocaleString('en-IN')}</h2>
               </div>
               <div className="flex-center gap-xs">
                 <span className={`badge badge-${viewingExpense.status === 'approved' ? 'success' : viewingExpense.status === 'pending' ? 'warning' : 'danger'}`}>
@@ -1574,67 +1820,11 @@ export const Expenses: React.FC = () => {
                 <span className="color-subtle font-2xs display-block">Fund / Account</span>
                 <strong className="text-capitalize">{(viewingExpense.fund_id || 'general_fund').replace('_', ' ')}</strong>
               </div>
-              {viewingExpense.bank_account && (
-                <div>
-                  <span className="color-subtle font-2xs display-block">Bank Account</span>
-                  <span>{viewingExpense.bank_account}</span>
-                </div>
-              )}
-              {viewingExpense.transaction_reference && (
-                <div>
-                  <span className="color-subtle font-2xs display-block">Transaction Ref</span>
-                  <span>{viewingExpense.transaction_reference}</span>
-                </div>
-              )}
-              {viewingExpense.upi_reference_id && (
-                <div>
-                  <span className="color-subtle font-2xs display-block">UPI ID</span>
-                  <span>{viewingExpense.upi_reference_id}</span>
-                </div>
-              )}
-              {viewingExpense.attachment_url && (
-                <div className="col-span-2 bg-subtle padding-sm radius-md flex-between">
-                  <span className="flex-center gap-xs font-xs font-weight-600">
-                    <Paperclip size={16} /> Supporting Document: {viewingExpense.attachment_url}
-                  </span>
-                  <a
-                    href={viewingExpense.attachment_url.startsWith('http') ? viewingExpense.attachment_url : '#'}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn btn-ghost btn-xs text-purple"
-                  >
-                    View Document
-                  </a>
-                </div>
-              )}
             </div>
 
-            {/* Approval Info */}
-            <div className="border-top padding-top-sm margin-bottom-md font-2xs color-subtle">
-              {viewingExpense.status === 'approved' && (
-                <div className="flex-between">
-                  <span>Approved By: <strong>{viewingExpense.approved_by || 'Admin'}</strong></span>
-                  <span>Approved At: <strong>{viewingExpense.approved_at ? new Date(viewingExpense.approved_at).toLocaleString() : 'N/A'}</strong></span>
-                </div>
-              )}
-              {viewingExpense.status === 'rejected' && (
-                <div className="text-danger font-xs">
-                  Rejection Reason: <strong>{viewingExpense.rejection_reason || 'N/A'}</strong>
-                </div>
-              )}
-              {viewingExpense.status === 'voided' && (
-                <div className="text-danger font-xs">
-                  Void Reason: <strong>{viewingExpense.void_reason || 'N/A'}</strong> (Voided by {viewingExpense.voided_by})
-                </div>
-              )}
-            </div>
-
-            {/* Audit Logs Timeline */}
             {viewingAuditLogs.length > 0 && (
               <div className="border-top padding-top-sm">
-                <span className="font-2xs font-weight-700 text-uppercase color-subtle display-block margin-bottom-xs">
-                  Audit History Log
-                </span>
+                <span className="font-2xs font-weight-700 text-uppercase color-subtle display-block margin-bottom-xs">Audit History Log</span>
                 <div className="font-2xs color-subtle max-h-32 overflow-y-auto">
                   {viewingAuditLogs.map((log) => (
                     <div key={log.id} className="margin-bottom-2xs border-bottom padding-bottom-2xs">
@@ -1647,57 +1837,38 @@ export const Expenses: React.FC = () => {
             )}
 
             <div className="flex-end gap-xs margin-top-md border-top padding-top-sm">
-              <button className="btn btn-ghost" onClick={() => setIsDetailsModalOpen(false)}>
-                Close
-              </button>
+              <button className="btn btn-ghost" onClick={() => setIsDetailsModalOpen(false)}>Close</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* REJECT CONFIRMATION MODAL */}
+      {/* REJECT MODAL */}
       {isRejectModalOpen && rejectingExpense && (
         <div className="modal-backdrop">
           <div className="modal-content padding-lg" style={{ maxWidth: 450 }}>
-            <h3 className="font-md font-weight-700 color-heading margin-bottom-xs">
-              Reject Expense #{rejectingExpense.expense_number}?
-            </h3>
-            <p className="font-xs color-subtle margin-bottom-md">
-              Please specify why this expense of ₹{rejectingExpense.amount.toLocaleString('en-IN')} is being rejected.
-            </p>
-
+            <h3 className="font-md font-weight-700 color-heading margin-bottom-xs">Reject Expense #{rejectingExpense.expense_number}?</h3>
             <textarea
               className="form-textarea font-xs margin-bottom-md"
               rows={3}
-              placeholder="Enter rejection reason for committee record..."
+              placeholder="Enter rejection reason..."
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
               required
             />
-
             <div className="flex-between gap-sm">
-              <button className="btn btn-ghost" onClick={() => setIsRejectModalOpen(false)}>
-                Cancel
-              </button>
-              <button className="btn btn-danger" onClick={handleConfirmReject}>
-                Reject Expense
-              </button>
+              <button className="btn btn-ghost" onClick={() => setIsRejectModalOpen(false)}>Cancel</button>
+              <button className="btn btn-danger" onClick={handleConfirmReject}>Reject Expense</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* VOID CONFIRMATION MODAL */}
+      {/* VOID MODAL */}
       {isVoidModalOpen && voidingExpense && (
         <div className="modal-backdrop">
           <div className="modal-content padding-lg" style={{ maxWidth: 450 }}>
-            <h3 className="font-md font-weight-700 text-danger margin-bottom-xs">
-              Void Approved Expense #{voidingExpense.expense_number}?
-            </h3>
-            <p className="font-xs color-subtle margin-bottom-md">
-              This approved expense of ₹{voidingExpense.amount.toLocaleString('en-IN')} will be voided and removed from the official Mahall cashbook balance.
-            </p>
-
+            <h3 className="font-md font-weight-700 text-danger margin-bottom-xs">Void Approved Expense #{voidingExpense.expense_number}?</h3>
             <textarea
               className="form-textarea font-xs margin-bottom-md"
               rows={3}
@@ -1706,15 +1877,71 @@ export const Expenses: React.FC = () => {
               onChange={(e) => setVoidReason(e.target.value)}
               required
             />
-
             <div className="flex-between gap-sm">
-              <button className="btn btn-ghost" onClick={() => setIsVoidModalOpen(false)}>
-                Cancel
-              </button>
-              <button className="btn btn-danger" onClick={handleConfirmVoid}>
-                Void Expense Record
-              </button>
+              <button className="btn btn-ghost" onClick={() => setIsVoidModalOpen(false)}>Cancel</button>
+              <button className="btn btn-danger" onClick={handleConfirmVoid}>Void Expense Record</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* CATEGORY ADD/EDIT MODAL */}
+      {isCatModalOpen && (
+        <div className="modal-backdrop">
+          <div className="modal-content padding-lg" style={{ maxWidth: 500 }}>
+            <div className="flex-between margin-bottom-md border-bottom padding-bottom-sm">
+              <h2 className="font-lg font-weight-700 color-heading flex-center gap-xs">
+                <Tag size={20} className="text-purple" />
+                {editingCategory ? 'Edit Expense Category' : 'Add New Expense Category'}
+              </h2>
+              <button className="btn btn-ghost btn-icon" onClick={() => setIsCatModalOpen(false)}>✕</button>
+            </div>
+
+            <form onSubmit={handleSaveCat}>
+              <div className="margin-bottom-md">
+                <label className="form-label font-sm font-weight-600 margin-bottom-xs display-block">
+                  Category Name <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. Maintenance, Electricity"
+                  value={catFormData.name}
+                  onChange={(e) => setCatFormData({ ...catFormData, name: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="margin-bottom-md">
+                <label className="form-label font-sm font-weight-600 margin-bottom-xs display-block">Description</label>
+                <textarea
+                  className="form-textarea"
+                  rows={3}
+                  placeholder="Optional details..."
+                  value={catFormData.description}
+                  onChange={(e) => setCatFormData({ ...catFormData, description: e.target.value })}
+                />
+              </div>
+
+              <div className="margin-bottom-lg flex-center gap-sm">
+                <input
+                  type="checkbox"
+                  id="cat_active_checkbox"
+                  checked={catFormData.is_active}
+                  onChange={(e) => setCatFormData({ ...catFormData, is_active: e.target.checked })}
+                />
+                <label htmlFor="cat_active_checkbox" className="font-sm cursor-pointer color-heading font-weight-500">
+                  Active (Can be selected when recording new expenses)
+                </label>
+              </div>
+
+              <div className="flex-between gap-sm margin-top-md border-top padding-top-sm">
+                <button type="button" className="btn btn-ghost" onClick={() => setIsCatModalOpen(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={isSubmittingCat}>
+                  {isSubmittingCat ? 'Saving...' : editingCategory ? 'Update Category' : 'Create Category'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
