@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { db } from '../../services/db';
 import type { 
-  Household, Member, MemberSubscription, SubscriptionYear, Payment 
+  Household, Member, MemberSubscription, SubscriptionYear, Payment, Expense
 } from '../../services/db';
 import { 
   Download, Search, Filter, Users, Home, 
@@ -23,6 +23,7 @@ export const Reports: React.FC = () => {
   const [years, setYears] = useState<SubscriptionYear[]>([]);
   const [subscriptions, setSubscriptions] = useState<MemberSubscription[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Selector & Sub-Tab States ('collection' | 'household' | 'member' | 'payments' | 'arrears')
@@ -54,18 +55,20 @@ export const Reports: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [houseList, memberList, yearList, subList, payList] = await Promise.all([
+      const [houseList, memberList, yearList, subList, payList, expList] = await Promise.all([
         db.households.get(),
         db.members.get(),
         db.years.get(),
         db.subscriptions.get(),
         db.payments.get(),
+        db.expenses.getAll(),
       ]);
       setHouseholds(houseList);
       setMembers(memberList);
       setYears(yearList);
       setSubscriptions(subList);
       setPayments(payList);
+      setExpenses(expList || []);
 
       if (yearList.length > 0 && !selectedYearId) {
         const activeYr = yearList.find((y) => y.status === 'active') || yearList[0];
@@ -100,14 +103,20 @@ export const Reports: React.FC = () => {
     const totalCollected = yearSubs.reduce((sum, s) => sum + s.total_paid, 0);
     const totalOutstanding = yearSubs.reduce((sum, s) => sum + s.balance, 0);
 
+    const approvedExpensesList = expenses.filter((e) => e.status === 'approved');
+    const totalApprovedExpenses = approvedExpensesList.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const netCashbookBalance = totalCollected - totalApprovedExpenses;
+
     return {
       totalMembers: activeMembers.length,
       totalHouseholds: activeHouses.length,
       totalExpected,
       totalCollected,
       totalOutstanding,
+      totalApprovedExpenses,
+      netCashbookBalance,
     };
-  }, [members, households, subscriptions, selectedYearId]);
+  }, [members, households, subscriptions, selectedYearId, expenses]);
 
   // 1. COLLECTION & FINANCIAL REPORT DATA
   const collectionReportStats = useMemo(() => {

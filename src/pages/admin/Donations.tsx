@@ -230,8 +230,7 @@ export const Donations: React.FC = () => {
         d.campaign_id === selectedCampaignId ||
         (selectedCampObj && selectedCampObj.campaign_name && (
           (d.notes && d.notes.toLowerCase().includes(selectedCampObj.campaign_name.toLowerCase())) ||
-          (d.purpose && d.purpose.toLowerCase().includes(selectedCampObj.campaign_name.toLowerCase())) ||
-          d.donation_type === 'campaign'
+          (d.purpose && d.purpose.toLowerCase().includes(selectedCampObj.campaign_name.toLowerCase()))
         ))
       );
       const matchMethod = !selectedMethod || d.payment_method === selectedMethod;
@@ -447,8 +446,11 @@ export const Donations: React.FC = () => {
       if (notesMatch && notesMatch[1]) return notesMatch[1].trim();
     }
     if (d.donation_type === 'campaign') {
-      const activeCamp = campaigns.find((c) => c.status === 'active') || campaigns[0];
-      if (activeCamp) return activeCamp.campaign_name;
+      const dTime = d.donation_date ? new Date(d.donation_date).getTime() : 0;
+      const eligibleCamp = campaigns
+        .filter((c) => !c.created_at || new Date(c.created_at).getTime() <= (dTime + 86400000))
+        .sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime())[0];
+      if (eligibleCamp) return eligibleCamp.campaign_name;
       return 'Special Campaign';
     }
     return 'General Donation';
@@ -1017,7 +1019,9 @@ export const Donations: React.FC = () => {
                   const firstWord = cName.split(' ')[0];
 
                   const isMatch = (d: Donation) => {
-                    if (d.campaign_id && d.campaign_id === c.id) return true;
+                    if (d.campaign_id) {
+                      return d.campaign_id === c.id;
+                    }
                     if (cName) {
                       const notesLower = (d.notes || '').toLowerCase();
                       const purposeLower = (d.purpose || '').toLowerCase();
@@ -1025,8 +1029,14 @@ export const Donations: React.FC = () => {
                       if (firstWord && firstWord.length > 2 && (notesLower.includes(firstWord) || purposeLower.includes(firstWord))) return true;
                     }
                     if (d.donation_type === 'campaign') {
-                      if (!d.campaign_id || d.campaign_id === c.id) {
-                        if (c.status === 'active' || campaigns.length === 1) return true;
+                      const cCreated = c.created_at ? new Date(c.created_at).getTime() : 0;
+                      const dDate = d.donation_date ? new Date(d.donation_date).getTime() : (d.created_at ? new Date(d.created_at).getTime() : 0);
+                      if (cCreated > 0 && dDate > 0 && (cCreated - dDate > 86400000)) {
+                        return false;
+                      }
+                      const sortedCampaigns = [...campaigns].sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
+                      if (sortedCampaigns.length > 0 && sortedCampaigns[0].id === c.id) {
+                        return true;
                       }
                     }
                     return false;

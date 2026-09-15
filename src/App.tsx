@@ -21,6 +21,8 @@ import AdminMembers from './pages/admin/Members';
 import AdminSubscriptions from './pages/admin/Subscriptions';
 import AdminPayments from './pages/admin/Payments';
 import AdminDonations from './pages/admin/Donations';
+import AdminExpenses from './pages/admin/Expenses';
+import ExpenseCategories from './pages/admin/ExpenseCategories';
 import AdminDeaths from './pages/admin/Deaths';
 import AdminMarriages from './pages/admin/Marriages';
 import AdminNotifications from './pages/admin/Notifications';
@@ -87,6 +89,10 @@ const App: React.FC = () => {
                       <Route path="donations" element={<AdminDonations />} />
                       <Route path="donations/new" element={<DonationForm />} />
                       <Route path="donations/:id/edit" element={<DonationForm />} />
+
+                      {/* Expenses */}
+                      <Route path="expenses" element={<AdminExpenses />} />
+                      <Route path="settings/expense-categories" element={<ExpenseCategories />} />
 
                       {/* Deaths */}
                       <Route path="deaths" element={<AdminDeaths />} />

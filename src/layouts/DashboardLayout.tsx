@@ -28,7 +28,8 @@ import {
   Heart,
   Image as ImageIcon,
   Search,
-  Command
+  Command,
+  TrendingDown
 } from 'lucide-react';
 import { Modal } from '../components/Modal';
 
@@ -48,6 +49,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     const allModules = [
       { to: '/admin/members', label: t('nav.members'), icon: Users },
       { to: '/admin/donations', label: t('nav.donations'), icon: HeartHandshake },
+      { to: '/admin/expenses', label: 'Expenses', icon: TrendingDown },
       { to: '/admin/marriages', label: t('nav.marriages'), icon: Heart },
       { to: '/admin/deaths', label: t('nav.deaths'), icon: UserX },
       { to: '/admin/notifications', label: t('nav.notifications'), icon: Bell },
@@ -217,6 +219,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
         { to: '/admin/subscriptions', label: t('nav.subscriptions'), icon: FileText },
         { to: '/admin/payments', label: t('nav.payments'), icon: Receipt },
         { to: '/admin/donations', label: t('nav.donations'), icon: HeartHandshake },
+        { to: '/admin/expenses', label: 'Expenses', icon: TrendingDown },
       ],
     },
     {
@@ -261,6 +264,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     if (path.includes('/subscriptions') || path.includes('/my-subscription')) return t('nav.subscriptions');
     if (path.includes('/payments') || path.includes('/payment-history')) return t('nav.payments');
     if (path.includes('/donations')) return t('nav.donations');
+    if (path.includes('/expenses')) return 'Expenses Management';
     if (path.includes('/deaths')) return t('nav.deaths');
     if (path.includes('/marriages')) return t('nav.marriages');
     if (path.includes('/notifications')) return t('nav.notifications');
@@ -282,7 +286,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
         const allowedItems = group.items.filter((item) => {
           if (item.to === '/admin/dashboard') return true;
           if (role === 'treasurer') {
-            return ['/admin/subscriptions', '/admin/payments', '/admin/donations', '/admin/reports'].includes(item.to);
+            return ['/admin/subscriptions', '/admin/payments', '/admin/donations', '/admin/expenses', '/admin/reports'].includes(item.to);
           }
           if (role === 'secretary') {
             return ['/admin/households', '/admin/members', '/admin/deaths', '/admin/marriages', '/admin/notifications', '/admin/gallery'].includes(item.to);

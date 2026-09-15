@@ -206,7 +206,60 @@ export interface Donation {
   notes: string | null;
   recorded_by: string | null;
   created_at: string;
+  updated_at?: string;
+}
+
+export interface ExpenseCategory {
+  id: string;
+  name: string;
+  description?: string | null;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Expense {
+  id: string;
+  expense_number: string;
+  expense_date: string;
+  category_id?: string | null;
+  category_name: string;
+  description: string;
+  paid_to: string;
+  amount: number;
+  payment_method: 'cash' | 'bank_transfer' | 'upi' | 'cheque' | 'other';
+  fund_id: string;
+  reference_number?: string | null;
+  bank_account?: string | null;
+  transaction_reference?: string | null;
+  cheque_number?: string | null;
+  bank_name?: string | null;
+  upi_reference_id?: string | null;
+  notes?: string | null;
+  attachment_url?: string | null;
+  status: 'pending' | 'approved' | 'rejected' | 'voided';
+  approved_by?: string | null;
+  approved_at?: string | null;
+  rejection_reason?: string | null;
+  voided_by?: string | null;
+  voided_at?: string | null;
+  void_reason?: string | null;
+  created_by: string;
+  updated_by?: string | null;
+  created_at: string;
   updated_at: string;
+  deleted_at?: string | null;
+}
+
+export interface ExpenseAuditLog {
+  id: string;
+  expense_id: string;
+  action: string;
+  old_values?: any;
+  new_values?: any;
+  reason?: string | null;
+  performed_by: string;
+  performed_at: string;
 }
 
 export interface AuditLog {
@@ -2591,6 +2644,276 @@ export const db = {
         created_at: new Date().toISOString(),
       });
       saveLocalData('mahal_audit_logs', list);
+    },
+  },
+
+  // EXPENSE CATEGORIES
+  expenseCategories: {
+    getAll: async (): Promise<ExpenseCategory[]> => {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data, error } = await supabase.from('expense_categories').select('*').order('name');
+          if (!error && data && data.length > 0) return data;
+        } catch (e) {
+          console.warn('Supabase expense_categories select notice:', e);
+        }
+      }
+      let list = getLocalData<ExpenseCategory>('mahal_expense_categories');
+      if (list.length === 0) {
+        list = [
+          { id: 'cat-1', name: 'Electricity', description: 'Utility bills for Mosque, Madrasa, and campus electricity', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: 'cat-2', name: 'Water', description: 'Water supply, tanker, and filtration maintenance', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: 'cat-3', name: 'Maintenance', description: 'General plumbing, electrical, carpentry and structural maintenance', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: 'cat-4', name: 'Construction', description: 'New infrastructure, renovation and expansion projects', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: 'cat-5', name: 'Cleaning', description: 'Sanitation, waste disposal and cleaning supplies', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: 'cat-6', name: 'Staff Salary', description: 'Monthly salary for office and maintenance staff', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: 'cat-7', name: 'Imam Salary', description: 'Salary and allowances for Imam and Muazzin', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: 'cat-8', name: 'Madrasa', description: 'Madrasa teaching materials, salaries and educational expenses', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: 'cat-9', name: 'Mosque', description: 'Regular Mosque operations and daily necessities', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: 'cat-10', name: 'Office', description: 'Office stationery, software, phone and administration', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: 'cat-11', name: 'Events / Programmes', description: 'Religious gatherings, lectures, Iftar and special functions', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: 'cat-12', name: 'Food', description: 'Catering and food arrangements for programmes and guests', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: 'cat-13', name: 'Transportation', description: 'Vehicle fuel, travel and local transport allowances', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: 'cat-14', name: 'Stationery', description: 'Printing, registers, paper and office supplies', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: 'cat-15', name: 'Equipment', description: 'Audio systems, carpets, air conditioning and hardware', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: 'cat-16', name: 'Rent', description: 'Property or equipment rental expenses', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: 'cat-17', name: 'Internet / Phone', description: 'Broadband internet connections and telephone bills', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: 'cat-18', name: 'Charity / Welfare', description: 'Financial assistance to needy, medical aid and relief', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: 'cat-19', name: 'Bank Charges', description: 'Bank service fees, chequebook and transaction charges', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: 'cat-20', name: 'Other', description: 'Miscellaneous and unclassified expenses', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+        ];
+        saveLocalData('mahal_expense_categories', list);
+      }
+      return list;
+    },
+    create: async (item: Omit<ExpenseCategory, 'id' | 'created_at' | 'updated_at'>): Promise<ExpenseCategory> => {
+      const now = new Date().toISOString();
+      const newCat: ExpenseCategory = {
+        ...item,
+        id: 'cat-' + Math.random().toString(36).substr(2, 9),
+        created_at: now,
+        updated_at: now,
+      };
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data, error } = await supabase.from('expense_categories').insert([item]).select().single();
+          if (!error && data) return data;
+        } catch (e) {
+          console.warn('Supabase expense_categories insert notice:', e);
+        }
+      }
+      const list = getLocalData<ExpenseCategory>('mahal_expense_categories');
+      list.push(newCat);
+      saveLocalData('mahal_expense_categories', list);
+      return newCat;
+    },
+    update: async (id: string, updates: Partial<ExpenseCategory>): Promise<ExpenseCategory | null> => {
+      const now = new Date().toISOString();
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data, error } = await supabase.from('expense_categories').update({ ...updates, updated_at: now }).eq('id', id).select().single();
+          if (!error && data) return data;
+        } catch (e) {
+          console.warn('Supabase expense_categories update notice:', e);
+        }
+      }
+      const list = getLocalData<ExpenseCategory>('mahal_expense_categories');
+      const idx = list.findIndex((c) => c.id === id);
+      if (idx !== -1) {
+        list[idx] = { ...list[idx], ...updates, updated_at: now };
+        saveLocalData('mahal_expense_categories', list);
+        return list[idx];
+      }
+      return null;
+    },
+  },
+
+  // EXPENSES
+  expenses: {
+    getAll: async (): Promise<Expense[]> => {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data, error } = await supabase.from('expenses').select('*').order('expense_date', { ascending: false });
+          if (!error && data && data.length > 0) return data;
+        } catch (e) {
+          console.warn('Supabase expenses select notice:', e);
+        }
+      }
+      let list = getLocalData<Expense>('mahal_expenses');
+      if (list.length === 0) {
+        list = [
+          {
+            id: 'exp-001',
+            expense_number: 'EXP-001',
+            expense_date: '2026-09-15',
+            category_id: 'cat-1',
+            category_name: 'Electricity',
+            description: 'Mosque electricity bill for August 2026',
+            paid_to: 'KSEB',
+            amount: 4850,
+            payment_method: 'bank_transfer',
+            fund_id: 'general_fund',
+            reference_number: 'INV-2026-084',
+            bank_account: 'State Bank of India - 39847291',
+            transaction_reference: 'TXN98273641',
+            notes: 'Paid online via corporate banking portal',
+            status: 'approved',
+            approved_by: 'Muhammed Anas (Admin)',
+            approved_at: '2026-09-15T11:05:00Z',
+            created_by: 'admin',
+            created_at: '2026-09-15T10:32:00Z',
+            updated_at: '2026-09-15T11:05:00Z',
+          },
+          {
+            id: 'exp-002',
+            expense_number: 'EXP-002',
+            expense_date: '2026-09-14',
+            category_id: 'cat-3',
+            category_name: 'Maintenance',
+            description: 'Plumbing repair work before Friday prayer',
+            paid_to: 'Rahman Plumbing Services',
+            amount: 2500,
+            payment_method: 'cash',
+            fund_id: 'mosque_fund',
+            notes: 'Emergency repair work on main wudu area pipes',
+            status: 'approved',
+            approved_by: 'Muhammed Anas (Admin)',
+            approved_at: '2026-09-14T16:20:00Z',
+            created_by: 'admin',
+            created_at: '2026-09-14T14:10:00Z',
+            updated_at: '2026-09-14T16:20:00Z',
+          },
+          {
+            id: 'exp-003',
+            expense_number: 'EXP-003',
+            expense_date: '2026-09-12',
+            category_id: 'cat-12',
+            category_name: 'Food',
+            description: 'Food catering expenses for Community Milad Gathering',
+            paid_to: 'ABC Caterers',
+            amount: 8000,
+            payment_method: 'upi',
+            fund_id: 'general_fund',
+            upi_reference_id: 'UPI9847291823',
+            notes: 'Dinner arrangements for guests',
+            status: 'pending',
+            created_by: 'admin',
+            created_at: '2026-09-12T18:45:00Z',
+            updated_at: '2026-09-12T18:45:00Z',
+          },
+          {
+            id: 'exp-004',
+            expense_number: 'EXP-004',
+            expense_date: '2026-09-01',
+            category_id: 'cat-7',
+            category_name: 'Imam Salary',
+            description: 'Monthly honorarium & allowance for Imam & Muazzin for August',
+            paid_to: 'Ustad Abdul Rahiman',
+            amount: 35000,
+            payment_method: 'bank_transfer',
+            fund_id: 'general_fund',
+            bank_account: 'Federal Bank - 10928374',
+            transaction_reference: 'SAL-2026-08',
+            status: 'approved',
+            approved_by: 'Muhammed Anas (Admin)',
+            approved_at: '2026-09-01T09:00:00Z',
+            created_by: 'admin',
+            created_at: '2026-09-01T08:30:00Z',
+            updated_at: '2026-09-01T09:00:00Z',
+          },
+        ];
+        saveLocalData('mahal_expenses', list);
+      }
+      return list;
+    },
+    create: async (item: Omit<Expense, 'id' | 'created_at' | 'updated_at'>): Promise<Expense> => {
+      const now = new Date().toISOString();
+      const newExp: Expense = {
+        ...item,
+        id: 'exp-' + Math.random().toString(36).substr(2, 9),
+        created_at: now,
+        updated_at: now,
+      };
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data, error } = await supabase.from('expenses').insert([item]).select().single();
+          if (!error && data) return data;
+        } catch (e) {
+          console.warn('Supabase expenses insert notice:', e);
+        }
+      }
+      const list = getLocalData<Expense>('mahal_expenses');
+      list.unshift(newExp);
+      saveLocalData('mahal_expenses', list);
+      return newExp;
+    },
+    update: async (id: string, updates: Partial<Expense>): Promise<Expense | null> => {
+      const now = new Date().toISOString();
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data, error } = await supabase.from('expenses').update({ ...updates, updated_at: now }).eq('id', id).select().single();
+          if (!error && data) return data;
+        } catch (e) {
+          console.warn('Supabase expenses update notice:', e);
+        }
+      }
+      const list = getLocalData<Expense>('mahal_expenses');
+      const idx = list.findIndex((e) => e.id === id);
+      if (idx !== -1) {
+        list[idx] = { ...list[idx], ...updates, updated_at: now };
+        saveLocalData('mahal_expenses', list);
+        return list[idx];
+      }
+      return null;
+    },
+    delete: async (id: string): Promise<boolean> => {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { error } = await supabase.from('expenses').delete().eq('id', id);
+          if (!error) return true;
+        } catch (e) {
+          console.warn('Supabase expenses delete notice:', e);
+        }
+      }
+      const list = getLocalData<Expense>('mahal_expenses').filter((e) => e.id !== id);
+      saveLocalData('mahal_expenses', list);
+      return true;
+    },
+  },
+
+  // EXPENSE AUDIT LOGS
+  expenseAuditLogs: {
+    getByExpenseId: async (expenseId: string): Promise<ExpenseAuditLog[]> => {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data, error } = await supabase.from('expense_audit_logs').select('*').eq('expense_id', expenseId).order('performed_at', { ascending: false });
+          if (!error && data) return data;
+        } catch (e) {
+          console.warn('Supabase expense_audit_logs select notice:', e);
+        }
+      }
+      const list = getLocalData<ExpenseAuditLog>('mahal_expense_audit_logs');
+      return list.filter((log) => log.expense_id === expenseId);
+    },
+    create: async (log: Omit<ExpenseAuditLog, 'id' | 'performed_at'>): Promise<ExpenseAuditLog> => {
+      const now = new Date().toISOString();
+      const newLog: ExpenseAuditLog = {
+        ...log,
+        id: 'exp-audit-' + Math.random().toString(36).substr(2, 9),
+        performed_at: now,
+      };
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data, error } = await supabase.from('expense_audit_logs').insert([log]).select().single();
+          if (!error && data) return data;
+        } catch (e) {
+          console.warn('Supabase expense_audit_logs insert notice:', e);
+        }
+      }
+      const list = getLocalData<ExpenseAuditLog>('mahal_expense_audit_logs');
+      list.unshift(newLog);
+      saveLocalData('mahal_expense_audit_logs', list);
+      return newLog;
     },
   },
 };
