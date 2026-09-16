@@ -82,32 +82,44 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
           });
           setHouseholdDonations(hDonations);
 
-          // Map subscriptions and member donations for members
-          const subMap = hMembers.map((m) => {
-            const sub = allSubs.find((s) => s.member_id === m.id) || null;
-
-            const isOwnerOrHead =
+          // Identify head of family / house owner member
+          const headMember = hMembers.find(
+            (m) =>
               m.relationship === 'Self (Owner)' ||
               m.relationship === 'Head of Family' ||
               m.relationship?.toLowerCase().includes('owner') ||
               m.relationship?.toLowerCase().includes('head') ||
               m.relationship?.toLowerCase().includes('self') ||
-              m.name?.toLowerCase().trim() === household.house_owner_name?.toLowerCase().trim() ||
-              (hMembers.length > 0 && m.id === hMembers[0].id);
+              m.name?.toLowerCase().trim() === household.house_owner_name?.toLowerCase().trim()
+          ) || hMembers[0];
+
+          // Map subscriptions and member donations for members (at most 1 member per donation)
+          const subMap = hMembers.map((m) => {
+            const sub = allSubs.find((s) => s.member_id === m.id) || null;
+            const isThisHead = headMember && m.id === headMember.id;
 
             const mDonations = hDonations.filter((d) => {
-              if (d.donor_member_id && d.donor_member_id === m.id) return true;
+              // Explicit member_id match
+              if (d.donor_member_id) {
+                return d.donor_member_id === m.id;
+              }
 
+              // Name match
               const dName = (d.donor_name || '').toLowerCase().trim();
               const mName = (m.name || '').toLowerCase().trim();
-              if (dName && mName && (dName === mName || dName.includes(mName) || mName.includes(dName))) return true;
+              if (dName && mName && (dName === mName || dName.includes(mName) || mName.includes(dName))) {
+                return true;
+              }
 
-              if (isOwnerOrHead) {
-                const ownerName = (household.house_owner_name || '').toLowerCase().trim();
-                if (dName && ownerName && (dName === ownerName || dName.includes(ownerName) || ownerName.includes(dName))) return true;
-                if (d.donor_household_id && d.donor_household_id === household.id) return true;
-                if (d.donor_type === 'household') return true;
-                if (household.house_number && d.notes?.toLowerCase().includes(household.house_number.toLowerCase())) return true;
+              // Unassigned household-level donations belong to Head of Family
+              if (isThisHead) {
+                const matchesOtherMember = hMembers.some((otherM) => {
+                  if (otherM.id === m.id) return false;
+                  if (d.donor_member_id === otherM.id) return true;
+                  const oName = (otherM.name || '').toLowerCase().trim();
+                  return dName && oName && (dName === oName || dName.includes(oName) || oName.includes(dName));
+                });
+                return !matchesOtherMember;
               }
 
               return false;

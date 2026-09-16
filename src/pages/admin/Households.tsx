@@ -330,33 +330,45 @@ export const Households: React.FC = () => {
       return false;
     });
 
-    const details = houseMembers.map((m) => {
-      const sub = targetYearId
-        ? subscriptions.find((s) => s.member_id === m.id && s.subscription_year_id === targetYearId)
-        : null;
-
-      const isOwnerOrHead =
+    const headMember = houseMembers.find(
+      (m) =>
         m.relationship === 'Self (Owner)' ||
         m.relationship === 'Head of Family' ||
         m.relationship?.toLowerCase().includes('owner') ||
         m.relationship?.toLowerCase().includes('head') ||
         m.relationship?.toLowerCase().includes('self') ||
-        m.name?.toLowerCase().trim() === h.house_owner_name?.toLowerCase().trim() ||
-        (houseMembers.length > 0 && m.id === houseMembers[0].id);
+        m.name?.toLowerCase().trim() === h.house_owner_name?.toLowerCase().trim()
+    ) || houseMembers[0];
+
+    const details = houseMembers.map((m) => {
+      const sub = targetYearId
+        ? subscriptions.find((s) => s.member_id === m.id && s.subscription_year_id === targetYearId)
+        : null;
+
+      const isThisHead = headMember && m.id === headMember.id;
 
       const mDonations = householdDonations.filter((d) => {
-        if (d.donor_member_id && d.donor_member_id === m.id) return true;
+        // Explicit member_id match
+        if (d.donor_member_id) {
+          return d.donor_member_id === m.id;
+        }
 
+        // Name match
         const dName = (d.donor_name || '').toLowerCase().trim();
         const mName = (m.name || '').toLowerCase().trim();
-        if (dName && mName && (dName === mName || dName.includes(mName) || mName.includes(dName))) return true;
+        if (dName && mName && (dName === mName || dName.includes(mName) || mName.includes(dName))) {
+          return true;
+        }
 
-        if (isOwnerOrHead) {
-          const ownerName = (h.house_owner_name || '').toLowerCase().trim();
-          if (dName && ownerName && (dName === ownerName || dName.includes(ownerName) || ownerName.includes(dName))) return true;
-          if (d.donor_household_id && d.donor_household_id === h.id) return true;
-          if (d.donor_type === 'household') return true;
-          if (h.house_number && d.notes?.toLowerCase().includes(h.house_number.toLowerCase())) return true;
+        // Unassigned household-level donations belong to Head of Family
+        if (isThisHead) {
+          const matchesOtherMember = houseMembers.some((otherM) => {
+            if (otherM.id === m.id) return false;
+            if (d.donor_member_id === otherM.id) return true;
+            const oName = (otherM.name || '').toLowerCase().trim();
+            return dName && oName && (dName === oName || dName.includes(oName) || oName.includes(dName));
+          });
+          return !matchesOtherMember;
         }
 
         return false;
@@ -1280,27 +1292,42 @@ export const Households: React.FC = () => {
                   </span>
                 </div>
 
-                {householdMembersDetails.every((m) => !m.campaignBreakdown || m.campaignBreakdown.length === 0) ? (
-                  <div className="font-2xs color-subtle text-center" style={{ padding: '8px' }}>
-                    No special campaign contributions recorded for this household yet.
-                  </div>
-                ) : (
-                  <div className="flex-col gap-2xs font-xs">
-                    {householdMembersDetails.flatMap((m) =>
-                      (m.campaignBreakdown || []).map((cb: any) => (
+                {(() => {
+                  const allItems = householdMembersDetails.flatMap((m) =>
+                    (m.campaignBreakdown || []).map((cb: any) => ({ ...cb, memberName: m.name, memberRel: m.relationship }))
+                  );
+                  const uniqueMap = new Map();
+                  allItems.forEach((item) => {
+                    if (!uniqueMap.has(item.id)) {
+                      uniqueMap.set(item.id, item);
+                    }
+                  });
+                  const uniqueList = Array.from(uniqueMap.values());
+
+                  if (uniqueList.length === 0) {
+                    return (
+                      <div className="font-2xs color-subtle text-center" style={{ padding: '8px' }}>
+                        No special campaign contributions recorded for this household yet.
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="flex-col gap-2xs font-xs">
+                      {uniqueList.map((cb: any) => (
                         <div key={cb.id} className="flex-between align-items-center" style={{ background: '#ffffff', borderRadius: 8, border: '1px solid #f3e8ff', padding: '6px 10px', marginBottom: '4px' }}>
                           <div>
                             <span className="font-weight-700 text-purple" style={{ color: '#7c3aed', fontSize: '12px' }}>🎯 {cb.campaignName}</span>
-                            <span className="font-2xs color-subtle display-block">Donor: {m.name} ({m.relationship}) • {cb.date}</span>
+                            <span className="font-2xs color-subtle display-block">Donor: {cb.memberName} ({cb.memberRel}) • {cb.date}</span>
                           </div>
                           <span className="font-weight-800 text-purple" style={{ color: '#7c3aed', fontSize: '13px' }}>
                             {formatCurrency(cb.amount)}
                           </span>
                         </div>
-                      ))
-                    )}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
