@@ -195,6 +195,7 @@ export interface Donation {
   donor_email?: string | null;
   donor_address?: string | null;
   donor_member_id: string | null;
+  donor_household_id?: string | null;
   is_anonymous: boolean;
   amount: number;
   payment_method: 'cash' | 'upi' | 'bank_transfer' | 'cheque' | 'other';
