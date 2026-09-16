@@ -1,12 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { VmOneLogo } from '../components/VmOneLogo';
 import { db } from '../services/db';
+import type { Expense } from '../services/db';
 import { 
   Building2, UserCheck, Award, Bell, 
   Database, Save, RotateCcw, CheckCircle, AlertCircle, 
-  Download, Loader2, FileSpreadsheet, MessageSquare, Mail, ShieldCheck
+  Download, Loader2, FileSpreadsheet, MessageSquare, Mail, ShieldCheck,
+  Receipt, Printer, DollarSign, TrendingDown, FileText, PieChart
 } from 'lucide-react';
 
 type SettingsSection = 
@@ -15,7 +17,8 @@ type SettingsSection =
   | 'certificates'
   | 'notifications'
   | 'backup'
-  | 'portal';
+  | 'portal'
+  | 'expenses_report';
 
 export const SharedSettings: React.FC = () => {
   const { user, updateUserProfile } = useAuth();
@@ -57,6 +60,229 @@ export const SharedSettings: React.FC = () => {
   const [pushAlerts, setPushAlerts] = useState(true);
   const [emailConfirmations, setEmailConfirmations] = useState(true);
   const [whatsappReminders, setWhatsappReminders] = useState(true);
+
+  // Expense Data & Reports State
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+
+  useEffect(() => {
+    const fetchExpensesData = async () => {
+      try {
+        const list = await db.expenses.getAll();
+        setExpenses(list || []);
+      } catch (err) {
+        console.warn('Failed to load expenses in settings:', err);
+      }
+    };
+    fetchExpensesData();
+  }, []);
+
+  // Category Summary Memo for Expenses
+  const categorySummary = useMemo(() => {
+    const map: { [key: string]: { categoryName: string; totalAmount: number; count: number } } = {};
+    expenses.forEach((e) => {
+      if (e.status === 'approved' || e.status === 'pending') {
+        const cat = e.category_name || 'General';
+        if (!map[cat]) {
+          map[cat] = { categoryName: cat, totalAmount: 0, count: 0 };
+        }
+        map[cat].totalAmount += e.amount || 0;
+        map[cat].count += 1;
+      }
+    });
+    return Object.values(map).sort((a, b) => b.totalAmount - a.totalAmount);
+  }, [expenses]);
+
+  // CSV Exporter for Expenses
+  const handleExportExpensesCsv = async () => {
+    try {
+      const expList = expenses.length > 0 ? expenses : await db.expenses.getAll();
+      if (expList.length === 0) {
+        showToast('error', 'No expense records found to export.');
+        return;
+      }
+
+      const headers = [
+        'Expense Number',
+        'Expense Date',
+        'Category Name',
+        'Paid To',
+        'Description',
+        'Amount (INR)',
+        'Payment Method',
+        'Fund ID',
+        'Reference Number',
+        'Status',
+        'Approved By',
+        'Approved Date',
+      ];
+
+      const rows = expList.map((e: any) => [
+        `"${e.expense_number}"`,
+        `"${e.expense_date}"`,
+        `"${(e.category_name || '').replace(/"/g, '""')}"`,
+        `"${(e.paid_to || '').replace(/"/g, '""')}"`,
+        `"${(e.description || '').replace(/"/g, '""')}"`,
+        e.amount,
+        `"${e.payment_method}"`,
+        `"${e.fund_id || 'general_fund'}"`,
+        `"${e.reference_number || e.transaction_reference || e.upi_reference_id || ''}"`,
+        `"${e.status.toUpperCase()}"`,
+        `"${(e.approved_by || '').replace(/"/g, '""')}"`,
+        `"${e.approved_at ? new Date(e.approved_at).toLocaleDateString() : ''}"`,
+      ]);
+
+      const csvContent = [headers.join(','), ...rows.map((r: any) => r.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Mahallu_Expenses_Ledger_Report_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      showToast('success', '✓ Expense Ledger CSV Report exported successfully!');
+    } catch (err) {
+      showToast('error', 'Failed to export Expense Report CSV.');
+    }
+  };
+
+  // Printable PDF Statement Generator for Expenses
+  const handlePrintExpensesPdfReport = () => {
+    if (expenses.length === 0) {
+      showToast('error', 'No expense records available to print.');
+      return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showToast('error', 'Popup blocked. Please allow popups to generate PDF report.');
+      return;
+    }
+
+    const approvedList = expenses.filter((e) => e.status === 'approved');
+    const totalSpent = approvedList.reduce((sum, e) => sum + (e.amount || 0), 0);
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Expense Audit & Disbursement Report - ${branding.organizationName}</title>
+        <style>
+          @page { size: A4; margin: 15mm; }
+          body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; color: #0f172a; background: #fff; line-height: 1.4; }
+          .form-header { text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; }
+          .org-title { font-size: 20px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin: 0; }
+          .form-subtitle { font-size: 13px; font-weight: 700; color: #00966b; text-transform: uppercase; margin-top: 4px; }
+          .form-meta { font-size: 11px; color: #64748b; margin-top: 6px; }
+          
+          .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+          .summary-card { border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 10px; text-align: center; background: #f8fafc; }
+          .summary-card label { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+          .summary-card .val { font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px; }
+          
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11px; }
+          th { background: #0f172a; color: #fff; font-size: 10px; text-transform: uppercase; padding: 8px; text-align: left; }
+          td { padding: 8px; border-bottom: 1px solid #e2e8f0; }
+          tr:nth-child(even) { background: #f8fafc; }
+          tr.total-row { background: #f1f5f9; font-weight: 800; border-top: 2px solid #0f172a; }
+          
+          .status-badge { font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
+          .status-approved { background: #dcfce7; color: #15803d; }
+          .status-pending { background: #fef3c7; color: #b45309; }
+          
+          .signatures { margin-top: 40px; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 20px; border-top: 1px dashed #cbd5e1; }
+          .sig-box { text-align: center; width: 180px; }
+          .sig-line { border-bottom: 1px solid #0f172a; height: 35px; margin-bottom: 6px; }
+          .sig-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; }
+          
+          @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="form-header">
+          <h1 class="org-title">${branding.organizationName}</h1>
+          <div class="form-subtitle">OFFICIAL EXPENSE DISBURSEMENT & AUDIT STATEMENT</div>
+          <div class="form-meta">Generated on ${new Date().toLocaleString()} | Mahallu Committee Audit</div>
+        </div>
+
+        <div class="summary-grid">
+          <div class="summary-card">
+            <label>Total Recorded Expenses</label>
+            <div class="val">${expenses.length} Records</div>
+          </div>
+          <div class="summary-card">
+            <label>Total Approved Disbursements</label>
+            <div class="val" style="color:#00966b">₹${totalSpent.toLocaleString('en-IN')}</div>
+          </div>
+          <div class="summary-card">
+            <label>Pending Audit Approvals</label>
+            <div class="val" style="color:#d97706">₹${expenses.filter(e => e.status === 'pending').reduce((sum, e) => sum + (e.amount || 0), 0).toLocaleString('en-IN')}</div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Exp #</th>
+              <th>Date</th>
+              <th>Category</th>
+              <th>Paid To</th>
+              <th>Description</th>
+              <th>Method</th>
+              <th>Status</th>
+              <th style="text-align: right">Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${expenses.map((e) => `
+              <tr>
+                <td><strong>${e.expense_number}</strong></td>
+                <td>${e.expense_date}</td>
+                <td>${e.category_name}</td>
+                <td>${e.paid_to}</td>
+                <td>${e.description}</td>
+                <td>${e.payment_method.toUpperCase()}</td>
+                <td><span class="status-badge ${e.status === 'approved' ? 'status-approved' : 'status-pending'}">${e.status}</span></td>
+                <td style="text-align: right; font-weight: 700">₹${(e.amount || 0).toLocaleString('en-IN')}</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td colspan="7" style="text-align: right">TOTAL APPROVED DISBURSEMENTS:</td>
+              <td style="text-align: right; font-size: 13px; color: #00966b">₹${totalSpent.toLocaleString('en-IN')}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="signatures">
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">Prepared By (Accountant)</div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">Verified By (Auditor)</div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">Approved By (President/Secretary)</div>
+          </div>
+        </div>
+
+        <script>
+          window.onload = function() { window.print(); }
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
 
   // UI Feedback
   const [isSaving, setIsSaving] = useState(false);
@@ -321,6 +547,7 @@ export const SharedSettings: React.FC = () => {
           <option value="organization">🏛️ Mahall Profile</option>
           <option value="administrator">👤 Administrator Account</option>
           <option value="certificates">📜 Certificate Templates</option>
+          <option value="expenses_report">💸 Expense Reports & Audit</option>
           <option value="notifications">🔔 Notifications & Alerts</option>
           <option value="backup">💾 Backup & Data Export</option>
           <option value="portal">🔑 Member Portal Settings</option>
@@ -351,6 +578,14 @@ export const SharedSettings: React.FC = () => {
         >
           <Award size={16} />
           <span>Certificate Templates</span>
+        </button>
+
+        <button
+          className={`settings-pill-tab ${activeSection === 'expenses_report' ? 'active' : ''}`}
+          onClick={() => setActiveSection('expenses_report')}
+        >
+          <Receipt size={16} />
+          <span>Expense Reports & Audit</span>
         </button>
 
         <button
@@ -842,6 +1077,21 @@ export const SharedSettings: React.FC = () => {
                   <Download size={14} /> Export CSV
                 </button>
               </div>
+
+              <div className="setting-option-card">
+                <div className="flex-row-gap-md align-items-center">
+                  <div style={{ width: 42, height: 42, borderRadius: 12, background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Receipt size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-sm font-weight-800 text-dark margin-0">Export Expense Ledger & Audits (CSV)</h4>
+                    <p className="font-2xs color-subtle margin-top-3xs">Complete CSV ledger of all recorded expenses, categories, voucher numbers, and approval status</p>
+                  </div>
+                </div>
+                <button className="pill-btn-secondary font-xs" style={{ padding: '10px 18px', borderRadius: 9999 }} onClick={handleExportExpensesCsv}>
+                  <Download size={14} /> Export CSV
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -890,6 +1140,193 @@ export const SharedSettings: React.FC = () => {
                   />
                   <span className="ios-toggle-slider"></span>
                 </label>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SECTION 7: EXPENSE REPORTS & AUDITS */}
+        {activeSection === 'expenses_report' && (
+          <div className="settings-section-card glass-card animate-fade-in" style={{ borderRadius: 24, padding: 32, border: '1.5px solid #e2e8f0', background: '#ffffff', boxShadow: '0 4px 20px rgba(15, 23, 42, 0.03)' }}>
+            <div className="section-head margin-bottom-lg" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div style={{ width: 48, height: 48, borderRadius: 14, background: '#fef2f2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Receipt size={24} />
+                </div>
+                <div>
+                  <h3 className="font-lg font-weight-800 text-dark margin-0">Expense Reports & Audit Statement</h3>
+                  <p className="font-xs color-subtle margin-top-3xs">Official financial reports, category breakdown ledgers, and formal PDF/CSV statements for all Mahallu disbursements.</p>
+                </div>
+              </div>
+
+              <div className="flex-row-gap-xs align-items-center">
+                <button type="button" className="pill-btn-ghost font-xs" onClick={handleExportExpensesCsv}>
+                  <Download size={14} /> Export CSV Report
+                </button>
+                <button type="button" className="pill-btn-primary font-xs" onClick={handlePrintExpensesPdfReport}>
+                  <Printer size={14} /> Print Audit PDF
+                </button>
+              </div>
+            </div>
+
+            {/* EXPENSE FINANCIAL SUMMARY METRICS */}
+            <div className="summary-cards-grid margin-bottom-lg" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20 }}>
+                <div className="flex-between align-items-center margin-bottom-xs">
+                  <span className="font-2xs font-weight-700 color-subtle text-uppercase">Approved Disbursements</span>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <DollarSign size={16} />
+                  </div>
+                </div>
+                <div className="font-lg font-weight-800 text-dark">
+                  ₹{expenses.filter(e => e.status === 'approved').reduce((sum, e) => sum + (e.amount || 0), 0).toLocaleString('en-IN')}
+                </div>
+                <div className="font-3xs color-subtle margin-top-3xs">
+                  {expenses.filter(e => e.status === 'approved').length} Approved Vouchers
+                </div>
+              </div>
+
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20 }}>
+                <div className="flex-between align-items-center margin-bottom-xs">
+                  <span className="font-2xs font-weight-700 color-subtle text-uppercase">Pending Approvals</span>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <TrendingDown size={16} />
+                  </div>
+                </div>
+                <div className="font-lg font-weight-800 text-dark">
+                  ₹{expenses.filter(e => e.status === 'pending').reduce((sum, e) => sum + (e.amount || 0), 0).toLocaleString('en-IN')}
+                </div>
+                <div className="font-3xs color-subtle margin-top-3xs">
+                  {expenses.filter(e => e.status === 'pending').length} Pending Vouchers
+                </div>
+              </div>
+
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20 }}>
+                <div className="flex-between align-items-center margin-bottom-xs">
+                  <span className="font-2xs font-weight-700 color-subtle text-uppercase">Active Categories</span>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <PieChart size={16} />
+                  </div>
+                </div>
+                <div className="font-lg font-weight-800 text-dark">
+                  {categorySummary.length} Categories
+                </div>
+                <div className="font-3xs color-subtle margin-top-3xs">
+                  Disbursement Fund Types
+                </div>
+              </div>
+
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20 }}>
+                <div className="flex-between align-items-center margin-bottom-xs">
+                  <span className="font-2xs font-weight-700 color-subtle text-uppercase">Total Records</span>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: '#f3e8ff', color: '#9333ea', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <FileText size={16} />
+                  </div>
+                </div>
+                <div className="font-lg font-weight-800 text-dark">
+                  {expenses.length} Expenses
+                </div>
+                <div className="font-3xs color-subtle margin-top-3xs">
+                  Audited Logged Entries
+                </div>
+              </div>
+            </div>
+
+            {/* CATEGORY BREAKDOWN TABLE */}
+            <div className="margin-bottom-xl">
+              <h4 className="font-sm font-weight-800 text-dark margin-bottom-sm flex-row-gap-xs align-items-center">
+                <PieChart size={16} className="text-emerald" /> Category Breakdown Ledger
+              </h4>
+              <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: 16 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700 }}>Category Name</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 700 }}>Transactions</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700 }}>Total Spent (INR)</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700 }}>Share</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {categorySummary.map((cat, idx) => {
+                      const totalApproved = expenses.filter(e => e.status === 'approved').reduce((sum, e) => sum + (e.amount || 0), 1);
+                      const sharePct = Math.round((cat.totalAmount / totalApproved) * 100);
+                      return (
+                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>{cat.categoryName}</td>
+                          <td style={{ padding: '12px 16px', textAlign: 'center' }}>{cat.count} Vouchers</td>
+                          <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: '#01A350' }}>₹{cat.totalAmount.toLocaleString('en-IN')}</td>
+                          <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: '#64748b' }}>{sharePct}%</td>
+                        </tr>
+                      );
+                    })}
+                    {categorySummary.length === 0 && (
+                      <tr>
+                        <td colSpan={4} style={{ padding: 24, textAlign: 'center', color: '#64748b' }}>No category disbursements recorded yet.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* EXPENSE TRANSACTIONS AUDIT ROSTER TABLE */}
+            <div>
+              <div className="flex-between align-items-center margin-bottom-sm">
+                <h4 className="font-sm font-weight-800 text-dark margin-0 flex-row-gap-xs align-items-center">
+                  <FileText size={16} className="text-emerald" /> Audit Disbursement Ledger
+                </h4>
+                <button type="button" className="pill-btn-ghost font-2xs" onClick={handleExportExpensesCsv}>
+                  <Download size={12} /> Download CSV Report
+                </button>
+              </div>
+
+              <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: 16 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                  <thead>
+                    <tr style={{ background: '#0f172a', color: '#ffffff' }}>
+                      <th style={{ padding: '10px 14px', textAlign: 'left' }}>Exp #</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'left' }}>Date</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'left' }}>Category</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'left' }}>Paid To</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'left' }}>Description</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'center' }}>Method</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'center' }}>Status</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'right' }}>Amount (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {expenses.map((e) => (
+                      <tr key={e.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '10px 14px', fontWeight: 800, color: '#0f172a' }}>{e.expense_number}</td>
+                        <td style={{ padding: '10px 14px', color: '#64748b' }}>{e.expense_date}</td>
+                        <td style={{ padding: '10px 14px', fontWeight: 700 }}>{e.category_name}</td>
+                        <td style={{ padding: '10px 14px' }}>{e.paid_to}</td>
+                        <td style={{ padding: '10px 14px', color: '#475569', maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.description}</td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center', textTransform: 'uppercase', fontSize: '10px', fontWeight: 700 }}>{e.payment_method}</td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                          <span style={{
+                            padding: '3px 8px',
+                            borderRadius: 6,
+                            fontSize: '10px',
+                            fontWeight: 800,
+                            textTransform: 'uppercase',
+                            background: e.status === 'approved' ? '#dcfce7' : e.status === 'pending' ? '#fef3c7' : '#fee2e2',
+                            color: e.status === 'approved' ? '#15803d' : e.status === 'pending' ? '#b45309' : '#b91c1c',
+                          }}>
+                            {e.status}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>₹{(e.amount || 0).toLocaleString('en-IN')}</td>
+                      </tr>
+                    ))}
+                    {expenses.length === 0 && (
+                      <tr>
+                        <td colSpan={8} style={{ padding: 24, textAlign: 'center', color: '#64748b' }}>No expense records available.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
