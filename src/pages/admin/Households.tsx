@@ -2,11 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { db } from '../../services/db';
-import type { Household, Member, MemberSubscription, SubscriptionYear } from '../../services/db';
+import type { Household, Member, MemberSubscription, SubscriptionYear, Donation, DonationCampaign } from '../../services/db';
 import { 
   Plus, Edit2, Trash2, Search, Filter, Home, Users, X, AlertCircle, 
   CheckCircle, CheckCircle2, TrendingUp, Phone, MapPin, Download, Calendar,
-  FileSpreadsheet, ShieldCheck, FileText, Share2
+  FileSpreadsheet, ShieldCheck, FileText, Share2, Heart
 } from 'lucide-react';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { HouseholdDetailsModal } from '../../components/HouseholdDetailsModal';
@@ -32,6 +32,8 @@ export const Households: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [subscriptions, setSubscriptions] = useState<MemberSubscription[]>([]);
   const [years, setYears] = useState<SubscriptionYear[]>([]);
+  const [donations, setDonations] = useState<Donation[]>([]);
+  const [campaigns, setCampaigns] = useState<DonationCampaign[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Dynamic Search & Filter States
@@ -111,16 +113,20 @@ export const Households: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [houseList, memberList, subList, yearList] = await Promise.all([
+      const [houseList, memberList, subList, yearList, donationList, campaignList] = await Promise.all([
         db.households.get(),
         db.members.get(),
         db.subscriptions.get(),
         db.years.get(),
+        db.donations.get(),
+        db.donationCampaigns.get(),
       ]);
       setHouseholds(houseList);
       setMembers(memberList);
       setSubscriptions(subList);
       setYears(yearList);
+      setDonations(donationList);
+      setCampaigns(campaignList);
 
       // Default active year if not set
       const activeYear = yearList.find(y => y.status === 'active');
@@ -283,12 +289,36 @@ export const Households: React.FC = () => {
   const handleViewDetails = (h: Household) => {
     setSelectedHouseholdDetails(h);
     const houseMembers = members.filter((m) => m.household_id === h.id);
+    const houseMemberIds = houseMembers.map((m) => m.id);
     const targetYearId = selectedYearId !== 'all' ? selectedYearId : (years.find((y) => y.status === 'active')?.id || years[0]?.id);
+
+    const householdDonations = donations.filter((d) =>
+      (d.donor_member_id && houseMemberIds.includes(d.donor_member_id)) ||
+      (d.donor_name && d.donor_name.toLowerCase().trim() === h.house_owner_name.toLowerCase().trim())
+    );
 
     const details = houseMembers.map((m) => {
       const sub = targetYearId
         ? subscriptions.find((s) => s.member_id === m.id && s.subscription_year_id === targetYearId)
         : null;
+
+      const mDonations = householdDonations.filter((d) =>
+        d.donor_member_id === m.id ||
+        (m.relationship === 'Self (Owner)' && d.donor_name && d.donor_name.toLowerCase().trim() === h.house_owner_name.toLowerCase().trim())
+      );
+
+      const totalDonated = mDonations.reduce((sum, d) => sum + (d.amount || 0), 0);
+
+      const campaignBreakdown = mDonations.map((d) => {
+        const camp = campaigns.find((c) => c.id === d.campaign_id);
+        return {
+          id: d.id,
+          amount: d.amount,
+          campaignName: camp ? camp.campaign_name : (d.purpose || (d.donation_type === 'campaign' ? 'Special Campaign' : 'General Donation')),
+          date: d.donation_date,
+          receipt: d.receipt_number || 'DON-REC',
+        };
+      });
 
       return {
         id: m.id,
@@ -297,6 +327,8 @@ export const Households: React.FC = () => {
         totalDue: sub ? sub.total_due : 0,
         totalPaid: sub ? sub.total_paid : 0,
         balance: sub ? sub.balance : 0,
+        totalDonated,
+        campaignBreakdown,
       };
     });
 
@@ -395,6 +427,7 @@ export const Households: React.FC = () => {
       due: membersList.reduce((sum, m) => sum + m.totalDue, 0),
       paid: membersList.reduce((sum, m) => sum + m.totalPaid, 0),
       balance: membersList.reduce((sum, m) => sum + m.balance, 0),
+      donated: membersList.reduce((sum, m) => sum + (m.totalDonated || 0), 0),
     };
 
     let text = `🏡 *MAHALLU DEVELOPMENT FUND (MDF)*\n`;
@@ -407,13 +440,19 @@ export const Households: React.FC = () => {
     text += `👥 *Total Family Members:* ${membersList.length}\n\n`;
 
     text += `📊 *FINANCIAL SUMMARY*\n`;
-    text += `• Total Expected: ${formatCurrency(totals.due)}\n`;
-    text += `• Total Paid: ${formatCurrency(totals.paid)}\n`;
-    text += `• *Outstanding Balance:* ${formatCurrency(totals.balance)}\n\n`;
+    text += `• Total Expected Fees: ${formatCurrency(totals.due)}\n`;
+    text += `• Total Subscriptions Paid: ${formatCurrency(totals.paid)}\n`;
+    text += `• *Outstanding Balance:* ${formatCurrency(totals.balance)}\n`;
+    text += `• *Total Campaign Donations:* ${formatCurrency(totals.donated)}\n\n`;
 
     text += `📋 *FAMILY MEMBERS ROSTER*\n`;
     membersList.forEach((m, idx) => {
-      text += `${idx + 1}. *${m.name}* (${m.relationship})\n   Paid: ${formatCurrency(m.totalPaid)} | Bal: ${formatCurrency(m.balance)}\n`;
+      text += `${idx + 1}. *${m.name}* (${m.relationship})\n   Paid: ${formatCurrency(m.totalPaid)} | Bal: ${formatCurrency(m.balance)}${m.totalDonated > 0 ? ` | Donated: ${formatCurrency(m.totalDonated)}` : ''}\n`;
+      if (m.campaignBreakdown && m.campaignBreakdown.length > 0) {
+        m.campaignBreakdown.forEach((cb: any) => {
+          text += `   🎯 *${cb.campaignName}:* ${formatCurrency(cb.amount)}\n`;
+        });
+      }
     });
 
     text += `\n━━━━━━━━━━━━━━━━━━━━━\n`;
@@ -432,6 +471,7 @@ export const Households: React.FC = () => {
       due: membersList.reduce((sum, m) => sum + m.totalDue, 0),
       paid: membersList.reduce((sum, m) => sum + m.totalPaid, 0),
       balance: membersList.reduce((sum, m) => sum + m.balance, 0),
+      donated: membersList.reduce((sum, m) => sum + (m.totalDonated || 0), 0),
     };
 
     const printWindow = window.open('', '_blank');
@@ -465,7 +505,7 @@ export const Households: React.FC = () => {
           td { padding: 8px; border-bottom: 1px solid #e2e8f0; }
           tr.total-row { background: #f1f5f9; font-weight: 800; border-top: 2px solid #0f172a; }
           
-          .financial-summary-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 30px; }
+          .financial-summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 30px; }
           .fin-card { border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 10px; text-align: center; }
           .fin-card label { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; }
           .fin-card .val { font-size: 16px; font-weight: 800; margin-top: 2px; }
@@ -529,12 +569,14 @@ export const Households: React.FC = () => {
               <th style="text-align: right;">Total Due</th>
               <th style="text-align: right;">Total Paid</th>
               <th style="text-align: right;">Balance</th>
+              <th style="text-align: right;">Campaign Donations</th>
             </tr>
           </thead>
           <tbody>
             ${membersList.map((m, idx) => {
               const fullM = members.find((mem) => mem.id === m.id);
               const mNo = fullM?.member_number || `MEM-${m.id.slice(0, 6)}`;
+              const cNames = (m.campaignBreakdown || []).map((cb: any) => cb.campaignName).join(', ');
               return `
                 <tr>
                   <td>${idx + 1}</td>
@@ -544,6 +586,10 @@ export const Households: React.FC = () => {
                   <td style="text-align: right;">₹${m.totalDue.toLocaleString('en-IN')}</td>
                   <td style="text-align: right; color: #00966b; font-weight: bold;">₹${m.totalPaid.toLocaleString('en-IN')}</td>
                   <td style="text-align: right; color: ${m.balance > 0 ? '#dc2626' : '#00966b'}; font-weight: bold;">₹${m.balance.toLocaleString('en-IN')}</td>
+                  <td style="text-align: right; color: #7c3aed; font-weight: bold;">
+                    ₹${(m.totalDonated || 0).toLocaleString('en-IN')}
+                    ${cNames ? `<div style="font-size: 9px; color: #6b21a8;">${cNames}</div>` : ''}
+                  </td>
                 </tr>
               `;
             }).join('')}
@@ -552,6 +598,7 @@ export const Households: React.FC = () => {
               <td style="text-align: right;">₹${totals.due.toLocaleString('en-IN')}</td>
               <td style="text-align: right; color: #00966b;">₹${totals.paid.toLocaleString('en-IN')}</td>
               <td style="text-align: right; color: ${totals.balance > 0 ? '#dc2626' : '#00966b'};">₹${totals.balance.toLocaleString('en-IN')}</td>
+              <td style="text-align: right; color: #7c3aed;">₹${totals.donated.toLocaleString('en-IN')}</td>
             </tr>
           </tbody>
         </table>
@@ -569,6 +616,25 @@ export const Households: React.FC = () => {
           <div class="fin-card">
             <label>Outstanding Balance</label>
             <div class="val" style="color: ${totals.balance > 0 ? '#dc2626' : '#00966b'};">₹${totals.balance.toLocaleString('en-IN')}</div>
+          </div>
+          <div class="fin-card">
+            <label>Campaign Donations</label>
+            <div class="val" style="color: #7c3aed;">₹${totals.donated.toLocaleString('en-IN')}</div>
+          </div>
+        </div>
+
+        <div class="signature-section">
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">House Owner Signature</div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">Mahallu Secretary</div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-title">Official Seal & Date</div>
           </div>
         </div>
 
@@ -1065,13 +1131,14 @@ export const Households: React.FC = () => {
                       <th style={{ textAlign: 'right', padding: '8px' }}>Due</th>
                       <th style={{ textAlign: 'right', padding: '8px' }}>Paid</th>
                       <th style={{ textAlign: 'right', padding: '8px' }}>Balance</th>
+                      <th style={{ textAlign: 'right', padding: '8px', color: '#7c3aed' }}>Donations</th>
                       <th style={{ textAlign: 'right', padding: '8px' }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {householdMembersDetails.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="no-data-cell" style={{ textAlign: 'center', padding: '16px', color: '#94a3b8' }}>
+                        <td colSpan={7} className="no-data-cell" style={{ textAlign: 'center', padding: '16px', color: '#94a3b8' }}>
                           No members added to this household yet.
                         </td>
                       </tr>
@@ -1101,6 +1168,14 @@ export const Households: React.FC = () => {
                               <td style={{ padding: '8px', textAlign: 'right', color: m.balance > 0 ? '#dc2626' : '#00966b', fontWeight: 800 }}>
                                 {formatCurrency(m.balance)}
                               </td>
+                              <td style={{ padding: '8px', textAlign: 'right', color: '#7c3aed', fontWeight: 700 }}>
+                                {formatCurrency(m.totalDonated || 0)}
+                                {m.campaignBreakdown && m.campaignBreakdown.length > 0 && (
+                                  <div style={{ fontSize: '9.5px', color: '#6b21a8', fontWeight: 600 }}>
+                                    {m.campaignBreakdown.map((cb: any) => cb.campaignName).join(', ')}
+                                  </div>
+                                )}
+                              </td>
                               <td style={{ padding: '8px', textAlign: 'right' }}>
                                 <button
                                   type="button"
@@ -1127,12 +1202,50 @@ export const Households: React.FC = () => {
                           <td style={{ padding: '10px 8px', textAlign: 'right', color: householdMembersDetails.reduce((sum, m) => sum + m.balance, 0) > 0 ? '#dc2626' : '#00966b', fontSize: '14px' }}>
                             {formatCurrency(householdMembersDetails.reduce((sum, m) => sum + m.balance, 0))}
                           </td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right', color: '#7c3aed', fontSize: '13px' }}>
+                            {formatCurrency(householdMembersDetails.reduce((sum, m) => sum + (m.totalDonated || 0), 0))}
+                          </td>
                           <td></td>
                         </tr>
                       </>
                     )}
                   </tbody>
                 </table>
+              </div>
+
+              {/* SPECIAL CAMPAIGN DONATIONS BREAKDOWN CARD */}
+              <div className="margin-top-sm padding-xs" style={{ background: '#fcf7ff', border: '1.5px solid #e9d5ff', borderRadius: 10 }}>
+                <div className="flex-between align-items-center margin-bottom-xs" style={{ padding: '4px 6px' }}>
+                  <div className="flex-center gap-xs">
+                    <Heart size={15} style={{ color: '#7c3aed' }} />
+                    <span className="font-xs font-weight-700 text-purple" style={{ color: '#7c3aed' }}>Special Campaign Contributions & Donations</span>
+                  </div>
+                  <span className="font-xs font-weight-800 text-purple" style={{ color: '#7c3aed' }}>
+                    Total: {formatCurrency(householdMembersDetails.reduce((sum, m) => sum + (m.totalDonated || 0), 0))}
+                  </span>
+                </div>
+
+                {householdMembersDetails.every((m) => !m.campaignBreakdown || m.campaignBreakdown.length === 0) ? (
+                  <div className="font-2xs color-subtle text-center" style={{ padding: '8px' }}>
+                    No special campaign contributions recorded for this household yet.
+                  </div>
+                ) : (
+                  <div className="flex-col gap-2xs font-xs">
+                    {householdMembersDetails.flatMap((m) =>
+                      (m.campaignBreakdown || []).map((cb: any) => (
+                        <div key={cb.id} className="flex-between align-items-center" style={{ background: '#ffffff', borderRadius: 8, border: '1px solid #f3e8ff', padding: '6px 10px', marginBottom: '4px' }}>
+                          <div>
+                            <span className="font-weight-700 text-purple" style={{ color: '#7c3aed', fontSize: '12px' }}>🎯 {cb.campaignName}</span>
+                            <span className="font-2xs color-subtle display-block">Donor: {m.name} ({m.relationship}) • {cb.date}</span>
+                          </div>
+                          <span className="font-weight-800 text-purple" style={{ color: '#7c3aed', fontSize: '13px' }}>
+                            {formatCurrency(cb.amount)}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
