@@ -1338,53 +1338,59 @@ export const Expenses: React.FC = () => {
                         >
                           {/* EXPENSE / PAID TO WITH INITIAL AVATAR */}
                           <td>
-                            <div className="flex-center gap-xs">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                               {renderAvatar(exp.paid_to)}
-                              <div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                 <div className="font-xs font-weight-700 color-heading line-clamp-1">{exp.paid_to}</div>
-                                <div className="font-3xs font-weight-600 color-subtle text-purple">{exp.expense_number}</div>
+                                <div>
+                                  <span className="font-3xs font-weight-700 text-purple" style={{ background: '#f3e8ff', padding: '1px 6px', borderRadius: 4 }}>
+                                    {exp.expense_number}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </td>
 
                           {/* CATEGORY / FUND */}
                           <td>
-                            <div>
-                              <span className="badge badge-purple-light font-xs">{exp.category_name}</span>
-                              <div className="font-3xs color-subtle margin-top-3xs font-weight-500">
-                                {exp.fund_id ? exp.fund_id.replace('_', ' ').toUpperCase() : 'GENERAL FUND'}
-                              </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <span className="badge badge-purple-light font-xs font-weight-700" style={{ width: 'fit-content' }}>
+                                {exp.category_name}
+                              </span>
+                              <span className="font-3xs color-subtle font-weight-700 text-uppercase" style={{ letterSpacing: '0.04em' }}>
+                                {exp.fund_id ? exp.fund_id.replace('_', ' ') : 'GENERAL FUND'}
+                              </span>
                             </div>
                           </td>
 
                           {/* DESCRIPTION */}
                           <td>
-                            <div className="font-xs font-weight-500 color-heading line-clamp-2" title={exp.description}>
+                            <div className="font-xs font-weight-500 color-heading line-clamp-2" title={exp.description} style={{ maxWidth: 260, lineHeight: 1.45 }}>
                               {exp.description}
                             </div>
                           </td>
 
                           {/* AMOUNT */}
                           <td>
-                            <span className="font-sm font-weight-800 text-purple">
+                            <span className="font-sm font-weight-800 text-purple" style={{ fontSize: '15px' }}>
                               ₹{(exp.amount || 0).toLocaleString('en-IN')}
                             </span>
                           </td>
 
                           {/* METHOD & DATE */}
                           <td>
-                            <div>
-                              <div className="font-2xs font-weight-700 text-uppercase color-heading flex-center gap-3xs">
-                                <CreditCard size={12} className="color-subtle" />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                              <div className="font-2xs font-weight-700 text-uppercase color-heading" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <CreditCard size={13} className="color-subtle" />
                                 <span>{exp.payment_method.replace('_', ' ')}</span>
                               </div>
-                              <div className="font-3xs color-subtle margin-top-3xs">{exp.expense_date}</div>
+                              <span className="font-3xs color-subtle font-weight-500">{exp.expense_date}</span>
                             </div>
                           </td>
 
                           {/* STATUS WITH LIVE BULLET DOT */}
                           <td>
-                            <span className={`badge ${sb.cls} font-2xs font-weight-700 flex-center gap-2xs`} style={{ padding: '4px 8px', borderRadius: 9999 }}>
+                            <span className={`badge ${sb.cls} font-2xs font-weight-700`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 9999 }}>
                               <span style={{ width: 6, height: 6, borderRadius: '50%', background: sb.dot, display: 'inline-block' }} />
                               <span>{sb.label}</span>
                             </span>
@@ -1392,9 +1398,9 @@ export const Expenses: React.FC = () => {
 
                           {/* ACTIONS */}
                           <td onClick={(e) => e.stopPropagation()}>
-                            <div className="flex-center justify-end gap-xs">
+                            <div className="action-buttons-group">
                               <button
-                                className="btn btn-ghost btn-xs text-subtle"
+                                className="action-icon-btn primary"
                                 title="View Expense Details"
                                 onClick={() => handleOpenDetails(exp)}
                               >
@@ -1404,14 +1410,14 @@ export const Expenses: React.FC = () => {
                               {exp.status === 'pending' && (
                                 <>
                                   <button
-                                    className="btn btn-ghost btn-xs text-success"
+                                    className="action-icon-btn success"
                                     title="Approve Expense"
                                     onClick={(e) => handleApproveExpense(exp, e)}
                                   >
                                     <CheckCircle size={15} />
                                   </button>
                                   <button
-                                    className="btn btn-ghost btn-xs text-danger"
+                                    className="action-icon-btn danger"
                                     title="Reject Expense"
                                     onClick={(e) => handleOpenRejectModal(exp, e)}
                                   >
@@ -1421,7 +1427,7 @@ export const Expenses: React.FC = () => {
                               )}
 
                               <button
-                                className="btn btn-ghost btn-xs text-primary"
+                                className="action-icon-btn primary"
                                 title="Edit Expense"
                                 onClick={() => handleOpenEditModal(exp)}
                               >
@@ -1429,7 +1435,7 @@ export const Expenses: React.FC = () => {
                               </button>
 
                               <button
-                                className="btn btn-ghost btn-xs text-danger"
+                                className="action-icon-btn danger"
                                 title={exp.status === 'approved' ? 'Void Expense' : 'Delete Expense'}
                                 onClick={(e) => handleOpenDeleteVoidModal(exp, e)}
                               >
@@ -1597,11 +1603,11 @@ export const Expenses: React.FC = () => {
             <table className="custom-table">
               <thead>
                 <tr>
-                  <th>Category Name</th>
-                  <th>Description</th>
-                  <th>Status</th>
-                  <th>Disbursed Total</th>
-                  <th className="text-right">Actions</th>
+                  <th style={{ minWidth: 200 }}>Category Name</th>
+                  <th style={{ minWidth: 280 }}>Description</th>
+                  <th style={{ minWidth: 120 }}>Status</th>
+                  <th style={{ minWidth: 180 }}>Disbursed Total</th>
+                  <th className="text-right" style={{ minWidth: 140 }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1612,38 +1618,43 @@ export const Expenses: React.FC = () => {
                   return (
                     <tr key={cat.id}>
                       <td>
-                        <div className="flex-center gap-xs font-weight-600 color-heading">
-                          <Tag size={15} className="text-purple" />
-                          {cat.name}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }} className="font-weight-700 color-heading">
+                          <Tag size={16} className="text-purple flex-shrink-0" />
+                          <span className="font-xs">{cat.name}</span>
                         </div>
                       </td>
                       <td>
-                        <span className="font-sm color-subtle">{cat.description || 'No description provided.'}</span>
-                      </td>
-                      <td>
-                        <span className={`badge ${cat.is_active ? 'badge-success' : 'badge-subtle'}`}>
-                          {cat.is_active ? 'Active' : 'Inactive'}
+                        <span className="font-xs color-subtle font-weight-500" style={{ maxWidth: 300, display: 'block', lineHeight: 1.45 }}>
+                          {cat.description || 'No description provided.'}
                         </span>
                       </td>
                       <td>
-                        <span className="font-sm font-weight-700 text-purple">₹{catTotal.toLocaleString('en-IN')}</span>{' '}
-                        <span className="badge badge-subtle font-2xs">({catExps.length} exps)</span>
+                        <span className={`badge ${cat.is_active ? 'badge-success' : 'badge-subtle'} font-2xs font-weight-700`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 9999 }}>
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: cat.is_active ? '#16a34a' : '#94a3b8', display: 'inline-block' }} />
+                          <span>{cat.is_active ? 'ACTIVE' : 'INACTIVE'}</span>
+                        </span>
                       </td>
                       <td>
-                        <div className="flex-center justify-end gap-xs">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <span className="font-sm font-weight-800 text-purple" style={{ fontSize: '14.5px' }}>₹{catTotal.toLocaleString('en-IN')}</span>
+                          <span className="font-3xs color-subtle font-weight-600">({catExps.length} approved {catExps.length === 1 ? 'expense' : 'expenses'})</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="action-buttons-group">
                           <button
-                            className="btn btn-ghost btn-xs text-primary"
+                            className="action-icon-btn primary"
                             title="Edit Category"
                             onClick={() => handleOpenCatModal(cat)}
                           >
-                            <Edit2 size={15} /> Edit
+                            <Edit2 size={15} />
                           </button>
                           <button
-                            className={`btn btn-ghost btn-xs ${cat.is_active ? 'text-danger' : 'text-success'}`}
+                            className={`action-icon-btn ${cat.is_active ? 'danger' : 'success'}`}
                             title={cat.is_active ? 'Disable Category' : 'Enable Category'}
                             onClick={() => handleToggleCatActive(cat)}
                           >
-                            {cat.is_active ? 'Disable' : 'Enable'}
+                            {cat.is_active ? <Ban size={15} /> : <CheckCircle size={15} />}
                           </button>
                         </div>
                       </td>

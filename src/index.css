@@ -5527,11 +5527,135 @@ select.custom-select-pill:focus,
   background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(8px);
   display: flex; align-items: center; justify-content: center; padding: 20px;
 }
-.modal-content {
-  background: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  width: 100%; max-height: calc(100vh - 40px); overflow-y: auto;
+/* ============================================================
+   PREMIUM CUSTOM TABLE DESIGN SYSTEM
+   Modern, spacious, baseline-aligned administrative table UI
+   ============================================================ */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--radius-lg, 20px);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
 }
+
+.custom-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+  text-align: left;
+  background: #ffffff;
+}
+
+/* Header Cells */
+.custom-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 14px 18px;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+  vertical-align: middle !important;
+  user-select: none;
+}
+
+.custom-table th:first-child {
+  border-top-left-radius: var(--radius-lg, 20px);
+  padding-left: 24px;
+}
+
+.custom-table th:last-child {
+  border-top-right-radius: var(--radius-lg, 20px);
+  padding-right: 24px;
+}
+
+/* Table Row & Body Cells */
+.custom-table tr {
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.custom-table tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+
+.custom-table tbody tr:not(:last-child) td {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.custom-table td {
+  padding: 16px 18px;
+  vertical-align: middle !important;
+  color: #1e293b;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.custom-table td:first-child {
+  padding-left: 24px;
+}
+
+.custom-table td:last-child {
+  padding-right: 24px;
+}
+
+/* Alignment utilities for table headers & cells */
+.custom-table .text-center { text-align: center; }
+.custom-table .text-right { text-align: right; }
+
+/* Action Icon Buttons Container */
+.custom-table .action-buttons-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.custom-table .action-icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.custom-table .action-icon-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.custom-table .action-icon-btn.primary:hover {
+  background: #f3e8ff;
+  color: #7c3aed;
+  border-color: #ddd6fe;
+}
+
+.custom-table .action-icon-btn.success:hover {
+  background: #dcfce7;
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+
+.custom-table .action-icon-btn.danger:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
 
 
 
