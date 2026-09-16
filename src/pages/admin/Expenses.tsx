@@ -4,12 +4,11 @@ import type { Expense, ExpenseCategory, ExpenseAuditLog, SubscriptionYear } from
 import {
   TrendingDown, Plus, Search, Calendar, CreditCard, CheckCircle, XCircle,
   Clock, Ban, Eye, Edit2, Trash2, Download, Printer, Tag, RefreshCw,
-  AlertCircle, Layers, X, Sparkles, PieChart, ChevronRight
+  AlertCircle, Layers, X, PieChart, ChevronRight, ShieldCheck
 } from 'lucide-react';
 import { YearFilter } from '../../components/YearFilter';
 
 export const Expenses: React.FC = () => {
-
   // Primary Sub-Tab State ('overview' | 'expenses' | 'categories')
   const [activeTab, setActiveTab] = useState<'overview' | 'expenses' | 'categories'>('overview');
 
@@ -194,21 +193,17 @@ export const Expenses: React.FC = () => {
   const topMetrics = useMemo(() => {
     const currentMonthPrefix = new Date().toISOString().slice(0, 7); // YYYY-MM
 
-    // Year filtered expenses
     const yearFilteredExps = targetYearVal
       ? expenses.filter((e) => e.expense_date && new Date(e.expense_date).getFullYear() === targetYearVal)
       : expenses;
 
-    // Approved Expenses Total
     const approvedList = yearFilteredExps.filter((e) => e.status === 'approved');
     const totalApproved = approvedList.reduce((sum, e) => sum + (e.amount || 0), 0);
 
-    // This Month Approved Disbursements
     const thisMonthApproved = expenses
       .filter((e) => e.status === 'approved' && e.expense_date && e.expense_date.startsWith(currentMonthPrefix))
       .reduce((sum, e) => sum + (e.amount || 0), 0);
 
-    // Pending Approval Total
     const pendingList = yearFilteredExps.filter((e) => e.status === 'pending');
     const totalPending = pendingList.reduce((sum, e) => sum + (e.amount || 0), 0);
 
@@ -835,20 +830,22 @@ export const Expenses: React.FC = () => {
   }, [categories, categorySearch, categoryStatusFilter]);
 
   return (
-    <div className="subscriptions-page animate-fade-in">
+    <div className="expenses-page-container animate-fade-in padding-md">
       {/* TOAST BANNER */}
       {toast && (
-        <div className={`toast-notification ${toast.type} animate-bounce-in`} style={{ position: 'fixed', top: 20, right: 20, zIndex: 9999 }}>
+        <div className={`toast-notification ${toast.type} animate-bounce-in`} style={{ position: 'fixed', top: 20, right: 20, zIndex: 99999 }}>
           {toast.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
           <span>{toast.message}</span>
         </div>
       )}
 
       {/* PAGE HEADER & CTA GROUP */}
-      <div className="page-header-actions">
+      <div className="page-header-actions margin-bottom-md">
         <div>
-          <h3>Expenses & Disbursements</h3>
-          <p className="page-subtitle">Record, categorize, track approval workflows, and audit every expense made by the Mahall.</p>
+          <h3 className="font-xl font-weight-800 color-heading flex-center gap-xs">
+            <TrendingDown className="text-purple" size={26} /> Expenses & Disbursements
+          </h3>
+          <p className="page-subtitle font-sm color-subtle">Record, categorize, track approval workflows, and audit every expense made by the Mahall.</p>
         </div>
 
         <div className="header-cta-group">
@@ -862,20 +859,20 @@ export const Expenses: React.FC = () => {
 
           <button
             type="button"
-            className="pill-btn-ghost font-xs flex-row-gap-xs"
+            className="btn btn-ghost font-xs text-purple flex-center gap-2xs border-purple-light"
             onClick={handlePrintExpensesPdf}
             title="Print Expenses PDF Report"
           >
-            <Printer size={15} className="text-purple" />
+            <Printer size={15} />
             <span>Print Report</span>
           </button>
 
-          <button className="add-btn secondary-btn" onClick={handleExportCSV}>
+          <button className="btn btn-ghost font-xs text-subtle flex-center gap-2xs" onClick={handleExportCSV}>
             <Download size={15} />
             <span>Export CSV</span>
           </button>
 
-          <button className="add-btn primary-btn" onClick={handleOpenAddModal}>
+          <button className="btn btn-primary font-xs flex-center gap-2xs shadow-purple" onClick={handleOpenAddModal}>
             <Plus size={16} />
             <span>Add Expense</span>
           </button>
@@ -883,7 +880,7 @@ export const Expenses: React.FC = () => {
       </div>
 
       {/* MOBILE-ONLY VIEW SELECTOR DROPDOWN */}
-      <div className="mobile-subscriptions-select-container margin-bottom-md">
+      <div className="mobile-only-view-select margin-bottom-md">
         <label htmlFor="mobile-exp-view-select" className="font-xs font-weight-700 color-subtle display-block margin-bottom-xs">
           Select View:
         </label>
@@ -894,7 +891,7 @@ export const Expenses: React.FC = () => {
           onChange={(e) => setActiveTab(e.target.value as 'overview' | 'expenses' | 'categories')}
           style={{
             borderRadius: 12,
-            padding: '12px 16px',
+            padding: '10px 14px',
             border: '1.5px solid #7c3aed',
             background: '#ffffff',
             color: '#7c3aed',
@@ -904,13 +901,13 @@ export const Expenses: React.FC = () => {
           }}
         >
           <option value="overview">📊 Analytics & Overview</option>
-          <option value="expenses">💸 Expense Transactions</option>
-          <option value="categories">🏷️ Expense Categories</option>
+          <option value="expenses">💸 Expense Transactions ({filteredExpenses.length})</option>
+          <option value="categories">🏷️ Expense Categories ({categories.length})</option>
         </select>
       </div>
 
       {/* DESKTOP & TABLET SELECTION TABS ONLY */}
-      <div className="subscription-nav-tabs desktop-subscriptions-tabs-only margin-bottom-md">
+      <div className="desktop-tab-pills-bar margin-bottom-lg">
         <button
           className={`tab-pill-btn ${activeTab === 'overview' ? 'active' : ''}`}
           onClick={() => setActiveTab('overview')}
@@ -943,47 +940,47 @@ export const Expenses: React.FC = () => {
         <div className="overview-tab-content animate-fade-in">
           {/* STATS CARDS GRID */}
           <div className="stats-dashboard-grid margin-bottom-lg">
-            <div className="stat-metric-card shadow-sm">
-              <div className="metric-icon-box purple" style={{ background: '#faf5ff', color: '#7c3aed' }}>
+            <div className="stat-metric-card glass-card shadow-sm padding-md">
+              <div className="metric-icon-box purple">
                 <TrendingDown size={22} />
               </div>
               <div className="metric-info">
-                <span className="metric-label">Approved Expenses</span>
-                <h3 className="metric-value text-purple">₹{topMetrics.totalApproved.toLocaleString('en-IN')}</h3>
-                <span className="metric-sub">{topMetrics.approvedCount} approved transactions {targetYearVal ? `(${targetYearVal})` : ''}</span>
+                <span className="metric-label font-2xs text-uppercase color-subtle font-weight-700 display-block margin-bottom-3xs">Approved Expenses</span>
+                <h3 className="metric-value font-xl font-weight-800 text-purple margin-none">₹{topMetrics.totalApproved.toLocaleString('en-IN')}</h3>
+                <span className="metric-sub font-3xs color-subtle display-block margin-top-3xs">{topMetrics.approvedCount} approved transactions {targetYearVal ? `(${targetYearVal})` : ''}</span>
               </div>
             </div>
 
-            <div className="stat-metric-card shadow-sm">
+            <div className="stat-metric-card glass-card shadow-sm padding-md">
               <div className="metric-icon-box emerald">
                 <Calendar size={22} />
               </div>
               <div className="metric-info">
-                <span className="metric-label">This Month Disbursed</span>
-                <h3 className="metric-value text-success">₹{topMetrics.thisMonthApproved.toLocaleString('en-IN')}</h3>
-                <span className="metric-sub">Current month disbursements</span>
+                <span className="metric-label font-2xs text-uppercase color-subtle font-weight-700 display-block margin-bottom-3xs">This Month Disbursed</span>
+                <h3 className="metric-value font-xl font-weight-800 text-success margin-none">₹{topMetrics.thisMonthApproved.toLocaleString('en-IN')}</h3>
+                <span className="metric-sub font-3xs color-subtle display-block margin-top-3xs">Current month disbursements</span>
               </div>
             </div>
 
-            <div className="stat-metric-card shadow-sm">
+            <div className="stat-metric-card glass-card shadow-sm padding-md">
               <div className="metric-icon-box amber">
                 <Clock size={22} />
               </div>
               <div className="metric-info">
-                <span className="metric-label">Pending Approval</span>
-                <h3 className="metric-value text-warning">₹{topMetrics.totalPending.toLocaleString('en-IN')}</h3>
-                <span className="metric-sub">{topMetrics.pendingCount} expenses awaiting review</span>
+                <span className="metric-label font-2xs text-uppercase color-subtle font-weight-700 display-block margin-bottom-3xs">Pending Approval</span>
+                <h3 className="metric-value font-xl font-weight-800 text-warning margin-none">₹{topMetrics.totalPending.toLocaleString('en-IN')}</h3>
+                <span className="metric-sub font-3xs color-subtle display-block margin-top-3xs">{topMetrics.pendingCount} expenses awaiting review</span>
               </div>
             </div>
 
-            <div className="stat-metric-card shadow-sm">
+            <div className="stat-metric-card glass-card shadow-sm padding-md">
               <div className="metric-icon-box primary">
                 <Tag size={22} />
               </div>
               <div className="metric-info">
-                <span className="metric-label">Active Categories</span>
-                <h3 className="metric-value color-heading">{categories.filter(c => c.is_active).length}</h3>
-                <span className="metric-sub">Out of {categories.length} configured</span>
+                <span className="metric-label font-2xs text-uppercase color-subtle font-weight-700 display-block margin-bottom-3xs">Active Categories</span>
+                <h3 className="metric-value font-xl font-weight-800 color-heading margin-none">{categories.filter(c => c.is_active).length}</h3>
+                <span className="metric-sub font-3xs color-subtle display-block margin-top-3xs">Out of {categories.length} configured</span>
               </div>
             </div>
           </div>
@@ -1006,20 +1003,22 @@ export const Expenses: React.FC = () => {
               ) : (
                 <div className="category-progress-list">
                   {categoryDistribution.slice(0, 7).map((item) => (
-                    <div key={item.name} className="margin-bottom-sm">
+                    <div key={item.name} className="margin-bottom-md">
                       <div className="flex-between font-xs margin-bottom-2xs">
-                        <span className="font-weight-600 color-heading">{item.name} ({item.count} exps)</span>
-                        <span className="font-weight-700 text-purple">
-                          ₹{item.amount.toLocaleString('en-IN')} <span className="color-subtle">({item.percentage}%)</span>
+                        <span className="font-weight-600 color-heading flex-center gap-2xs">
+                          {item.name} <span className="badge badge-subtle font-3xs">({item.count} exps)</span>
+                        </span>
+                        <span className="font-weight-700 text-purple flex-center gap-2xs">
+                          ₹{item.amount.toLocaleString('en-IN')} <span className="badge badge-purple-light font-3xs">({item.percentage}%)</span>
                         </span>
                       </div>
-                      <div style={{ height: 8, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
+                      <div className="progress-bar-bg" style={{ height: 10, background: '#f1f5f9', borderRadius: 6, overflow: 'hidden' }}>
                         <div
                           style={{
                             height: '100%',
                             width: `${item.percentage}%`,
                             background: 'linear-gradient(90deg, #7c3aed 0%, #a855f7 100%)',
-                            borderRadius: 4,
+                            borderRadius: 6,
                             transition: 'width 0.5s ease',
                           }}
                         />
@@ -1030,24 +1029,27 @@ export const Expenses: React.FC = () => {
               )}
             </div>
 
-            {/* Quick Actions & Recent Pending Audit Banner */}
+            {/* Quick Actions & Governance Banner */}
             <div className="glass-card padding-lg flex-between flex-column">
               <div>
                 <div className="flex-between margin-bottom-md border-bottom padding-bottom-xs">
                   <h4 className="font-md font-weight-700 color-heading flex-center gap-xs">
-                    <Sparkles size={18} className="text-amber" /> Expense Governance & Audit Rules
+                    <ShieldCheck size={18} className="text-purple" /> Expense Governance & Audit Rules
                   </h4>
                 </div>
 
-                <div className="font-sm color-subtle margin-bottom-md" style={{ lineHeight: 1.6 }}>
-                  <p className="margin-bottom-xs">
-                    <strong>✓ Financial Integrity:</strong> Only approved expenses subtract from the official Mahall cashbook balance.
+                <div className="font-sm color-subtle margin-bottom-md" style={{ lineHeight: 1.7 }}>
+                  <p className="margin-bottom-xs flex-start gap-xs">
+                    <CheckCircle size={16} className="text-success flex-shrink-0 margin-top-3xs" />
+                    <span><strong>Financial Integrity:</strong> Only approved expenses subtract from the official Mahall cashbook balance.</span>
                   </p>
-                  <p className="margin-bottom-xs">
-                    <strong>✓ Audit Trail Compliance:</strong> Any edit to an approved expense requires a mandatory change justification and is recorded in immutable audit logs.
+                  <p className="margin-bottom-xs flex-start gap-xs">
+                    <CheckCircle size={16} className="text-success flex-shrink-0 margin-top-3xs" />
+                    <span><strong>Audit Trail Compliance:</strong> Any edit to an approved expense requires a mandatory change justification and is recorded in immutable audit logs.</span>
                   </p>
-                  <p>
-                    <strong>✓ Permanent Preservation:</strong> Approved expenses cannot be deleted; they are marked as <em>Voided</em> to prevent accounting records from disappearing.
+                  <p className="flex-start gap-xs">
+                    <CheckCircle size={16} className="text-success flex-shrink-0 margin-top-3xs" />
+                    <span><strong>Permanent Preservation:</strong> Approved expenses cannot be deleted; they are marked as <em>Voided</em> to prevent accounting records from disappearing.</span>
                   </p>
                 </div>
               </div>
@@ -1097,7 +1099,7 @@ export const Expenses: React.FC = () => {
                 <div className="flex-center gap-2xs">
                   <span className="font-xs font-weight-600 color-subtle">Category:</span>
                   <select
-                    className="select-input font-xs"
+                    className="styled-select-input font-xs"
                     value={selectedCategory}
                     onChange={(e) => {
                       setSelectedCategory(e.target.value);
@@ -1116,7 +1118,7 @@ export const Expenses: React.FC = () => {
                 <div className="flex-center gap-2xs">
                   <span className="font-xs font-weight-600 color-subtle">Method:</span>
                   <select
-                    className="select-input font-xs"
+                    className="styled-select-input font-xs"
                     value={selectedPaymentMethod}
                     onChange={(e) => {
                       setSelectedPaymentMethod(e.target.value);
@@ -1135,7 +1137,7 @@ export const Expenses: React.FC = () => {
                 <div className="flex-center gap-2xs">
                   <span className="font-xs font-weight-600 color-subtle">Status:</span>
                   <select
-                    className="select-input font-xs"
+                    className="styled-select-input font-xs"
                     value={selectedStatus}
                     onChange={(e) => {
                       setSelectedStatus(e.target.value);
@@ -1165,7 +1167,7 @@ export const Expenses: React.FC = () => {
                 <span>From Date:</span>
                 <input
                   type="date"
-                  className="form-input padding-2xs font-xs"
+                  className="styled-date-input padding-2xs font-xs"
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
                 />
@@ -1174,7 +1176,7 @@ export const Expenses: React.FC = () => {
                 <span>To Date:</span>
                 <input
                   type="date"
-                  className="form-input padding-2xs font-xs"
+                  className="styled-date-input padding-2xs font-xs"
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
                 />
@@ -1182,7 +1184,7 @@ export const Expenses: React.FC = () => {
               <div className="flex-center gap-xs">
                 <span>Fund / Account:</span>
                 <select
-                  className="select-input padding-2xs font-xs"
+                  className="styled-select-input padding-2xs font-xs"
                   value={selectedFund}
                   onChange={(e) => setSelectedFund(e.target.value)}
                 >
@@ -1294,7 +1296,7 @@ export const Expenses: React.FC = () => {
                             </span>
                           </td>
                           <td>
-                            <span className="font-2xs color-subtle">{exp.created_by}</span>
+                            <span className="badge badge-subtle font-2xs">{exp.created_by}</span>
                           </td>
                           <td onClick={(e) => e.stopPropagation()}>
                             <div className="flex-center justify-end gap-xs">
@@ -1481,7 +1483,7 @@ export const Expenses: React.FC = () => {
 
               <div className="flex-center gap-sm">
                 <select
-                  className="select-input font-sm"
+                  className="styled-select-input font-sm"
                   value={categoryStatusFilter}
                   onChange={(e) => setCategoryStatusFilter(e.target.value as any)}
                 >
@@ -1532,7 +1534,7 @@ export const Expenses: React.FC = () => {
                       </td>
                       <td>
                         <span className="font-sm font-weight-700 text-purple">₹{catTotal.toLocaleString('en-IN')}</span>{' '}
-                        <span className="font-2xs color-subtle">({catExps.length} exps)</span>
+                        <span className="badge badge-subtle font-2xs">({catExps.length} exps)</span>
                       </td>
                       <td>
                         <div className="flex-center justify-end gap-xs">
@@ -1597,10 +1599,10 @@ export const Expenses: React.FC = () => {
         </div>
       )}
 
-      {/* ADD / EDIT EXPENSE FORM MODAL */}
+      {/* ADD / EDIT EXPENSE FORM MODAL OVERLAY */}
       {isFormModalOpen && (
-        <div className="modal-backdrop">
-          <div className="modal-content padding-lg" style={{ maxWidth: 680, maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="custom-modal-backdrop">
+          <div className="custom-modal-dialog">
             <div className="flex-between margin-bottom-md border-bottom padding-bottom-sm">
               <h2 className="font-lg font-weight-700 color-heading flex-center gap-xs">
                 <TrendingDown size={22} className="text-purple" />
@@ -1881,14 +1883,14 @@ export const Expenses: React.FC = () => {
         </div>
       )}
 
-      {/* VIEW DETAILS MODAL */}
+      {/* VIEW DETAILS MODAL OVERLAY */}
       {isDetailsModalOpen && viewingExpense && (
-        <div className="modal-backdrop">
-          <div className="modal-content padding-lg" style={{ maxWidth: 650 }}>
+        <div className="custom-modal-backdrop">
+          <div className="custom-modal-dialog" style={{ maxWidth: 650 }}>
             <div className="flex-between border-bottom padding-bottom-sm margin-bottom-md">
               <div>
                 <span className="font-2xs font-weight-700 text-purple text-uppercase">Expense Record #{viewingExpense.expense_number}</span>
-                <h2 className="font-lg font-weight-800 color-heading">₹{viewingExpense.amount.toLocaleString('en-IN')}</h2>
+                <h2 className="font-lg font-weight-800 color-heading margin-none">₹{viewingExpense.amount.toLocaleString('en-IN')}</h2>
               </div>
               <div className="flex-center gap-xs">
                 <span className={`badge badge-${viewingExpense.status === 'approved' ? 'success' : viewingExpense.status === 'pending' ? 'warning' : 'danger'}`}>
@@ -1954,10 +1956,10 @@ export const Expenses: React.FC = () => {
         </div>
       )}
 
-      {/* REJECT MODAL */}
+      {/* REJECT MODAL OVERLAY */}
       {isRejectModalOpen && rejectingExpense && (
-        <div className="modal-backdrop">
-          <div className="modal-content padding-lg" style={{ maxWidth: 450 }}>
+        <div className="custom-modal-backdrop">
+          <div className="custom-modal-dialog" style={{ maxWidth: 450 }}>
             <h3 className="font-md font-weight-700 color-heading margin-bottom-xs">Reject Expense #{rejectingExpense.expense_number}?</h3>
             <textarea
               className="form-textarea font-xs margin-bottom-md"
@@ -1975,10 +1977,10 @@ export const Expenses: React.FC = () => {
         </div>
       )}
 
-      {/* VOID MODAL */}
+      {/* VOID MODAL OVERLAY */}
       {isVoidModalOpen && voidingExpense && (
-        <div className="modal-backdrop">
-          <div className="modal-content padding-lg" style={{ maxWidth: 450 }}>
+        <div className="custom-modal-backdrop">
+          <div className="custom-modal-dialog" style={{ maxWidth: 450 }}>
             <h3 className="font-md font-weight-700 text-danger margin-bottom-xs">Void Approved Expense #{voidingExpense.expense_number}?</h3>
             <textarea
               className="form-textarea font-xs margin-bottom-md"
@@ -1996,10 +1998,10 @@ export const Expenses: React.FC = () => {
         </div>
       )}
 
-      {/* CATEGORY ADD/EDIT MODAL */}
+      {/* CATEGORY ADD/EDIT MODAL OVERLAY */}
       {isCatModalOpen && (
-        <div className="modal-backdrop">
-          <div className="modal-content padding-lg" style={{ maxWidth: 500 }}>
+        <div className="custom-modal-backdrop">
+          <div className="custom-modal-dialog" style={{ maxWidth: 500 }}>
             <div className="flex-between margin-bottom-md border-bottom padding-bottom-sm">
               <h2 className="font-lg font-weight-700 color-heading flex-center gap-xs">
                 <Tag size={20} className="text-purple" />
@@ -2056,9 +2058,101 @@ export const Expenses: React.FC = () => {
           </div>
         </div>
       )}
-      {/* EMBEDDED RESPONSIVE CSS */}
+
+      {/* EMBEDDED STYLES FOR ABSOLUTE DESIGN PERFECTION & RESPONSIVENESS */}
       <style>{`
+        /* Desktop vs Mobile Tab Visibility */
+        .mobile-only-view-select {
+          display: none;
+        }
+        .desktop-tab-pills-bar {
+          display: flex;
+          gap: 10px;
+          border-bottom: 2px solid #f1f5f9;
+          padding-bottom: 8px;
+        }
+        .tab-pill-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 18px;
+          border-radius: 20px;
+          font-size: 13px;
+          font-weight: 600;
+          color: #64748b;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .tab-pill-btn:hover {
+          background: #f1f5f9;
+          color: #1e293b;
+        }
+        .tab-pill-btn.active {
+          background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+          color: #ffffff;
+          border-color: #6d28d9;
+          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
+        }
+
+        /* Styled Filter Inputs */
+        .styled-select-input {
+          padding: 7px 12px;
+          border-radius: 8px;
+          border: 1px solid #cbd5e1;
+          background: #ffffff;
+          font-size: 13px;
+          color: #334155;
+          outline: none;
+          transition: border-color 0.2s;
+        }
+        .styled-select-input:focus {
+          border-color: #7c3aed;
+          box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+        }
+        .styled-date-input {
+          padding: 6px 10px;
+          border-radius: 8px;
+          border: 1px solid #cbd5e1;
+          background: #ffffff;
+          font-size: 13px;
+          color: #334155;
+        }
+
+        /* Modal Backdrop Fixed Overlay */
+        .custom-modal-backdrop {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(15, 23, 42, 0.6);
+          backdrop-filter: blur(6px);
+          z-index: 99999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+        }
+        .custom-modal-dialog {
+          background: #ffffff;
+          border-radius: 16px;
+          width: 100%;
+          max-width: 650px;
+          max-height: 90vh;
+          overflow-y: auto;
+          padding: 24px;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
         @media (max-width: 768px) {
+          .desktop-tab-pills-bar {
+            display: none !important;
+          }
+          .mobile-only-view-select {
+            display: block !important;
+          }
           .desktop-expenses-table-only {
             display: none !important;
           }
@@ -2088,11 +2182,6 @@ export const Expenses: React.FC = () => {
           }
           .search-input-wrapper {
             width: 100% !important;
-          }
-          .modal-content {
-            width: 94% !important;
-            margin: 10px auto !important;
-            max-height: 92vh !important;
           }
         }
         @media (min-width: 769px) {
