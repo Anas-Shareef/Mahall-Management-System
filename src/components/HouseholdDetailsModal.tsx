@@ -42,11 +42,18 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
 
           const memberIds = hMembers.map((m) => m.id);
 
-          // Filter donations for members of this household or matching owner name
-          const hDonations = allDonations.filter((d) =>
-            (d.donor_member_id && memberIds.includes(d.donor_member_id)) ||
-            (d.donor_name && d.donor_name.toLowerCase().trim() === household.house_owner_name.toLowerCase().trim())
-          );
+          // Filter donations for members of this household (strictly household & member donors only)
+          const hDonations = allDonations.filter((d) => {
+            if (d.donor_type === 'external' || d.donor_type === 'anonymous' || d.is_anonymous) {
+              return false;
+            }
+            return (
+              (d.donor_household_id && d.donor_household_id === household.id) ||
+              (d.donor_member_id && memberIds.includes(d.donor_member_id)) ||
+              (d.donor_name && d.donor_name.toLowerCase().trim() === household.house_owner_name.toLowerCase().trim()) ||
+              (d.notes && d.notes.toLowerCase().includes(`h-${household.house_number.toLowerCase()}`))
+            );
+          });
           setHouseholdDonations(hDonations);
 
           // Map subscriptions and member donations for members

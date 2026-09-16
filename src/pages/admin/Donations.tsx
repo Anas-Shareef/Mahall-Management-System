@@ -133,8 +133,7 @@ export const Donations: React.FC = () => {
       ]);
       setYears(yearList || []);
       setDonations(donationList || []);
-      const cleanCampaigns = (campaignList || []).filter((c) => c.campaign_name?.toLowerCase().trim() !== 'rabeeh donation');
-      setCampaigns(cleanCampaigns);
+      setCampaigns(campaignList || []);
     } catch (err) {
       console.error('Failed to load donation records:', err);
       setFetchError(true);

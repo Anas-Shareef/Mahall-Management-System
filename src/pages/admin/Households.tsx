@@ -292,10 +292,17 @@ export const Households: React.FC = () => {
     const houseMemberIds = houseMembers.map((m) => m.id);
     const targetYearId = selectedYearId !== 'all' ? selectedYearId : (years.find((y) => y.status === 'active')?.id || years[0]?.id);
 
-    const householdDonations = donations.filter((d) =>
-      (d.donor_member_id && houseMemberIds.includes(d.donor_member_id)) ||
-      (d.donor_name && d.donor_name.toLowerCase().trim() === h.house_owner_name.toLowerCase().trim())
-    );
+    const householdDonations = donations.filter((d) => {
+      if (d.donor_type === 'external' || d.donor_type === 'anonymous' || d.is_anonymous) {
+        return false;
+      }
+      return (
+        (d.donor_household_id && d.donor_household_id === h.id) ||
+        (d.donor_member_id && houseMemberIds.includes(d.donor_member_id)) ||
+        (d.donor_name && d.donor_name.toLowerCase().trim() === h.house_owner_name.toLowerCase().trim()) ||
+        (d.notes && d.notes.toLowerCase().includes(`h-${h.house_number.toLowerCase()}`))
+      );
+    });
 
     const details = houseMembers.map((m) => {
       const sub = targetYearId

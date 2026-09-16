@@ -2214,6 +2214,27 @@ export const db = {
         ...supaCampaigns,
         ...localCampaigns.filter((c) => !supaIds.has(c.id)),
       ];
+
+      // Ensure Rabeeh Campaign is present in the campaigns list
+      const hasRabeeh = combined.some((c) => c.campaign_name?.toLowerCase().includes('rabeeh'));
+      if (!hasRabeeh) {
+        const rabeehCampaign: DonationCampaign = {
+          id: 'camp-rabeeh-2026',
+          campaign_name: 'Rabeeh Campaign',
+          campaign_type: 'special_fund',
+          description: 'Rabeeh Campaign Special Collection for Household Members',
+          target_amount: 500000,
+          start_date: '2026-09-01',
+          end_date: '2026-12-31',
+          cover_image: null,
+          status: 'active',
+          created_by: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        combined.unshift(rabeehCampaign);
+      }
+
       return combined;
     },
     create: async (data: Omit<DonationCampaign, 'id' | 'created_at' | 'updated_at'>): Promise<DonationCampaign> => {
@@ -2291,7 +2312,7 @@ export const db = {
           console.warn('Supabase donationCampaigns delete notice:', e);
         }
       }
-      const list = getLocalData<DonationCampaign>('mahal_campaigns').filter((c) => c.id !== id && c.campaign_name?.toLowerCase() !== 'rabeeh donation');
+      const list = getLocalData<DonationCampaign>('mahal_campaigns').filter((c) => c.id !== id);
       saveLocalData('mahal_campaigns', list);
       return true;
     },
