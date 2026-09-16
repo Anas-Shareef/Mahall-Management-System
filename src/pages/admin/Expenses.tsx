@@ -244,6 +244,44 @@ export const Expenses: React.FC = () => {
       .sort((a, b) => b.amount - a.amount);
   }, [expenses, targetYearVal]);
 
+  // Helper for generating initial avatar badges matching Donations page design
+  const renderAvatar = (name: string) => {
+    const trimmed = (name || 'E').trim();
+    const initial = trimmed.charAt(0).toUpperCase();
+
+    // Pick soft background color based on char code
+    const colors = [
+      { bg: '#f3e8ff', color: '#7c3aed' }, // Soft purple
+      { bg: '#dcfce7', color: '#16a34a' }, // Soft green
+      { bg: '#e0f2fe', color: '#0284c7' }, // Soft blue
+      { bg: '#fef3c7', color: '#d97706' }, // Soft amber
+      { bg: '#fce7f3', color: '#db2777' }, // Soft pink
+    ];
+    const index = Math.abs(trimmed.charCodeAt(0) || 0) % colors.length;
+    const style = colors[index];
+
+    return (
+      <div
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: '50%',
+          background: style.bg,
+          color: style.color,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontWeight: 700,
+          fontSize: '14px',
+          flexShrink: 0,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+        }}
+      >
+        {initial}
+      </div>
+    );
+  };
+
   // Pagination Logic
   const totalPages = Math.ceil(filteredExpenses.length / itemsPerPage) || 1;
   const paginatedExpenses = useMemo(() => {
@@ -985,6 +1023,45 @@ export const Expenses: React.FC = () => {
             </div>
           </div>
 
+          {/* FINANCIAL DISBURSEMENT OVERVIEW CARD (MATCHING SUBSCRIPTIONS IMAGE 2 DESIGN) */}
+          <div className="glass-card padding-lg margin-bottom-lg shadow-sm">
+            <div className="flex-between margin-bottom-sm">
+              <div>
+                <h4 className="font-md font-weight-800 color-heading margin-none">
+                  {targetYearVal ? targetYearVal : '2026'} Financial Expense & Disbursement Overview
+                </h4>
+                <p className="font-xs color-subtle margin-top-3xs">
+                  Consolidated progress of active expense disbursements vs financial allocations.
+                </p>
+              </div>
+              <span className="badge badge-success font-xs font-weight-700" style={{ padding: '6px 12px', borderRadius: 9999 }}>
+                Status: Audit Compliant
+              </span>
+            </div>
+
+            <div className="margin-top-md">
+              <div className="flex-between font-xs font-weight-700 margin-bottom-xs">
+                <span className="color-heading font-sm">
+                  Disbursed: <strong className="text-purple font-md">₹{topMetrics.totalApproved.toLocaleString('en-IN')}</strong>
+                </span>
+                <span className="color-subtle font-xs font-weight-600">
+                  {topMetrics.approvedCount} Approved Disbursements
+                </span>
+              </div>
+              <div className="progress-bar-bg" style={{ height: 12, background: '#e2e8f0', borderRadius: 9999, overflow: 'hidden' }}>
+                <div
+                  style={{
+                    height: '100%',
+                    width: `${Math.min(100, Math.max(15, topMetrics.approvedCount * 12))}%`,
+                    background: 'linear-gradient(90deg, #7c3aed 0%, #10b981 100%)',
+                    borderRadius: 9999,
+                    transition: 'width 0.6s ease-in-out',
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
           {/* SPENDING DISTRIBUTION & CATEGORIES BREAKDOWN */}
           <div className="grid-layout cols-2 gap-lg margin-bottom-lg">
             {/* Category Breakdown Progress */}
@@ -1234,28 +1311,24 @@ export const Expenses: React.FC = () => {
                 <table className="custom-table">
                   <thead>
                     <tr>
-                      <th>Expense No</th>
-                      <th>Date</th>
-                      <th>Category</th>
-                      <th>Description</th>
-                      <th>Paid To</th>
-                      <th>Amount</th>
-                      <th>Method</th>
-                      <th>Status</th>
-                      <th>Recorded By</th>
-                      <th className="text-right">Actions</th>
+                      <th style={{ minWidth: 200 }}>EXPENSE / PAID TO</th>
+                      <th style={{ minWidth: 150 }}>CATEGORY / FUND</th>
+                      <th style={{ minWidth: 220 }}>DESCRIPTION</th>
+                      <th style={{ minWidth: 110 }}>AMOUNT</th>
+                      <th style={{ minWidth: 130 }}>METHOD & DATE</th>
+                      <th style={{ minWidth: 120 }}>STATUS</th>
+                      <th className="text-right" style={{ minWidth: 110 }}>ACTIONS</th>
                     </tr>
                   </thead>
                   <tbody>
                     {paginatedExpenses.map((exp) => {
-                      const statusBadges: Record<string, { cls: string; label: string; icon: any }> = {
-                        approved: { cls: 'badge-success', label: 'Approved', icon: CheckCircle },
-                        pending: { cls: 'badge-warning', label: 'Pending', icon: Clock },
-                        rejected: { cls: 'badge-danger', label: 'Rejected', icon: XCircle },
-                        voided: { cls: 'badge-subtle', label: 'Voided', icon: Ban },
+                      const statusBadges: Record<string, { cls: string; dot: string; label: string }> = {
+                        approved: { cls: 'badge-success', dot: '#16a34a', label: 'APPROVED' },
+                        pending: { cls: 'badge-warning', dot: '#d97706', label: 'PENDING' },
+                        rejected: { cls: 'badge-danger', dot: '#dc2626', label: 'REJECTED' },
+                        voided: { cls: 'badge-subtle', dot: '#64748b', label: 'VOIDED' },
                       };
                       const sb = statusBadges[exp.status] || statusBadges.approved;
-                      const IconComp = sb.icon;
 
                       return (
                         <tr
@@ -1263,41 +1336,61 @@ export const Expenses: React.FC = () => {
                           className="cursor-pointer hover-bg-subtle"
                           onClick={() => handleOpenDetails(exp)}
                         >
+                          {/* EXPENSE / PAID TO WITH INITIAL AVATAR */}
                           <td>
-                            <span className="font-weight-700 text-purple font-xs">{exp.expense_number}</span>
+                            <div className="flex-center gap-xs">
+                              {renderAvatar(exp.paid_to)}
+                              <div>
+                                <div className="font-xs font-weight-700 color-heading line-clamp-1">{exp.paid_to}</div>
+                                <div className="font-3xs font-weight-600 color-subtle text-purple">{exp.expense_number}</div>
+                              </div>
+                            </div>
                           </td>
+
+                          {/* CATEGORY / FUND */}
                           <td>
-                            <span className="font-xs font-weight-500">{exp.expense_date}</span>
+                            <div>
+                              <span className="badge badge-purple-light font-xs">{exp.category_name}</span>
+                              <div className="font-3xs color-subtle margin-top-3xs font-weight-500">
+                                {exp.fund_id ? exp.fund_id.replace('_', ' ').toUpperCase() : 'GENERAL FUND'}
+                              </div>
+                            </div>
                           </td>
+
+                          {/* DESCRIPTION */}
                           <td>
-                            <span className="badge badge-purple-light font-xs">{exp.category_name}</span>
-                          </td>
-                          <td>
-                            <div className="font-xs font-weight-500 color-heading line-clamp-1" title={exp.description}>
+                            <div className="font-xs font-weight-500 color-heading line-clamp-2" title={exp.description}>
                               {exp.description}
                             </div>
                           </td>
-                          <td>
-                            <span className="font-xs font-weight-600 color-heading">{exp.paid_to}</span>
-                          </td>
+
+                          {/* AMOUNT */}
                           <td>
                             <span className="font-sm font-weight-800 text-purple">
-                              ₹{exp.amount.toLocaleString('en-IN')}
+                              ₹{(exp.amount || 0).toLocaleString('en-IN')}
                             </span>
                           </td>
+
+                          {/* METHOD & DATE */}
                           <td>
-                            <span className="font-2xs font-weight-600 text-uppercase color-subtle flex-center gap-3xs">
-                              <CreditCard size={12} /> {exp.payment_method.replace('_', ' ')}
+                            <div>
+                              <div className="font-2xs font-weight-700 text-uppercase color-heading flex-center gap-3xs">
+                                <CreditCard size={12} className="color-subtle" />
+                                <span>{exp.payment_method.replace('_', ' ')}</span>
+                              </div>
+                              <div className="font-3xs color-subtle margin-top-3xs">{exp.expense_date}</div>
+                            </div>
+                          </td>
+
+                          {/* STATUS WITH LIVE BULLET DOT */}
+                          <td>
+                            <span className={`badge ${sb.cls} font-2xs font-weight-700 flex-center gap-2xs`} style={{ padding: '4px 8px', borderRadius: 9999 }}>
+                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: sb.dot, display: 'inline-block' }} />
+                              <span>{sb.label}</span>
                             </span>
                           </td>
-                          <td>
-                            <span className={`badge ${sb.cls} font-xs flex-center gap-3xs`}>
-                              <IconComp size={12} /> {sb.label}
-                            </span>
-                          </td>
-                          <td>
-                            <span className="badge badge-subtle font-2xs">{exp.created_by}</span>
-                          </td>
+
+                          {/* ACTIONS */}
                           <td onClick={(e) => e.stopPropagation()}>
                             <div className="flex-center justify-end gap-xs">
                               <button
