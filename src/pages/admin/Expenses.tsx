@@ -44,15 +44,18 @@ export const Expenses: React.FC = () => {
   const [viewingExpense, setViewingExpense] = useState<Expense | null>(null);
   const [viewingAuditLogs, setViewingAuditLogs] = useState<ExpenseAuditLog[]>([]);
 
-  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
-  const [rejectingExpense, setRejectingExpense] = useState<Expense | null>(null);
-  const [rejectionReason, setRejectionReason] = useState('');
-
   const [isVoidModalOpen, setIsVoidModalOpen] = useState(false);
   const [voidingExpense, setVoidingExpense] = useState<Expense | null>(null);
   const [voidReason, setVoidReason] = useState('');
 
   const [editReasonRequired, setEditReasonRequired] = useState('');
+
+  // Bulk Selection States
+  const [selectedExpenseIds, setSelectedExpenseIds] = useState<string[]>([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [isBulkDeleteExpenseModalOpen, setIsBulkDeleteExpenseModalOpen] = useState(false);
+  const [isBulkDeleteCatModalOpen, setIsBulkDeleteCatModalOpen] = useState(false);
+  const [bulkVoidReason, setBulkVoidReason] = useState('');
 
   // Category Modal State
   const [isCatModalOpen, setIsCatModalOpen] = useState(false);
@@ -523,43 +526,6 @@ export const Expenses: React.FC = () => {
     }
   };
 
-  // Reject Modal
-  const handleOpenRejectModal = (exp: Expense, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setRejectingExpense(exp);
-    setRejectionReason('');
-    setIsRejectModalOpen(true);
-  };
-
-  const handleConfirmReject = async () => {
-    if (!rejectingExpense) return;
-    if (!rejectionReason.trim()) {
-      showToast('error', 'Please provide a reason for rejecting this expense');
-      return;
-    }
-    try {
-      await db.expenses.update(rejectingExpense.id, {
-        status: 'rejected',
-        rejection_reason: rejectionReason.trim(),
-      });
-
-      await db.expenseAuditLogs.create({
-        expense_id: rejectingExpense.id,
-        action: 'REJECT',
-        old_values: { status: rejectingExpense.status },
-        new_values: { status: 'rejected', rejection_reason: rejectionReason.trim() },
-        reason: rejectionReason.trim(),
-        performed_by: 'admin',
-      });
-
-      showToast('success', `✓ Expense ${rejectingExpense.expense_number} rejected`);
-      setIsRejectModalOpen(false);
-      loadData();
-    } catch (err) {
-      showToast('error', 'Failed to reject expense');
-    }
-  };
-
   // Delete / Void Modal
   const handleOpenDeleteVoidModal = (exp: Expense, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -606,6 +572,102 @@ export const Expenses: React.FC = () => {
       loadData();
     } catch (err) {
       showToast('error', 'Failed to void expense');
+    }
+  };
+
+  // Bulk Expenses Handlers
+  const handleSelectAllExpenses = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedExpenseIds(filteredExpenses.map((exp) => exp.id));
+    } else {
+      setSelectedExpenseIds([]);
+    }
+  };
+
+  const handleToggleExpenseSelect = (id: string, e?: React.SyntheticEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedExpenseIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleExecuteBulkDeleteExpenses = async () => {
+    if (selectedExpenseIds.length === 0) return;
+    const selectedExps = expenses.filter((e) => selectedExpenseIds.includes(e.id));
+    const hasApproved = selectedExps.some((e) => e.status === 'approved');
+
+    if (hasApproved && !bulkVoidReason.trim()) {
+      showToast('error', 'Please enter a void justification reason for approved expenses');
+      return;
+    }
+
+    try {
+      let deletedCount = 0;
+      let voidedCount = 0;
+      const now = new Date().toISOString();
+
+      for (const exp of selectedExps) {
+        if (exp.status === 'approved') {
+          await db.expenses.update(exp.id, {
+            status: 'voided',
+            voided_by: 'Muhammed Anas (Admin)',
+            voided_at: now,
+            void_reason: bulkVoidReason.trim() || 'Bulk voided by admin',
+          });
+          await db.expenseAuditLogs.create({
+            expense_id: exp.id,
+            action: 'VOID',
+            old_values: { status: exp.status },
+            new_values: { status: 'voided', void_reason: bulkVoidReason.trim() || 'Bulk voided' },
+            reason: bulkVoidReason.trim() || 'Bulk voided by admin',
+            performed_by: 'admin',
+          });
+          voidedCount++;
+        } else {
+          await db.expenses.delete(exp.id);
+          deletedCount++;
+        }
+      }
+
+      showToast('success', `✓ Bulk action complete: ${deletedCount} deleted, ${voidedCount} marked as VOIDED`);
+      setSelectedExpenseIds([]);
+      setIsBulkDeleteExpenseModalOpen(false);
+      setBulkVoidReason('');
+      loadData();
+    } catch (err) {
+      showToast('error', 'Failed to complete bulk delete/void action');
+    }
+  };
+
+  // Bulk Categories Handlers
+  const handleSelectAllCategories = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedCategoryIds(filteredCategories.map((c) => c.id));
+    } else {
+      setSelectedCategoryIds([]);
+    }
+  };
+
+  const handleToggleCategorySelect = (id: string, e?: React.SyntheticEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedCategoryIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleExecuteBulkDeleteCategories = async () => {
+    if (selectedCategoryIds.length === 0) return;
+
+    try {
+      for (const id of selectedCategoryIds) {
+        await db.expenseCategories.delete(id);
+      }
+      showToast('success', `✓ ${selectedCategoryIds.length} categories deleted successfully`);
+      setSelectedCategoryIds([]);
+      setIsBulkDeleteCatModalOpen(false);
+      loadData();
+    } catch (err) {
+      showToast('error', 'Failed to delete selected categories');
     }
   };
 
@@ -1278,6 +1340,31 @@ export const Expenses: React.FC = () => {
             </div>
           </div>
 
+          {/* BULK ACTIONS FLOATING TOOLBAR */}
+          {selectedExpenseIds.length > 0 && (
+            <div className="bulk-actions-toolbar glass-card padding-sm margin-bottom-md animate-bounce-in flex-between" style={{ background: '#f3e8ff', border: '1.5px solid #c084fc', borderRadius: 14 }}>
+              <div className="flex-center gap-xs font-xs font-weight-700 text-purple">
+                <CheckCircle size={16} />
+                <span>{selectedExpenseIds.length} expense record{selectedExpenseIds.length > 1 ? 's' : ''} selected</span>
+              </div>
+              <div className="flex-center gap-xs">
+                <button
+                  className="btn btn-ghost btn-xs text-purple"
+                  onClick={() => setSelectedExpenseIds([])}
+                >
+                  Deselect All
+                </button>
+                <button
+                  className="btn btn-danger btn-xs flex-center gap-2xs shadow-sm"
+                  onClick={() => setIsBulkDeleteExpenseModalOpen(true)}
+                >
+                  <Trash2 size={14} />
+                  <span>Delete / Void Selected ({selectedExpenseIds.length})</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* TABLE & CARDS */}
           {isLoading ? (
             <div className="glass-card padding-xl text-center">
@@ -1311,6 +1398,13 @@ export const Expenses: React.FC = () => {
                 <table className="custom-table">
                   <thead>
                     <tr>
+                      <th style={{ width: 40, textAlign: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedExpenseIds.length === filteredExpenses.length && filteredExpenses.length > 0}
+                          onChange={handleSelectAllExpenses}
+                        />
+                      </th>
                       <th style={{ minWidth: 200 }}>EXPENSE / PAID TO</th>
                       <th style={{ minWidth: 150 }}>CATEGORY / FUND</th>
                       <th style={{ minWidth: 220 }}>DESCRIPTION</th>
@@ -1333,9 +1427,18 @@ export const Expenses: React.FC = () => {
                       return (
                         <tr
                           key={exp.id}
-                          className="cursor-pointer hover-bg-subtle"
+                          className={`cursor-pointer hover-bg-subtle ${selectedExpenseIds.includes(exp.id) ? 'bg-purple-light' : ''}`}
                           onClick={() => handleOpenDetails(exp)}
                         >
+                          {/* CHECKBOX CELL */}
+                          <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={selectedExpenseIds.includes(exp.id)}
+                              onChange={(e) => handleToggleExpenseSelect(exp.id, e)}
+                            />
+                          </td>
+
                           {/* EXPENSE / PAID TO WITH INITIAL AVATAR */}
                           <td>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -1408,22 +1511,13 @@ export const Expenses: React.FC = () => {
                               </button>
 
                               {exp.status === 'pending' && (
-                                <>
-                                  <button
-                                    className="action-icon-btn success"
-                                    title="Approve Expense"
-                                    onClick={(e) => handleApproveExpense(exp, e)}
-                                  >
-                                    <CheckCircle size={15} />
-                                  </button>
-                                  <button
-                                    className="action-icon-btn danger"
-                                    title="Reject Expense"
-                                    onClick={(e) => handleOpenRejectModal(exp, e)}
-                                  >
-                                    <XCircle size={15} />
-                                  </button>
-                                </>
+                                <button
+                                  className="action-icon-btn success"
+                                  title="Approve Expense"
+                                  onClick={(e) => handleApproveExpense(exp, e)}
+                                >
+                                  <CheckCircle size={15} />
+                                </button>
                               )}
 
                               <button
@@ -1501,14 +1595,9 @@ export const Expenses: React.FC = () => {
                             <Eye size={16} />
                           </button>
                           {exp.status === 'pending' && (
-                            <>
-                              <button className="btn btn-ghost btn-xs text-success" onClick={(e) => handleApproveExpense(exp, e)} title="Approve">
-                                <CheckCircle size={16} />
-                              </button>
-                              <button className="btn btn-ghost btn-xs text-danger" onClick={(e) => handleOpenRejectModal(exp, e)} title="Reject">
-                                <XCircle size={16} />
-                              </button>
-                            </>
+                            <button className="btn btn-ghost btn-xs text-success" onClick={(e) => handleApproveExpense(exp, e)} title="Approve">
+                              <CheckCircle size={16} />
+                            </button>
                           )}
                           <button className="btn btn-ghost btn-xs text-primary" onClick={() => handleOpenEditModal(exp)} title="Edit">
                             <Edit2 size={16} />
@@ -1598,11 +1687,43 @@ export const Expenses: React.FC = () => {
             </div>
           </div>
 
+          {/* BULK ACTIONS FLOATING TOOLBAR FOR CATEGORIES */}
+          {selectedCategoryIds.length > 0 && (
+            <div className="bulk-actions-toolbar glass-card padding-sm margin-bottom-md animate-bounce-in flex-between" style={{ background: '#f3e8ff', border: '1.5px solid #c084fc', borderRadius: 14 }}>
+              <div className="flex-center gap-xs font-xs font-weight-700 text-purple">
+                <CheckCircle size={16} />
+                <span>{selectedCategoryIds.length} categor{selectedCategoryIds.length > 1 ? 'ies' : 'y'} selected</span>
+              </div>
+              <div className="flex-center gap-xs">
+                <button
+                  className="btn btn-ghost btn-xs text-purple"
+                  onClick={() => setSelectedCategoryIds([])}
+                >
+                  Deselect All
+                </button>
+                <button
+                  className="btn btn-danger btn-xs flex-center gap-2xs shadow-sm"
+                  onClick={() => setIsBulkDeleteCatModalOpen(true)}
+                >
+                  <Trash2 size={14} />
+                  <span>Delete Selected ({selectedCategoryIds.length})</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* DESKTOP CATEGORY TABLE VIEW */}
           <div className="table-responsive glass-card desktop-expenses-table-only">
             <table className="custom-table">
               <thead>
                 <tr>
+                  <th style={{ width: 40, textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedCategoryIds.length === filteredCategories.length && filteredCategories.length > 0}
+                      onChange={handleSelectAllCategories}
+                    />
+                  </th>
                   <th style={{ minWidth: 200 }}>Category Name</th>
                   <th style={{ minWidth: 280 }}>Description</th>
                   <th style={{ minWidth: 120 }}>Status</th>
@@ -1616,7 +1737,14 @@ export const Expenses: React.FC = () => {
                   const catTotal = catExps.reduce((s, e) => s + (e.amount || 0), 0);
 
                   return (
-                    <tr key={cat.id}>
+                    <tr key={cat.id} className={selectedCategoryIds.includes(cat.id) ? 'bg-purple-light' : ''}>
+                      <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedCategoryIds.includes(cat.id)}
+                          onChange={(e) => handleToggleCategorySelect(cat.id, e)}
+                        />
+                      </td>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }} className="font-weight-700 color-heading">
                           <Tag size={16} className="text-purple flex-shrink-0" />
@@ -1703,298 +1831,322 @@ export const Expenses: React.FC = () => {
         </div>
       )}
 
-      {/* ADD / EDIT EXPENSE FORM MODAL OVERLAY */}
+      {/* ADD / EDIT EXPENSE FORM SIDE DRAWER (MATCHING IMAGE 3 DESIGN) */}
       {isFormModalOpen && (
-        <div className="custom-modal-backdrop">
-          <div className="custom-modal-dialog">
-            <div className="flex-between margin-bottom-md border-bottom padding-bottom-sm">
-              <h2 className="font-lg font-weight-700 color-heading flex-center gap-xs">
-                <TrendingDown size={22} className="text-purple" />
-                {editingExpense ? `Edit Expense (${editingExpense.expense_number})` : 'Add New Expense'}
-              </h2>
+        <div className="side-drawer-backdrop" onClick={() => setIsFormModalOpen(false)}>
+          <div className="side-drawer-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="side-drawer-header">
+              <div className="flex-center gap-xs">
+                <div className="metric-icon-box purple" style={{ width: 42, height: 42, borderRadius: 12 }}>
+                  <TrendingDown size={22} />
+                </div>
+                <div>
+                  <h3 className="font-md font-weight-800 color-heading margin-none">
+                    {editingExpense ? `Edit Expense (${editingExpense.expense_number})` : 'Add New Expense'}
+                  </h3>
+                  <p className="font-xs color-subtle margin-none">Record a new disbursement for Mahall accounts.</p>
+                </div>
+              </div>
               <button className="btn btn-ghost btn-icon" onClick={() => setIsFormModalOpen(false)}>
                 <X size={18} />
               </button>
             </div>
 
-            {editingExpense && editingExpense.status === 'approved' && (
-              <div className="alert alert-warning margin-bottom-md padding-sm font-xs radius-md">
-                <AlertCircle size={16} className="margin-right-xs display-inline" />
-                <strong>Approved Financial Record Warning:</strong> Modifying an approved expense will update the audit trail and require an explicit justification reason below.
-              </div>
-            )}
-
-            <form onSubmit={handleSaveExpense}>
-              <div className="grid-layout cols-2 gap-md margin-bottom-md">
-                <div>
-                  <label className="form-label font-xs font-weight-600 margin-bottom-2xs display-block">
-                    Expense Date <span className="text-danger">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    className="form-input"
-                    value={formData.expense_date}
-                    onChange={(e) => setFormData({ ...formData, expense_date: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="form-label font-xs font-weight-600 margin-bottom-2xs display-block">
-                    Category <span className="text-danger">*</span>
-                  </label>
-                  <select
-                    className="select-input width-full"
-                    value={formData.category_id}
-                    onChange={(e) => {
-                      const selCat = categories.find((c) => c.id === e.target.value);
-                      setFormData({
-                        ...formData,
-                        category_id: e.target.value,
-                        category_name: selCat ? selCat.name : formData.category_name,
-                      });
-                    }}
-                    required
-                  >
-                    <option value="">-- Select Category --</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id} disabled={!c.is_active}>
-                        {c.name} {!c.is_active ? '(Inactive)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="margin-bottom-md">
-                <label className="form-label font-xs font-weight-600 margin-bottom-2xs display-block">
-                  Description <span className="text-danger">*</span>
-                </label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="e.g. Mosque electricity bill for August 2026"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="grid-layout cols-2 gap-md margin-bottom-md">
-                <div>
-                  <label className="form-label font-xs font-weight-600 margin-bottom-2xs display-block">
-                    Paid To (Vendor / Recipient) <span className="text-danger">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. KSEB, Rahman Plumbing, ABC Caterers"
-                    value={formData.paid_to}
-                    onChange={(e) => setFormData({ ...formData, paid_to: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="form-label font-xs font-weight-600 margin-bottom-2xs display-block">
-                    Invoice / Bill / Reference No.
-                  </label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. INV-2026-084"
-                    value={formData.reference_number}
-                    onChange={(e) => setFormData({ ...formData, reference_number: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="grid-layout cols-2 gap-md margin-bottom-md">
-                <div>
-                  <label className="form-label font-xs font-weight-600 margin-bottom-2xs display-block">
-                    Amount (₹) <span className="text-danger">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    className="form-input font-weight-700 text-purple"
-                    placeholder="e.g. 4850.00"
-                    value={formData.amount}
-                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="form-label font-xs font-weight-600 margin-bottom-2xs display-block">
-                    Payment Method <span className="text-danger">*</span>
-                  </label>
-                  <select
-                    className="select-input width-full"
-                    value={formData.payment_method}
-                    onChange={(e) => setFormData({ ...formData, payment_method: e.target.value as any })}
-                  >
-                    <option value="cash">Cash</option>
-                    <option value="bank_transfer">Bank Transfer</option>
-                    <option value="upi">UPI</option>
-                    <option value="cheque">Cheque</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-              </div>
-
-              {formData.payment_method === 'bank_transfer' && (
-                <div className="grid-layout cols-2 gap-md margin-bottom-md padding-sm bg-subtle radius-md">
-                  <div>
-                    <label className="form-label font-2xs color-subtle margin-bottom-2xs display-block">Bank Account</label>
-                    <input
-                      type="text"
-                      className="form-input font-xs"
-                      placeholder="e.g. SBI A/C 39847291"
-                      value={formData.bank_account}
-                      onChange={(e) => setFormData({ ...formData, bank_account: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="form-label font-2xs color-subtle margin-bottom-2xs display-block">Transaction Reference</label>
-                    <input
-                      type="text"
-                      className="form-input font-xs"
-                      placeholder="e.g. TXN9827364"
-                      value={formData.transaction_reference}
-                      onChange={(e) => setFormData({ ...formData, transaction_reference: e.target.value })}
-                    />
-                  </div>
+            <div className="side-drawer-body">
+              {editingExpense && editingExpense.status === 'approved' && (
+                <div className="alert alert-warning margin-bottom-md padding-sm font-xs radius-md">
+                  <AlertCircle size={16} className="margin-right-xs display-inline" />
+                  <strong>Approved Financial Record Warning:</strong> Modifying an approved expense will update the audit trail and require an explicit justification reason below.
                 </div>
               )}
 
-              {formData.payment_method === 'upi' && (
-                <div className="margin-bottom-md padding-sm bg-subtle radius-md">
-                  <label className="form-label font-2xs color-subtle margin-bottom-2xs display-block">UPI Reference ID</label>
+              <form id="expense-side-form" onSubmit={handleSaveExpense}>
+                <div className="grid-layout cols-2 gap-md margin-bottom-md">
+                  <div>
+                    <label className="form-label font-2xs font-weight-700 text-uppercase color-subtle margin-bottom-2xs display-block">
+                      Expense Date <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      className="form-input"
+                      value={formData.expense_date}
+                      onChange={(e) => setFormData({ ...formData, expense_date: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="form-label font-2xs font-weight-700 text-uppercase color-subtle margin-bottom-2xs display-block">
+                      Category <span className="text-danger">*</span>
+                    </label>
+                    <select
+                      className="select-input width-full"
+                      value={formData.category_id}
+                      onChange={(e) => {
+                        const selCat = categories.find((c) => c.id === e.target.value);
+                        setFormData({
+                          ...formData,
+                          category_id: e.target.value,
+                          category_name: selCat ? selCat.name : formData.category_name,
+                        });
+                      }}
+                      required
+                    >
+                      <option value="">-- Select Category --</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id} disabled={!c.is_active}>
+                          {c.name} {!c.is_active ? '(Inactive)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="margin-bottom-md">
+                  <label className="form-label font-2xs font-weight-700 text-uppercase color-subtle margin-bottom-2xs display-block">
+                    Description <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Mosque electricity bill for August 2026"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="grid-layout cols-2 gap-md margin-bottom-md">
+                  <div>
+                    <label className="form-label font-2xs font-weight-700 text-uppercase color-subtle margin-bottom-2xs display-block">
+                      Paid To (Vendor / Recipient) <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. KSEB, Rahman Plumbing"
+                      value={formData.paid_to}
+                      onChange={(e) => setFormData({ ...formData, paid_to: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="form-label font-2xs font-weight-700 text-uppercase color-subtle margin-bottom-2xs display-block">
+                      Invoice / Bill / Reference No.
+                    </label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. INV-2026-084"
+                      value={formData.reference_number}
+                      onChange={(e) => setFormData({ ...formData, reference_number: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid-layout cols-2 gap-md margin-bottom-md">
+                  <div>
+                    <label className="form-label font-2xs font-weight-700 text-uppercase color-subtle margin-bottom-2xs display-block">
+                      Amount (₹) <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      className="form-input font-weight-700 text-purple"
+                      placeholder="e.g. 4850.00"
+                      value={formData.amount}
+                      onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="form-label font-2xs font-weight-700 text-uppercase color-subtle margin-bottom-2xs display-block">
+                      Payment Method <span className="text-danger">*</span>
+                    </label>
+                    <select
+                      className="select-input width-full"
+                      value={formData.payment_method}
+                      onChange={(e) => setFormData({ ...formData, payment_method: e.target.value as any })}
+                    >
+                      <option value="cash">Cash</option>
+                      <option value="bank_transfer">Bank Transfer</option>
+                      <option value="upi">UPI</option>
+                      <option value="cheque">Cheque</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                {formData.payment_method === 'bank_transfer' && (
+                  <div className="grid-layout cols-2 gap-md margin-bottom-md padding-sm bg-subtle radius-md">
+                    <div>
+                      <label className="form-label font-2xs color-subtle margin-bottom-2xs display-block">Bank Account</label>
+                      <input
+                        type="text"
+                        className="form-input font-xs"
+                        placeholder="e.g. SBI A/C 39847291"
+                        value={formData.bank_account}
+                        onChange={(e) => setFormData({ ...formData, bank_account: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="form-label font-2xs color-subtle margin-bottom-2xs display-block">Transaction Reference</label>
+                      <input
+                        type="text"
+                        className="form-input font-xs"
+                        placeholder="e.g. TXN9827364"
+                        value={formData.transaction_reference}
+                        onChange={(e) => setFormData({ ...formData, transaction_reference: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {formData.payment_method === 'upi' && (
+                  <div className="margin-bottom-md padding-sm bg-subtle radius-md">
+                    <label className="form-label font-2xs color-subtle margin-bottom-2xs display-block">UPI Reference ID</label>
+                    <input
+                      type="text"
+                      className="form-input font-xs"
+                      placeholder="e.g. UPI9847291823"
+                      value={formData.upi_reference_id}
+                      onChange={(e) => setFormData({ ...formData, upi_reference_id: e.target.value })}
+                    />
+                  </div>
+                )}
+
+                {formData.payment_method === 'cheque' && (
+                  <div className="grid-layout cols-2 gap-md margin-bottom-md padding-sm bg-subtle radius-md">
+                    <div>
+                      <label className="form-label font-2xs color-subtle margin-bottom-2xs display-block">Cheque Number</label>
+                      <input
+                        type="text"
+                        className="form-input font-xs"
+                        placeholder="e.g. CHQ-98273"
+                        value={formData.cheque_number}
+                        onChange={(e) => setFormData({ ...formData, cheque_number: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="form-label font-2xs color-subtle margin-bottom-2xs display-block">Bank Name</label>
+                      <input
+                        type="text"
+                        className="form-input font-xs"
+                        placeholder="e.g. Federal Bank"
+                        value={formData.bank_name}
+                        onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid-layout cols-2 gap-md margin-bottom-md">
+                  <div>
+                    <label className="form-label font-2xs font-weight-700 text-uppercase color-subtle margin-bottom-2xs display-block">Fund / Account</label>
+                    <select
+                      className="select-input width-full"
+                      value={formData.fund_id}
+                      onChange={(e) => setFormData({ ...formData, fund_id: e.target.value })}
+                    >
+                      <option value="general_fund">General Fund</option>
+                      <option value="mosque_fund">Mosque Fund</option>
+                      <option value="madrasa_fund">Madrasa Fund</option>
+                      <option value="zakat_fund">Zakat Fund (Restricted)</option>
+                      <option value="welfare_fund">Welfare Fund</option>
+                      <option value="construction_fund">Construction Fund</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="form-label font-2xs font-weight-700 text-uppercase color-subtle margin-bottom-2xs display-block">Initial Status</label>
+                    <select
+                      className="select-input width-full"
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                    >
+                      <option value="approved">Approved (Direct Approval)</option>
+                      <option value="pending">Pending Approval</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="margin-bottom-md">
+                  <label className="form-label font-2xs font-weight-700 text-uppercase color-subtle margin-bottom-2xs display-block">Attachment (Receipt / Bill URL or filename)</label>
                   <input
                     type="text"
                     className="form-input font-xs"
-                    placeholder="e.g. UPI9847291823"
-                    value={formData.upi_reference_id}
-                    onChange={(e) => setFormData({ ...formData, upi_reference_id: e.target.value })}
+                    placeholder="e.g. electricity-bill-august.pdf"
+                    value={formData.attachment_url}
+                    onChange={(e) => setFormData({ ...formData, attachment_url: e.target.value })}
                   />
                 </div>
-              )}
 
-              {formData.payment_method === 'cheque' && (
-                <div className="grid-layout cols-2 gap-md margin-bottom-md padding-sm bg-subtle radius-md">
-                  <div>
-                    <label className="form-label font-2xs color-subtle margin-bottom-2xs display-block">Cheque Number</label>
-                    <input
-                      type="text"
-                      className="form-input font-xs"
-                      placeholder="e.g. CHQ-98273"
-                      value={formData.cheque_number}
-                      onChange={(e) => setFormData({ ...formData, cheque_number: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="form-label font-2xs color-subtle margin-bottom-2xs display-block">Bank Name</label>
-                    <input
-                      type="text"
-                      className="form-input font-xs"
-                      placeholder="e.g. Federal Bank"
-                      value={formData.bank_name}
-                      onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="grid-layout cols-2 gap-md margin-bottom-md">
-                <div>
-                  <label className="form-label font-xs font-weight-600 margin-bottom-2xs display-block">Fund / Account</label>
-                  <select
-                    className="select-input width-full"
-                    value={formData.fund_id}
-                    onChange={(e) => setFormData({ ...formData, fund_id: e.target.value })}
-                  >
-                    <option value="general_fund">General Fund</option>
-                    <option value="mosque_fund">Mosque Fund</option>
-                    <option value="madrasa_fund">Madrasa Fund</option>
-                    <option value="zakat_fund">Zakat Fund (Restricted)</option>
-                    <option value="welfare_fund">Welfare Fund</option>
-                    <option value="construction_fund">Construction Fund</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="form-label font-xs font-weight-600 margin-bottom-2xs display-block">Initial Status</label>
-                  <select
-                    className="select-input width-full"
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                  >
-                    <option value="approved">Approved (Direct Approval)</option>
-                    <option value="pending">Pending Approval</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="margin-bottom-md">
-                <label className="form-label font-xs font-weight-600 margin-bottom-2xs display-block">Attachment (Receipt / Bill URL or filename)</label>
-                <input
-                  type="text"
-                  className="form-input font-xs"
-                  placeholder="e.g. electricity-bill-august.pdf"
-                  value={formData.attachment_url}
-                  onChange={(e) => setFormData({ ...formData, attachment_url: e.target.value })}
-                />
-              </div>
-
-              <div className="margin-bottom-md">
-                <label className="form-label font-xs font-weight-600 margin-bottom-2xs display-block">Notes / Internal Comments</label>
-                <textarea
-                  className="form-textarea font-xs"
-                  rows={2}
-                  placeholder="Optional context..."
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                />
-              </div>
-
-              {editingExpense && editingExpense.status === 'approved' && (
-                <div className="margin-bottom-md border-top padding-top-sm">
-                  <label className="form-label font-xs font-weight-700 text-danger margin-bottom-2xs display-block">
-                    Audit Modification Reason <span className="text-danger">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    className="form-input border-danger"
-                    placeholder="e.g. Corrected invoice amount as per revised KSEB receipt"
-                    value={editReasonRequired}
-                    onChange={(e) => setEditReasonRequired(e.target.value)}
-                    required
+                <div className="margin-bottom-md">
+                  <label className="form-label font-2xs font-weight-700 text-uppercase color-subtle margin-bottom-2xs display-block">Notes / Internal Comments</label>
+                  <textarea
+                    className="form-textarea font-xs"
+                    rows={2}
+                    placeholder="Optional context..."
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   />
                 </div>
-              )}
 
-              <div className="flex-between gap-sm margin-top-md border-top padding-top-sm">
-                <button type="button" className="btn btn-ghost" onClick={() => setIsFormModalOpen(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary flex-center gap-xs" disabled={isSubmitting}>
-                  {isSubmitting ? 'Saving Expense...' : editingExpense ? 'Update Expense' : 'Record Expense'}
-                </button>
-              </div>
-            </form>
+                {editingExpense && editingExpense.status === 'approved' && (
+                  <div className="margin-bottom-md border-top padding-top-sm">
+                    <label className="form-label font-xs font-weight-700 text-danger margin-bottom-2xs display-block">
+                      Audit Modification Reason <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="form-input border-danger"
+                      placeholder="e.g. Corrected invoice amount as per revised KSEB receipt"
+                      value={editReasonRequired}
+                      onChange={(e) => setEditReasonRequired(e.target.value)}
+                      required
+                    />
+                  </div>
+                )}
+              </form>
+            </div>
+
+            <div className="side-drawer-footer">
+              <button type="button" className="btn btn-ghost" onClick={() => setIsFormModalOpen(false)}>Cancel</button>
+              <button
+                type="submit"
+                form="expense-side-form"
+                className="btn btn-primary font-xs flex-center gap-xs shadow-purple"
+                style={{ borderRadius: 9999, padding: '10px 24px', background: '#01A350', color: '#ffffff' }}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Saving Expense...' : editingExpense ? 'Update Expense' : 'Record Expense'}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* VIEW DETAILS MODAL OVERLAY */}
+      {/* VIEW DETAILS SIDE DRAWER */}
       {isDetailsModalOpen && viewingExpense && (
-        <div className="custom-modal-backdrop">
-          <div className="custom-modal-dialog" style={{ maxWidth: 650 }}>
-            <div className="flex-between border-bottom padding-bottom-sm margin-bottom-md">
-              <div>
-                <span className="font-2xs font-weight-700 text-purple text-uppercase">Expense Record #{viewingExpense.expense_number}</span>
-                <h2 className="font-lg font-weight-800 color-heading margin-none">₹{viewingExpense.amount.toLocaleString('en-IN')}</h2>
+        <div className="side-drawer-backdrop" onClick={() => setIsDetailsModalOpen(false)}>
+          <div className="side-drawer-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="side-drawer-header">
+              <div className="flex-center gap-xs">
+                <div className="metric-icon-box purple" style={{ width: 42, height: 42, borderRadius: 12 }}>
+                  <TrendingDown size={20} />
+                </div>
+                <div>
+                  <span className="font-2xs font-weight-700 text-purple text-uppercase display-block">
+                    Expense Record #{viewingExpense.expense_number}
+                  </span>
+                  <h3 className="font-md font-weight-800 color-heading margin-none">
+                    ₹{viewingExpense.amount.toLocaleString('en-IN')}
+                  </h3>
+                </div>
               </div>
               <div className="flex-center gap-xs">
                 <span className={`badge badge-${viewingExpense.status === 'approved' ? 'success' : viewingExpense.status === 'pending' ? 'warning' : 'danger'}`}>
@@ -2006,159 +2158,302 @@ export const Expenses: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid-layout cols-2 gap-md font-sm margin-bottom-md">
-              <div>
-                <span className="color-subtle font-2xs display-block">Date</span>
-                <strong className="color-heading">{viewingExpense.expense_date}</strong>
-              </div>
-              <div>
-                <span className="color-subtle font-2xs display-block">Category</span>
-                <strong className="text-purple">{viewingExpense.category_name}</strong>
-              </div>
-              <div className="col-span-2">
-                <span className="color-subtle font-2xs display-block">Description</span>
-                <strong className="color-heading">{viewingExpense.description}</strong>
-              </div>
-              <div>
-                <span className="color-subtle font-2xs display-block">Paid To</span>
-                <strong className="color-heading">{viewingExpense.paid_to}</strong>
-              </div>
-              <div>
-                <span className="color-subtle font-2xs display-block">Payment Method</span>
-                <strong className="color-heading text-uppercase">{viewingExpense.payment_method.replace('_', ' ')}</strong>
-              </div>
-              {viewingExpense.reference_number && (
+            <div className="side-drawer-body">
+              <div className="grid-layout cols-2 gap-md font-sm margin-bottom-md">
                 <div>
-                  <span className="color-subtle font-2xs display-block">Reference No</span>
-                  <strong>{viewingExpense.reference_number}</strong>
+                  <span className="color-subtle font-2xs display-block">Date</span>
+                  <strong className="color-heading">{viewingExpense.expense_date}</strong>
+                </div>
+                <div>
+                  <span className="color-subtle font-2xs display-block">Category</span>
+                  <strong className="text-purple">{viewingExpense.category_name}</strong>
+                </div>
+                <div className="col-span-2">
+                  <span className="color-subtle font-2xs display-block">Description</span>
+                  <strong className="color-heading">{viewingExpense.description}</strong>
+                </div>
+                <div>
+                  <span className="color-subtle font-2xs display-block">Paid To</span>
+                  <strong className="color-heading">{viewingExpense.paid_to}</strong>
+                </div>
+                <div>
+                  <span className="color-subtle font-2xs display-block">Payment Method</span>
+                  <strong className="color-heading text-uppercase">{viewingExpense.payment_method.replace('_', ' ')}</strong>
+                </div>
+                {viewingExpense.reference_number && (
+                  <div>
+                    <span className="color-subtle font-2xs display-block">Reference No</span>
+                    <strong>{viewingExpense.reference_number}</strong>
+                  </div>
+                )}
+                <div>
+                  <span className="color-subtle font-2xs display-block">Fund / Account</span>
+                  <strong className="text-capitalize">{(viewingExpense.fund_id || 'general_fund').replace('_', ' ')}</strong>
+                </div>
+              </div>
+
+              {viewingAuditLogs.length > 0 && (
+                <div className="border-top padding-top-sm">
+                  <span className="font-2xs font-weight-700 text-uppercase color-subtle display-block margin-bottom-xs">
+                    Audit History Log
+                  </span>
+                  <div className="font-2xs color-subtle max-h-48 overflow-y-auto">
+                    {viewingAuditLogs.map((log) => (
+                      <div key={log.id} className="margin-bottom-2xs border-bottom padding-bottom-2xs">
+                        <strong>[{log.action}]</strong> by {log.performed_by} on {new Date(log.performed_at).toLocaleString()}
+                        {log.reason && <span className="display-block italic color-heading">Reason: "{log.reason}"</span>}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
-              <div>
-                <span className="color-subtle font-2xs display-block">Fund / Account</span>
-                <strong className="text-capitalize">{(viewingExpense.fund_id || 'general_fund').replace('_', ' ')}</strong>
-              </div>
             </div>
 
-            {viewingAuditLogs.length > 0 && (
-              <div className="border-top padding-top-sm">
-                <span className="font-2xs font-weight-700 text-uppercase color-subtle display-block margin-bottom-xs">Audit History Log</span>
-                <div className="font-2xs color-subtle max-h-32 overflow-y-auto">
-                  {viewingAuditLogs.map((log) => (
-                    <div key={log.id} className="margin-bottom-2xs border-bottom padding-bottom-2xs">
-                      <strong>[{log.action}]</strong> by {log.performed_by} on {new Date(log.performed_at).toLocaleString()}
-                      {log.reason && <span className="display-block italic color-heading">Reason: "{log.reason}"</span>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="flex-end gap-xs margin-top-md border-top padding-top-sm">
+            <div className="side-drawer-footer">
               <button className="btn btn-ghost" onClick={() => setIsDetailsModalOpen(false)}>Close</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* REJECT MODAL OVERLAY */}
-      {isRejectModalOpen && rejectingExpense && (
-        <div className="custom-modal-backdrop">
-          <div className="custom-modal-dialog" style={{ maxWidth: 450 }}>
-            <h3 className="font-md font-weight-700 color-heading margin-bottom-xs">Reject Expense #{rejectingExpense.expense_number}?</h3>
-            <textarea
-              className="form-textarea font-xs margin-bottom-md"
-              rows={3}
-              placeholder="Enter rejection reason..."
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              required
-            />
-            <div className="flex-between gap-sm">
-              <button className="btn btn-ghost" onClick={() => setIsRejectModalOpen(false)}>Cancel</button>
-              <button className="btn btn-danger" onClick={handleConfirmReject}>Reject Expense</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* VOID MODAL OVERLAY */}
+      {/* VOID EXPENSE SIDE DRAWER */}
       {isVoidModalOpen && voidingExpense && (
-        <div className="custom-modal-backdrop">
-          <div className="custom-modal-dialog" style={{ maxWidth: 450 }}>
-            <h3 className="font-md font-weight-700 text-danger margin-bottom-xs">Void Approved Expense #{voidingExpense.expense_number}?</h3>
-            <textarea
-              className="form-textarea font-xs margin-bottom-md"
-              rows={3}
-              placeholder="Enter void justification reason..."
-              value={voidReason}
-              onChange={(e) => setVoidReason(e.target.value)}
-              required
-            />
-            <div className="flex-between gap-sm">
-              <button className="btn btn-ghost" onClick={() => setIsVoidModalOpen(false)}>Cancel</button>
-              <button className="btn btn-danger" onClick={handleConfirmVoid}>Void Expense Record</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* CATEGORY ADD/EDIT MODAL OVERLAY */}
-      {isCatModalOpen && (
-        <div className="custom-modal-backdrop">
-          <div className="custom-modal-dialog" style={{ maxWidth: 500 }}>
-            <div className="flex-between margin-bottom-md border-bottom padding-bottom-sm">
-              <h2 className="font-lg font-weight-700 color-heading flex-center gap-xs">
-                <Tag size={20} className="text-purple" />
-                {editingCategory ? 'Edit Expense Category' : 'Add New Expense Category'}
-              </h2>
-              <button className="btn btn-ghost btn-icon" onClick={() => setIsCatModalOpen(false)}>✕</button>
+        <div className="side-drawer-backdrop" onClick={() => setIsVoidModalOpen(false)}>
+          <div className="side-drawer-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="side-drawer-header">
+              <div className="flex-center gap-xs">
+                <div className="metric-icon-box danger" style={{ width: 42, height: 42, borderRadius: 12, background: '#fee2e2', color: '#dc2626' }}>
+                  <AlertCircle size={20} />
+                </div>
+                <div>
+                  <h3 className="font-md font-weight-800 text-danger margin-none">
+                    Void Expense #{voidingExpense.expense_number}
+                  </h3>
+                  <p className="font-xs color-subtle margin-none">Audit compliance justification</p>
+                </div>
+              </div>
+              <button className="btn btn-ghost btn-icon" onClick={() => setIsVoidModalOpen(false)}>
+                <X size={18} />
+              </button>
             </div>
 
-            <form onSubmit={handleSaveCat}>
+            <div className="side-drawer-body">
+              <p className="font-xs color-subtle margin-bottom-sm">
+                You are voiding approved expense <strong>#{voidingExpense.expense_number}</strong> (₹{voidingExpense.amount.toLocaleString('en-IN')}). An audit log will record your justification.
+              </p>
               <div className="margin-bottom-md">
-                <label className="form-label font-sm font-weight-600 margin-bottom-xs display-block">
-                  Category Name <span className="text-danger">*</span>
+                <label className="form-label font-2xs font-weight-700 text-uppercase color-subtle margin-bottom-2xs display-block">
+                  Void Justification Reason <span className="text-danger">*</span>
                 </label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="e.g. Maintenance, Electricity"
-                  value={catFormData.name}
-                  onChange={(e) => setCatFormData({ ...catFormData, name: e.target.value })}
+                <textarea
+                  className="form-textarea font-xs border-danger"
+                  rows={4}
+                  placeholder="Enter reason for voiding this record..."
+                  value={voidReason}
+                  onChange={(e) => setVoidReason(e.target.value)}
                   required
                 />
               </div>
+            </div>
 
-              <div className="margin-bottom-md">
-                <label className="form-label font-sm font-weight-600 margin-bottom-xs display-block">Description</label>
-                <textarea
-                  className="form-textarea"
-                  rows={3}
-                  placeholder="Optional details..."
-                  value={catFormData.description}
-                  onChange={(e) => setCatFormData({ ...catFormData, description: e.target.value })}
-                />
+            <div className="side-drawer-footer">
+              <button className="btn btn-ghost" onClick={() => setIsVoidModalOpen(false)}>Cancel</button>
+              <button className="btn btn-danger font-xs shadow-sm" onClick={handleConfirmVoid}>
+                Void Expense Record
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CATEGORY ADD/EDIT SIDE DRAWER (MATCHING IMAGE 3 DESIGN) */}
+      {isCatModalOpen && (
+        <div className="side-drawer-backdrop" onClick={() => setIsCatModalOpen(false)}>
+          <div className="side-drawer-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="side-drawer-header">
+              <div className="flex-center gap-xs">
+                <div className="metric-icon-box purple" style={{ width: 42, height: 42, borderRadius: 12 }}>
+                  <Tag size={20} />
+                </div>
+                <div>
+                  <h3 className="font-md font-weight-800 color-heading margin-none">
+                    {editingCategory ? 'Edit Expense Category' : 'Add New Expense Category'}
+                  </h3>
+                  <p className="font-xs color-subtle margin-none">Configure classification category for disbursements.</p>
+                </div>
+              </div>
+              <button className="btn btn-ghost btn-icon" onClick={() => setIsCatModalOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="side-drawer-body">
+              <form id="cat-side-form" onSubmit={handleSaveCat}>
+                <div className="margin-bottom-md">
+                  <label className="form-label font-2xs font-weight-700 text-uppercase color-subtle margin-bottom-2xs display-block">
+                    Category Name <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Maintenance, Electricity"
+                    value={catFormData.name}
+                    onChange={(e) => setCatFormData({ ...catFormData, name: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="margin-bottom-md">
+                  <label className="form-label font-2xs font-weight-700 text-uppercase color-subtle margin-bottom-2xs display-block">Description</label>
+                  <textarea
+                    className="form-textarea font-xs"
+                    rows={4}
+                    placeholder="Optional details..."
+                    value={catFormData.description}
+                    onChange={(e) => setCatFormData({ ...catFormData, description: e.target.value })}
+                  />
+                </div>
+
+                <div className="margin-bottom-lg flex-center gap-xs justify-start padding-sm bg-subtle radius-md">
+                  <input
+                    type="checkbox"
+                    id="cat_active_checkbox"
+                    checked={catFormData.is_active}
+                    onChange={(e) => setCatFormData({ ...catFormData, is_active: e.target.checked })}
+                  />
+                  <label htmlFor="cat_active_checkbox" className="font-xs cursor-pointer color-heading font-weight-600">
+                    Active (Can be selected when recording new expenses)
+                  </label>
+                </div>
+              </form>
+            </div>
+
+            <div className="side-drawer-footer">
+              <button type="button" className="btn btn-ghost" onClick={() => setIsCatModalOpen(false)}>Cancel</button>
+              <button
+                type="submit"
+                form="cat-side-form"
+                className="btn btn-primary font-xs flex-center gap-xs"
+                style={{ borderRadius: 9999, padding: '10px 24px', background: '#01A350', color: '#ffffff' }}
+                disabled={isSubmittingCat}
+              >
+                {isSubmittingCat ? 'Saving Category...' : editingCategory ? 'Update Category' : 'Create Category'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BULK DELETE EXPENSES SIDE DRAWER */}
+      {isBulkDeleteExpenseModalOpen && (
+        <div className="side-drawer-backdrop" onClick={() => setIsBulkDeleteExpenseModalOpen(false)}>
+          <div className="side-drawer-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="side-drawer-header">
+              <div className="flex-center gap-xs">
+                <div className="metric-icon-box red" style={{ width: 42, height: 42, borderRadius: 12, background: '#fee2e2', color: '#dc2626' }}>
+                  <Trash2 size={22} />
+                </div>
+                <div>
+                  <h3 className="font-md font-weight-800 text-danger margin-none">Bulk Delete / Void Expenses</h3>
+                  <p className="font-xs color-subtle margin-none">{selectedExpenseIds.length} expense records selected for deletion.</p>
+                </div>
+              </div>
+              <button className="btn btn-ghost btn-icon" onClick={() => setIsBulkDeleteExpenseModalOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="side-drawer-body">
+              <div className="alert alert-danger margin-bottom-md padding-sm font-xs radius-md">
+                <AlertCircle size={16} className="margin-right-xs display-inline" />
+                <strong>Permanent Financial Action:</strong> Non-approved expenses will be permanently deleted. Approved expenses will be marked as <strong>VOIDED</strong> to preserve audit trail compliance.
               </div>
 
-              <div className="margin-bottom-lg flex-center gap-sm">
-                <input
-                  type="checkbox"
-                  id="cat_active_checkbox"
-                  checked={catFormData.is_active}
-                  onChange={(e) => setCatFormData({ ...catFormData, is_active: e.target.checked })}
-                />
-                <label htmlFor="cat_active_checkbox" className="font-sm cursor-pointer color-heading font-weight-500">
-                  Active (Can be selected when recording new expenses)
-                </label>
-              </div>
+              {expenses.filter((e) => selectedExpenseIds.includes(e.id)).some((e) => e.status === 'approved') && (
+                <div className="margin-bottom-md">
+                  <label className="form-label font-xs font-weight-700 text-danger margin-bottom-2xs display-block">
+                    Void Justification Reason <span className="text-danger">*</span>
+                  </label>
+                  <textarea
+                    className="form-textarea font-xs border-danger"
+                    rows={3}
+                    placeholder="Enter explicit reason for voiding approved expense records..."
+                    value={bulkVoidReason}
+                    onChange={(e) => setBulkVoidReason(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
 
-              <div className="flex-between gap-sm margin-top-md border-top padding-top-sm">
-                <button type="button" className="btn btn-ghost" onClick={() => setIsCatModalOpen(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={isSubmittingCat}>
-                  {isSubmittingCat ? 'Saving...' : editingCategory ? 'Update Category' : 'Create Category'}
-                </button>
+              <div className="font-xs color-subtle margin-bottom-sm font-weight-700">Selected Records:</div>
+              <div className="font-xs max-h-60 overflow-y-auto padding-xs bg-subtle radius-md border">
+                {expenses.filter((e) => selectedExpenseIds.includes(e.id)).map((exp) => (
+                  <div key={exp.id} className="flex-between padding-2xs border-bottom font-2xs">
+                    <span className="font-weight-700 color-heading">{exp.expense_number} - {exp.paid_to}</span>
+                    <span className="font-weight-800 text-purple">₹{(exp.amount || 0).toLocaleString('en-IN')}</span>
+                  </div>
+                ))}
               </div>
-            </form>
+            </div>
+
+            <div className="side-drawer-footer">
+              <button className="btn btn-ghost" onClick={() => setIsBulkDeleteExpenseModalOpen(false)}>Cancel</button>
+              <button
+                className="btn btn-danger font-xs flex-center gap-xs"
+                style={{ borderRadius: 9999, padding: '10px 22px' }}
+                onClick={handleExecuteBulkDeleteExpenses}
+              >
+                Confirm Bulk Action ({selectedExpenseIds.length})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BULK DELETE CATEGORIES SIDE DRAWER */}
+      {isBulkDeleteCatModalOpen && (
+        <div className="side-drawer-backdrop" onClick={() => setIsBulkDeleteCatModalOpen(false)}>
+          <div className="side-drawer-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="side-drawer-header">
+              <div className="flex-center gap-xs">
+                <div className="metric-icon-box red" style={{ width: 42, height: 42, borderRadius: 12, background: '#fee2e2', color: '#dc2626' }}>
+                  <Trash2 size={22} />
+                </div>
+                <div>
+                  <h3 className="font-md font-weight-800 text-danger margin-none">Bulk Delete Categories</h3>
+                  <p className="font-xs color-subtle margin-none">{selectedCategoryIds.length} categories selected for deletion.</p>
+                </div>
+              </div>
+              <button className="btn btn-ghost btn-icon" onClick={() => setIsBulkDeleteCatModalOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="side-drawer-body">
+              <p className="font-sm color-heading margin-bottom-md">
+                Are you sure you want to delete these <strong>{selectedCategoryIds.length}</strong> selected expense categories? This action cannot be undone.
+              </p>
+
+              <div className="font-xs color-subtle margin-bottom-sm font-weight-700">Selected Categories:</div>
+              <div className="font-xs max-h-60 overflow-y-auto padding-xs bg-subtle radius-md border">
+                {categories.filter((c) => selectedCategoryIds.includes(c.id)).map((cat) => (
+                  <div key={cat.id} className="padding-2xs border-bottom font-2xs font-weight-700 color-heading">
+                    🏷️ {cat.name}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="side-drawer-footer">
+              <button className="btn btn-ghost" onClick={() => setIsBulkDeleteCatModalOpen(false)}>Cancel</button>
+              <button
+                className="btn btn-danger font-xs flex-center gap-xs"
+                style={{ borderRadius: 9999, padding: '10px 22px' }}
+                onClick={handleExecuteBulkDeleteCategories}
+              >
+                Delete Selected ({selectedCategoryIds.length})
+              </button>
+            </div>
           </div>
         </div>
       )}

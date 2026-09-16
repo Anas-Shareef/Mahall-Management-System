@@ -2726,6 +2726,19 @@ export const db = {
       }
       return null;
     },
+    delete: async (id: string): Promise<boolean> => {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { error } = await supabase.from('expense_categories').delete().eq('id', id);
+          if (!error) return true;
+        } catch (e) {
+          console.warn('Supabase expense_categories delete notice:', e);
+        }
+      }
+      const list = getLocalData<ExpenseCategory>('mahal_expense_categories').filter((c) => c.id !== id);
+      saveLocalData('mahal_expense_categories', list);
+      return true;
+    },
   },
 
   // EXPENSES

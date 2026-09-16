@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { SidePanel } from './SidePanel';
 import { db } from '../services/db';
-import type { Household, Member, MemberSubscription, Payment } from '../services/db';
-import { Home, Users, FileText, Receipt, ShieldCheck, Plus, DollarSign, Share2 } from 'lucide-react';
+import type { Household, Member, MemberSubscription, Payment, Donation } from '../services/db';
+import { Home, Users, FileText, Receipt, ShieldCheck, Plus, DollarSign, Share2, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '../contexts/OrganizationContext';
 
@@ -21,32 +21,45 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
   onGrantAccess,
 }) => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'members' | 'subscriptions' | 'payments'>('members');
+  const [activeTab, setActiveTab] = useState<'members' | 'subscriptions' | 'payments' | 'donations'>('members');
   const [members, setMembers] = useState<Member[]>([]);
-  const [memberSubscriptions, setMemberSubscriptions] = useState<{ member: Member; sub: MemberSubscription | null }[]>([]);
+  const [memberSubscriptions, setMemberSubscriptions] = useState<{ member: Member; sub: MemberSubscription | null; totalDonated: number }[]>([]);
   const [householdPayments, setHouseholdPayments] = useState<Payment[]>([]);
+  const [householdDonations, setHouseholdDonations] = useState<Donation[]>([]);
 
   useEffect(() => {
     if (household) {
       const loadHouseholdDetails = async () => {
         try {
-          const [hMembers, allSubs, allPayments] = await Promise.all([
+          const [hMembers, allSubs, allPayments, allDonations] = await Promise.all([
             db.members.getByHousehold(household.id),
             db.subscriptions.get(),
             db.payments.get(),
+            db.donations.get(),
           ]);
 
           setMembers(hMembers);
 
-          // Map subscriptions for members
+          const memberIds = hMembers.map((m) => m.id);
+
+          // Filter donations for members of this household or matching owner name
+          const hDonations = allDonations.filter((d) =>
+            (d.donor_member_id && memberIds.includes(d.donor_member_id)) ||
+            (d.donor_name && d.donor_name.toLowerCase().trim() === household.house_owner_name.toLowerCase().trim())
+          );
+          setHouseholdDonations(hDonations);
+
+          // Map subscriptions and member donations for members
           const subMap = hMembers.map((m) => {
             const sub = allSubs.find((s) => s.member_id === m.id) || null;
-            return { member: m, sub };
+            const memberDonated = hDonations
+              .filter((d) => d.donor_member_id === m.id)
+              .reduce((sum, d) => sum + (d.amount || 0), 0);
+            return { member: m, sub, totalDonated: memberDonated };
           });
           setMemberSubscriptions(subMap);
 
           // Filter payments for members of this household
-          const memberIds = hMembers.map((m) => m.id);
           const hPayments = allPayments.filter((p) => memberIds.includes(p.member_id));
           setHouseholdPayments(hPayments);
         } catch (err) {
@@ -64,6 +77,7 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
   const totalExpected = memberSubscriptions.reduce((acc, curr) => acc + (curr.sub?.total_due || 0), 0);
   const totalPaid = memberSubscriptions.reduce((acc, curr) => acc + (curr.sub?.total_paid || 0), 0);
   const outstanding = Math.max(0, totalExpected - totalPaid);
+  const totalDonations = householdDonations.reduce((acc, curr) => acc + (curr.amount || 0), 0);
   const portalUsersCount = members.filter((m) => m.portal_access).length;
   const { branding } = useOrganization();
 
@@ -79,13 +93,14 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
     text += `👥 *Total Family Members:* ${members.length}\n\n`;
 
     text += `📊 *FINANCIAL SUMMARY*\n`;
-    text += `• Total Expected: ₹${totalExpected.toLocaleString('en-IN')}\n`;
-    text += `• Total Paid: ₹${totalPaid.toLocaleString('en-IN')}\n`;
-    text += `• *Outstanding Balance:* ₹${outstanding.toLocaleString('en-IN')}\n\n`;
+    text += `• Total Expected Fees: ₹${totalExpected.toLocaleString('en-IN')}\n`;
+    text += `• Total Subscriptions Paid: ₹${totalPaid.toLocaleString('en-IN')}\n`;
+    text += `• *Outstanding Balance:* ₹${outstanding.toLocaleString('en-IN')}\n`;
+    text += `• *Total Donations & Voluntary Contributions:* ₹${totalDonations.toLocaleString('en-IN')}\n\n`;
 
     text += `📋 *FAMILY MEMBERS ROSTER*\n`;
-    memberSubscriptions.forEach(({ member, sub }, idx) => {
-      text += `${idx + 1}. *${member.name}* (${member.relationship})\n   Paid: ₹${(sub?.total_paid || 0).toLocaleString('en-IN')} | Bal: ₹${(sub?.balance || 0).toLocaleString('en-IN')}\n`;
+    memberSubscriptions.forEach(({ member, sub, totalDonated }, idx) => {
+      text += `${idx + 1}. *${member.name}* (${member.relationship})\n   Paid: ₹${(sub?.total_paid || 0).toLocaleString('en-IN')} | Bal: ₹${(sub?.balance || 0).toLocaleString('en-IN')}${totalDonated > 0 ? ` | Donated: ₹${totalDonated.toLocaleString('en-IN')}` : ''}\n`;
     });
 
     text += `\n━━━━━━━━━━━━━━━━━━━━━\n`;
@@ -189,10 +204,11 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
               <th style="text-align: right;">Total Due</th>
               <th style="text-align: right;">Total Paid</th>
               <th style="text-align: right;">Balance</th>
+              <th style="text-align: right;">Donations</th>
             </tr>
           </thead>
           <tbody>
-            ${memberSubscriptions.map(({ member, sub }, idx) => `
+            ${memberSubscriptions.map(({ member, sub, totalDonated }, idx) => `
               <tr>
                 <td>${idx + 1}</td>
                 <td><strong>${member.name}</strong></td>
@@ -201,6 +217,7 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
                 <td style="text-align: right;">₹${(sub?.total_due || 0).toLocaleString('en-IN')}</td>
                 <td style="text-align: right; color: #00966b; font-weight: bold;">₹${(sub?.total_paid || 0).toLocaleString('en-IN')}</td>
                 <td style="text-align: right; color: ${(sub?.balance || 0) > 0 ? '#dc2626' : '#00966b'}; font-weight: bold;">₹${(sub?.balance || 0).toLocaleString('en-IN')}</td>
+                <td style="text-align: right; color: #7c3aed; font-weight: bold;">₹${totalDonated.toLocaleString('en-IN')}</td>
               </tr>
             `).join('')}
             <tr class="total-row">
@@ -208,12 +225,13 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
               <td style="text-align: right;">₹${totalExpected.toLocaleString('en-IN')}</td>
               <td style="text-align: right; color: #00966b;">₹${totalPaid.toLocaleString('en-IN')}</td>
               <td style="text-align: right; color: ${outstanding > 0 ? '#dc2626' : '#00966b'};">₹${outstanding.toLocaleString('en-IN')}</td>
+              <td style="text-align: right; color: #7c3aed;">₹${totalDonations.toLocaleString('en-IN')}</td>
             </tr>
           </tbody>
         </table>
 
         <div class="section-title">CONSOLIDATED FINANCIAL STATEMENT</div>
-        <div class="financial-summary-cards">
+        <div class="financial-summary-cards" style="grid-template-columns: repeat(4, 1fr);">
           <div class="fin-card">
             <label>Expected Fees</label>
             <div class="val">₹${totalExpected.toLocaleString('en-IN')}</div>
@@ -225,6 +243,10 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
           <div class="fin-card">
             <label>Outstanding Balance</label>
             <div class="val" style="color: ${outstanding > 0 ? '#dc2626' : '#00966b'};">₹${outstanding.toLocaleString('en-IN')}</div>
+          </div>
+          <div class="fin-card">
+            <label>Voluntary Donations</label>
+            <div class="val" style="color: #7c3aed;">₹${totalDonations.toLocaleString('en-IN')}</div>
           </div>
         </div>
 
@@ -282,7 +304,7 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
     >
       <div className="flex-col gap-md">
         {/* SUMMARY CARDS GRID */}
-        <div className="analytics-stats-grid">
+        <div className="analytics-stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
           <div className="stat-card glass-card">
             <div className="stat-icon emerald"><Users size={18} /></div>
             <div className="stat-content">
@@ -314,6 +336,14 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
               <h4 className="stat-value text-danger">₹{outstanding}</h4>
             </div>
           </div>
+
+          <div className="stat-card glass-card">
+            <div className="stat-icon purple" style={{ background: '#f3e8ff', color: '#7c3aed' }}><Heart size={18} /></div>
+            <div className="stat-content">
+              <span className="stat-label">Total Donations</span>
+              <h4 className="stat-value text-purple">₹{totalDonations}</h4>
+            </div>
+          </div>
         </div>
 
         {/* TABS BAR */}
@@ -335,6 +365,12 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
             onClick={() => setActiveTab('payments')}
           >
             <Receipt size={15} /> Household Payments ({householdPayments.length})
+          </button>
+          <button
+            className={`settings-pill-tab ${activeTab === 'donations' ? 'active' : ''}`}
+            onClick={() => setActiveTab('donations')}
+          >
+            <Heart size={15} /> Donations ({householdDonations.length})
           </button>
         </div>
 
@@ -382,16 +418,18 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
                     <th>Expected</th>
                     <th>Paid</th>
                     <th>Balance</th>
+                    <th>Donated</th>
                     <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {memberSubscriptions.map(({ member, sub }) => (
+                  {memberSubscriptions.map(({ member, sub, totalDonated }) => (
                     <tr key={member.id}>
                       <td className="font-weight-700">{member.name}</td>
                       <td>₹{sub?.total_due || 0}</td>
                       <td className="text-emerald font-weight-800">₹{sub?.total_paid || 0}</td>
                       <td className="text-danger font-weight-800">₹{sub?.balance || 0}</td>
+                      <td className="text-purple font-weight-800">₹{totalDonated}</td>
                       <td>
                         <span className={`status-badge-pill ${sub?.status || 'unpaid'}`}>
                           {(sub?.status || 'unpaid').replace('_', ' ').toUpperCase()}
@@ -435,6 +473,47 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
                         </tr>
                       );
                     })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 4: DONATIONS */}
+        {activeTab === 'donations' && (
+          <div className="flex-col gap-sm animate-fade-in">
+            {householdDonations.length === 0 ? (
+              <div className="notif-empty">No voluntary donations or campaign contributions recorded for this household yet.</div>
+            ) : (
+              <div className="table-responsive">
+                <table className="custom-data-table font-xs">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Donor Name</th>
+                      <th>Type / Purpose</th>
+                      <th>Amount</th>
+                      <th>Method</th>
+                      <th>Receipt</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {householdDonations.map((d) => (
+                      <tr key={d.id}>
+                        <td>{d.donation_date}</td>
+                        <td className="font-weight-700">{d.donor_name || household.house_owner_name}</td>
+                        <td>
+                          <span className="text-purple font-weight-700">
+                            {d.donation_type === 'campaign' ? 'Campaign Contribution' : 'General Donation'}
+                          </span>
+                          {d.purpose && <span className="display-block font-2xs color-subtle">{d.purpose}</span>}
+                        </td>
+                        <td className="font-weight-800 text-purple">₹{d.amount}</td>
+                        <td className="text-uppercase font-weight-700">{d.payment_method}</td>
+                        <td><code>{d.receipt_number || 'DON-REC'}</code></td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
