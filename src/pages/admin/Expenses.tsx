@@ -1227,7 +1227,8 @@ export const Expenses: React.FC = () => {
             </div>
           ) : (
             <>
-              <div className="table-responsive glass-card margin-bottom-md">
+              {/* DESKTOP TABLE VIEW */}
+              <div className="table-responsive glass-card margin-bottom-md desktop-expenses-table-only">
                 <table className="custom-table">
                   <thead>
                     <tr>
@@ -1348,6 +1349,79 @@ export const Expenses: React.FC = () => {
                 </table>
               </div>
 
+              {/* MOBILE EXPENSES CARD GRID VIEW */}
+              <div className="mobile-expenses-cards-grid mobile-only margin-bottom-md">
+                {paginatedExpenses.map((exp) => {
+                  const statusBadges: Record<string, { cls: string; label: string; icon: any }> = {
+                    approved: { cls: 'badge-success', label: 'Approved', icon: CheckCircle },
+                    pending: { cls: 'badge-warning', label: 'Pending', icon: Clock },
+                    rejected: { cls: 'badge-danger', label: 'Rejected', icon: XCircle },
+                    voided: { cls: 'badge-subtle', label: 'Voided', icon: Ban },
+                  };
+                  const sb = statusBadges[exp.status] || statusBadges.approved;
+                  const IconComp = sb.icon;
+
+                  return (
+                    <div
+                      key={exp.id}
+                      className="mobile-expense-card glass-card padding-md margin-bottom-sm shadow-sm"
+                      onClick={() => handleOpenDetails(exp)}
+                      style={{ borderRadius: 14, border: '1px solid #e2e8f0', background: '#ffffff' }}
+                    >
+                      <div className="flex-between margin-bottom-xs">
+                        <span className="font-weight-800 text-purple font-sm">{exp.expense_number}</span>
+                        <span className={`badge ${sb.cls} font-xs flex-center gap-3xs`}>
+                          <IconComp size={12} /> {sb.label}
+                        </span>
+                      </div>
+
+                      <h4 className="font-md font-weight-700 color-heading margin-bottom-xs line-clamp-2">
+                        {exp.description}
+                      </h4>
+
+                      <div className="flex-between font-xs color-subtle margin-bottom-xs flex-wrap gap-2xs">
+                        <span className="font-weight-600 color-heading">Paid To: {exp.paid_to}</span>
+                        <span className="badge badge-purple-light font-2xs">{exp.category_name}</span>
+                      </div>
+
+                      <div className="flex-between font-2xs color-subtle margin-bottom-sm">
+                        <span>Date: {exp.expense_date}</span>
+                        <span className="text-uppercase font-weight-600">{exp.payment_method.replace('_', ' ')}</span>
+                      </div>
+
+                      <div className="flex-between border-top padding-top-xs align-center">
+                        <div>
+                          <span className="font-3xs color-subtle display-block text-uppercase">Amount</span>
+                          <span className="font-md font-weight-800 text-purple">₹{exp.amount.toLocaleString('en-IN')}</span>
+                        </div>
+
+                        <div className="flex-center gap-xs" onClick={(e) => e.stopPropagation()}>
+                          <button className="btn btn-ghost btn-xs text-subtle" onClick={() => handleOpenDetails(exp)} title="View Details">
+                            <Eye size={16} />
+                          </button>
+                          {exp.status === 'pending' && (
+                            <>
+                              <button className="btn btn-ghost btn-xs text-success" onClick={(e) => handleApproveExpense(exp, e)} title="Approve">
+                                <CheckCircle size={16} />
+                              </button>
+                              <button className="btn btn-ghost btn-xs text-danger" onClick={(e) => handleOpenRejectModal(exp, e)} title="Reject">
+                                <XCircle size={16} />
+                              </button>
+                            </>
+                          )}
+                          <button className="btn btn-ghost btn-xs text-primary" onClick={() => handleOpenEditModal(exp)} title="Edit">
+                            <Edit2 size={16} />
+                          </button>
+                          <button className="btn btn-ghost btn-xs text-danger" onClick={(e) => handleOpenDeleteVoidModal(exp, e)} title="Delete / Void">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
               {totalPages > 1 && (
                 <div className="flex-between margin-top-md font-sm color-subtle">
                   <span>
@@ -1423,7 +1497,8 @@ export const Expenses: React.FC = () => {
             </div>
           </div>
 
-          <div className="table-responsive glass-card">
+          {/* DESKTOP CATEGORY TABLE VIEW */}
+          <div className="table-responsive glass-card desktop-expenses-table-only">
             <table className="custom-table">
               <thead>
                 <tr>
@@ -1482,6 +1557,42 @@ export const Expenses: React.FC = () => {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* MOBILE CATEGORIES CARD GRID VIEW */}
+          <div className="mobile-categories-cards-grid mobile-only margin-bottom-md">
+            {filteredCategories.map((cat) => {
+              const catExps = expenses.filter(e => e.status === 'approved' && (e.category_id === cat.id || e.category_name === cat.name));
+              const catTotal = catExps.reduce((s, e) => s + (e.amount || 0), 0);
+
+              return (
+                <div key={cat.id} className="glass-card padding-md margin-bottom-sm shadow-sm" style={{ borderRadius: 14, border: '1px solid #e2e8f0', background: '#ffffff' }}>
+                  <div className="flex-between margin-bottom-xs">
+                    <span className="font-weight-700 color-heading font-sm flex-center gap-2xs">
+                      <Tag size={15} className="text-purple" /> {cat.name}
+                    </span>
+                    <span className={`badge ${cat.is_active ? 'badge-success' : 'badge-subtle'} font-2xs`}>
+                      {cat.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                  <p className="font-xs color-subtle margin-bottom-xs">{cat.description || 'No description provided.'}</p>
+                  <div className="flex-between border-top padding-top-xs align-center">
+                    <div>
+                      <span className="font-3xs color-subtle text-uppercase display-block">Total Disbursed</span>
+                      <span className="font-sm font-weight-800 text-purple">₹{catTotal.toLocaleString('en-IN')} <span className="font-3xs color-subtle">({catExps.length} exps)</span></span>
+                    </div>
+                    <div className="flex-center gap-xs">
+                      <button className="btn btn-ghost btn-xs text-primary" onClick={() => handleOpenCatModal(cat)}>
+                        <Edit2 size={15} /> Edit
+                      </button>
+                      <button className={`btn btn-ghost btn-xs ${cat.is_active ? 'text-danger' : 'text-success'}`} onClick={() => handleToggleCatActive(cat)}>
+                        {cat.is_active ? 'Disable' : 'Enable'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -1945,6 +2056,51 @@ export const Expenses: React.FC = () => {
           </div>
         </div>
       )}
+      {/* EMBEDDED RESPONSIVE CSS */}
+      <style>{`
+        @media (max-width: 768px) {
+          .desktop-expenses-table-only {
+            display: none !important;
+          }
+          .mobile-only {
+            display: block !important;
+          }
+          .stats-dashboard-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+          }
+          .page-header-actions {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
+          }
+          .header-cta-group {
+            width: 100% !important;
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+          }
+          .header-cta-group button, .header-cta-group .year-filter-pill {
+            flex: 1 1 calc(50% - 6px) !important;
+            justify-content: center !important;
+            font-size: 12px !important;
+            padding: 8px 10px !important;
+          }
+          .search-input-wrapper {
+            width: 100% !important;
+          }
+          .modal-content {
+            width: 94% !important;
+            margin: 10px auto !important;
+            max-height: 92vh !important;
+          }
+        }
+        @media (min-width: 769px) {
+          .mobile-only {
+            display: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };
