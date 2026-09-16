@@ -293,15 +293,41 @@ export const Households: React.FC = () => {
     const targetYearId = selectedYearId !== 'all' ? selectedYearId : (years.find((y) => y.status === 'active')?.id || years[0]?.id);
 
     const householdDonations = donations.filter((d) => {
-      if (d.donor_type === 'external' || d.donor_type === 'anonymous' || d.is_anonymous) {
+      if (d.is_anonymous || d.donor_type === 'anonymous') {
         return false;
       }
-      return (
-        (d.donor_household_id && d.donor_household_id === h.id) ||
-        (d.donor_member_id && houseMemberIds.includes(d.donor_member_id)) ||
-        (d.donor_name && d.donor_name.toLowerCase().trim() === h.house_owner_name.toLowerCase().trim()) ||
-        (d.notes && d.notes.toLowerCase().includes(`h-${h.house_number.toLowerCase()}`))
-      );
+
+      if (d.donor_household_id && d.donor_household_id === h.id) return true;
+      if (d.donor_member_id && houseMemberIds.includes(d.donor_member_id)) return true;
+
+      const dName = (d.donor_name || '').toLowerCase().trim();
+      const ownerName = (h.house_owner_name || '').toLowerCase().trim();
+      if (dName && ownerName && (dName === ownerName || dName.includes(ownerName) || ownerName.includes(dName))) {
+        return true;
+      }
+
+      const matchesMember = houseMembers.some((m) => {
+        const mName = (m.name || '').toLowerCase().trim();
+        return mName && dName && (mName === dName || mName.includes(dName) || dName.includes(mName));
+      });
+      if (matchesMember) return true;
+
+      if (h.house_number) {
+        const cleanNum = h.house_number.trim().toLowerCase().replace(/^h-?/, '');
+        const notesStr = `${d.notes || ''} ${d.donor_name || ''} ${d.purpose || ''}`.toLowerCase();
+        if (
+          notesStr.includes(`h-${cleanNum}`) ||
+          notesStr.includes(`h ${cleanNum}`) ||
+          notesStr.includes(`house: ${cleanNum}`) ||
+          notesStr.includes(`house ${cleanNum}`) ||
+          notesStr.includes(`household: ${cleanNum}`) ||
+          notesStr.includes(`household ${cleanNum}`)
+        ) {
+          return true;
+        }
+      }
+
+      return false;
     });
 
     const details = houseMembers.map((m) => {
@@ -309,10 +335,32 @@ export const Households: React.FC = () => {
         ? subscriptions.find((s) => s.member_id === m.id && s.subscription_year_id === targetYearId)
         : null;
 
-      const mDonations = householdDonations.filter((d) =>
-        d.donor_member_id === m.id ||
-        (m.relationship === 'Self (Owner)' && d.donor_name && d.donor_name.toLowerCase().trim() === h.house_owner_name.toLowerCase().trim())
-      );
+      const isOwnerOrHead =
+        m.relationship === 'Self (Owner)' ||
+        m.relationship === 'Head of Family' ||
+        m.relationship?.toLowerCase().includes('owner') ||
+        m.relationship?.toLowerCase().includes('head') ||
+        m.relationship?.toLowerCase().includes('self') ||
+        m.name?.toLowerCase().trim() === h.house_owner_name?.toLowerCase().trim() ||
+        (houseMembers.length > 0 && m.id === houseMembers[0].id);
+
+      const mDonations = householdDonations.filter((d) => {
+        if (d.donor_member_id && d.donor_member_id === m.id) return true;
+
+        const dName = (d.donor_name || '').toLowerCase().trim();
+        const mName = (m.name || '').toLowerCase().trim();
+        if (dName && mName && (dName === mName || dName.includes(mName) || mName.includes(dName))) return true;
+
+        if (isOwnerOrHead) {
+          const ownerName = (h.house_owner_name || '').toLowerCase().trim();
+          if (dName && ownerName && (dName === ownerName || dName.includes(ownerName) || ownerName.includes(dName))) return true;
+          if (d.donor_household_id && d.donor_household_id === h.id) return true;
+          if (d.donor_type === 'household') return true;
+          if (h.house_number && d.notes?.toLowerCase().includes(h.house_number.toLowerCase())) return true;
+        }
+
+        return false;
+      });
 
       const totalDonated = mDonations.reduce((sum, d) => sum + (d.amount || 0), 0);
 

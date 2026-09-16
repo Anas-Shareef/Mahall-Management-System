@@ -42,26 +42,78 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
 
           const memberIds = hMembers.map((m) => m.id);
 
-          // Filter donations for members of this household (strictly household & member donors only)
+          // Filter donations for members of this household
           const hDonations = allDonations.filter((d) => {
-            if (d.donor_type === 'external' || d.donor_type === 'anonymous' || d.is_anonymous) {
+            if (d.is_anonymous || d.donor_type === 'anonymous') {
               return false;
             }
-            return (
-              (d.donor_household_id && d.donor_household_id === household.id) ||
-              (d.donor_member_id && memberIds.includes(d.donor_member_id)) ||
-              (d.donor_name && d.donor_name.toLowerCase().trim() === household.house_owner_name.toLowerCase().trim()) ||
-              (d.notes && d.notes.toLowerCase().includes(`h-${household.house_number.toLowerCase()}`))
-            );
+
+            if (d.donor_household_id && d.donor_household_id === household.id) return true;
+            if (d.donor_member_id && memberIds.includes(d.donor_member_id)) return true;
+
+            const dName = (d.donor_name || '').toLowerCase().trim();
+            const ownerName = (household.house_owner_name || '').toLowerCase().trim();
+            if (dName && ownerName && (dName === ownerName || dName.includes(ownerName) || ownerName.includes(dName))) {
+              return true;
+            }
+
+            const matchesMember = hMembers.some((m) => {
+              const mName = (m.name || '').toLowerCase().trim();
+              return mName && dName && (mName === dName || mName.includes(dName) || dName.includes(mName));
+            });
+            if (matchesMember) return true;
+
+            if (household.house_number) {
+              const cleanNum = household.house_number.trim().toLowerCase().replace(/^h-?/, '');
+              const notesStr = `${d.notes || ''} ${d.donor_name || ''} ${d.purpose || ''}`.toLowerCase();
+              if (
+                notesStr.includes(`h-${cleanNum}`) ||
+                notesStr.includes(`h ${cleanNum}`) ||
+                notesStr.includes(`house: ${cleanNum}`) ||
+                notesStr.includes(`house ${cleanNum}`) ||
+                notesStr.includes(`household: ${cleanNum}`) ||
+                notesStr.includes(`household ${cleanNum}`)
+              ) {
+                return true;
+              }
+            }
+
+            return false;
           });
           setHouseholdDonations(hDonations);
 
           // Map subscriptions and member donations for members
           const subMap = hMembers.map((m) => {
             const sub = allSubs.find((s) => s.member_id === m.id) || null;
-            const memberDonated = hDonations
-              .filter((d) => d.donor_member_id === m.id)
-              .reduce((sum, d) => sum + (d.amount || 0), 0);
+
+            const isOwnerOrHead =
+              m.relationship === 'Self (Owner)' ||
+              m.relationship === 'Head of Family' ||
+              m.relationship?.toLowerCase().includes('owner') ||
+              m.relationship?.toLowerCase().includes('head') ||
+              m.relationship?.toLowerCase().includes('self') ||
+              m.name?.toLowerCase().trim() === household.house_owner_name?.toLowerCase().trim() ||
+              (hMembers.length > 0 && m.id === hMembers[0].id);
+
+            const mDonations = hDonations.filter((d) => {
+              if (d.donor_member_id && d.donor_member_id === m.id) return true;
+
+              const dName = (d.donor_name || '').toLowerCase().trim();
+              const mName = (m.name || '').toLowerCase().trim();
+              if (dName && mName && (dName === mName || dName.includes(mName) || mName.includes(dName))) return true;
+
+              if (isOwnerOrHead) {
+                const ownerName = (household.house_owner_name || '').toLowerCase().trim();
+                if (dName && ownerName && (dName === ownerName || dName.includes(ownerName) || ownerName.includes(dName))) return true;
+                if (d.donor_household_id && d.donor_household_id === household.id) return true;
+                if (d.donor_type === 'household') return true;
+                if (household.house_number && d.notes?.toLowerCase().includes(household.house_number.toLowerCase())) return true;
+              }
+
+              return false;
+            });
+
+            const memberDonated = mDonations.reduce((sum, d) => sum + (d.amount || 0), 0);
             return { member: m, sub, totalDonated: memberDonated };
           });
           setMemberSubscriptions(subMap);

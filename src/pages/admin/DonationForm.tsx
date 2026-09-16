@@ -226,6 +226,7 @@ export const DonationForm: React.FC = () => {
         purpose: donationType === 'campaign' ? (selectedCampaign?.campaign_name || null) : null,
         donor_type: donorType,
         donor_member_id: donorType === 'member' ? (donorMemberId || null) : null,
+        donor_household_id: donorType === 'household' ? (donorHouseholdId || null) : (selectedMem?.household_id || null),
         donor_name: resolvedDonorName,
         donor_phone: resolvedDonorPhone,
         donor_email: donorType === 'anonymous' ? null : (donorEmail.trim() || selectedMem?.email || null),
