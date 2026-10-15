@@ -108,32 +108,20 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
           // Map subscriptions and member donations for members (at most 1 member per donation)
           const subMap = hMembers.map((m) => {
             const sub = allSubs.find((s) => s.member_id === m.id) || null;
-            const isThisHead = headMember && m.id === headMember.id;
-
             const mDonations = hDonations.filter((d) => {
-              // Explicit member_id match
+              // Authoritative explicit member_id match
               if (d.donor_member_id) {
                 return d.donor_member_id === m.id;
               }
 
-              // Name match
+              // Reliable exact name match
               const dName = (d.donor_name || '').toLowerCase().trim();
               const mName = (m.name || '').toLowerCase().trim();
-              if (dName && mName && (dName === mName || dName.includes(mName) || mName.includes(dName))) {
+              if (dName && mName && dName === mName) {
                 return true;
               }
 
-              // Unassigned household-level donations belong to Head of Family
-              if (isThisHead) {
-                const matchesOtherMember = hMembers.some((otherM) => {
-                  if (otherM.id === m.id) return false;
-                  if (d.donor_member_id === otherM.id) return true;
-                  const oName = (otherM.name || '').toLowerCase().trim();
-                  return dName && oName && (dName === oName || dName.includes(oName) || oName.includes(dName));
-                });
-                return !matchesOtherMember;
-              }
-
+              // Household-level contributions are NOT attributed to individual members
               return false;
             });
 
@@ -597,24 +585,44 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {householdDonations.map((d) => (
-                      <tr key={d.id}>
-                        <td style={{ whiteSpace: 'nowrap' }}>{d.donation_date}</td>
-                        <td>
-                          <span className="text-purple font-weight-700">
-                            🎯 {d.purpose || (d.donation_type === 'campaign' ? 'Special Campaign' : 'General Donation')}
-                          </span>
-                        </td>
-                        <td className="font-weight-700">{d.donor_name || household.house_owner_name}</td>
-                        <td className="font-weight-800 text-purple" style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>₹{d.amount.toLocaleString('en-IN')}</td>
-                        <td style={{ textAlign: 'center' }}>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#ecfdf5', color: '#047857', padding: '2px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: 700 }}>
-                            ✓ Received
-                          </span>
-                        </td>
-                        <td style={{ textAlign: 'right' }}><code>{d.receipt_number || 'DON-REC'}</code></td>
-                      </tr>
-                    ))}
+                    {householdDonations.map((d) => {
+                      const matchedMember = members.find(
+                        (m) =>
+                          (d.donor_member_id && m.id === d.donor_member_id) ||
+                          (d.donor_name && d.donor_name.toLowerCase().trim() === (m.name || '').toLowerCase().trim())
+                      );
+                      const donorDisplay = d.donor_name || household.house_owner_name;
+
+                      return (
+                        <tr key={d.id}>
+                          <td style={{ whiteSpace: 'nowrap' }}>{d.donation_date}</td>
+                          <td>
+                            <span className="text-purple font-weight-700">
+                              🎯 {d.purpose || (d.donation_type === 'campaign' ? 'Special Campaign' : 'General Donation')}
+                            </span>
+                          </td>
+                          <td className="font-weight-700">
+                            <div>{donorDisplay}</div>
+                            {matchedMember ? (
+                              <span style={{ fontSize: '10px', color: '#047857', background: '#ecfdf5', padding: '1px 6px', borderRadius: '4px', fontWeight: 500, display: 'inline-block', marginTop: '2px' }}>
+                                {matchedMember.relationship || 'Registered Member'}
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '10px', color: '#6b21a8', background: '#f5f3ff', padding: '1px 6px', borderRadius: '4px', fontWeight: 500, display: 'inline-block', marginTop: '2px' }}>
+                                Household Contributor
+                              </span>
+                            )}
+                          </td>
+                          <td className="font-weight-800 text-purple" style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>₹{d.amount.toLocaleString('en-IN')}</td>
+                          <td style={{ textAlign: 'center' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#ecfdf5', color: '#047857', padding: '2px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: 700 }}>
+                              ✓ Received
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right' }}><code>{d.receipt_number || 'DON-REC'}</code></td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

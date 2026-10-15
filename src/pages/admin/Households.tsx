@@ -360,32 +360,20 @@ export const Households: React.FC = () => {
         ? subscriptions.find((s) => s.member_id === m.id && s.subscription_year_id === targetYearId)
         : null;
 
-      const isThisHead = headMember && m.id === headMember.id;
-
       const mDonations = householdDonations.filter((d) => {
-        // Explicit member_id match
+        // Authoritative explicit member_id match
         if (d.donor_member_id) {
           return d.donor_member_id === m.id;
         }
 
-        // Name match
+        // Reliable exact name match
         const dName = (d.donor_name || '').toLowerCase().trim();
         const mName = (m.name || '').toLowerCase().trim();
-        if (dName && mName && (dName === mName || dName.includes(mName) || mName.includes(dName))) {
+        if (dName && mName && dName === mName) {
           return true;
         }
 
-        // Unassigned household-level donations belong to Head of Family
-        if (isThisHead) {
-          const matchesOtherMember = houseMembers.some((otherM) => {
-            if (otherM.id === m.id) return false;
-            if (d.donor_member_id === otherM.id) return true;
-            const oName = (otherM.name || '').toLowerCase().trim();
-            return dName && oName && (dName === oName || dName.includes(oName) || oName.includes(dName));
-          });
-          return !matchesOtherMember;
-        }
-
+        // Household-level contributions are NOT attributed to individual members
         return false;
       });
 
@@ -1296,12 +1284,10 @@ export const Households: React.FC = () => {
                             {formatCurrency(householdMembersDetails.reduce((sum, m) => sum + m.balance, 0))}
                           </td>
                           <td style={{ padding: '12px', textAlign: 'right', color: '#7c3aed', fontSize: '13.5px', fontVariantNumeric: 'tabular-nums' }}>
-                            <div>{formatCurrency(selectedHouseholdDonations.reduce((sum, d) => sum + (d.amount || 0), 0))}</div>
-                            {selectedHouseholdDonations.length > 0 && (
-                              <div style={{ fontSize: '10px', color: '#6b21a8', fontWeight: 600, marginTop: '2px' }}>
-                                {selectedHouseholdDonations.length} {selectedHouseholdDonations.length === 1 ? 'contribution' : 'contributions'}
-                              </div>
-                            )}
+                            <div>{formatCurrency(householdMembersDetails.reduce((sum, m) => sum + (m.totalDonated || 0), 0))}</div>
+                            <div style={{ fontSize: '10px', color: '#6b21a8', fontWeight: 600, marginTop: '2px' }}>
+                              {householdMembersDetails.reduce((sum, m) => sum + (m.donationsCount || 0), 0)} member {householdMembersDetails.reduce((sum, m) => sum + (m.donationsCount || 0), 0) === 1 ? 'contribution' : 'contributions'}
+                            </div>
                           </td>
                           <td></td>
                         </tr>
@@ -1333,7 +1319,10 @@ export const Households: React.FC = () => {
                       Total: {formatCurrency(selectedHouseholdDonations.reduce((sum, d) => sum + (d.amount || 0), 0))}
                     </div>
                     <div style={{ fontSize: '10.5px', color: '#6b21a8', fontWeight: 600 }}>
-                      {selectedHouseholdDonations.length} {selectedHouseholdDonations.length === 1 ? 'eligible contribution' : 'eligible contributions'}
+                      {selectedHouseholdDonations.length} contributions
+                      {householdMembersDetails.reduce((sum, m) => sum + (m.totalDonated || 0), 0) < selectedHouseholdDonations.reduce((sum, d) => sum + (d.amount || 0), 0) && (
+                        <span> (₹{householdMembersDetails.reduce((sum, m) => sum + (m.totalDonated || 0), 0).toLocaleString('en-IN')} Member + ₹{(selectedHouseholdDonations.reduce((sum, d) => sum + (d.amount || 0), 0) - householdMembersDetails.reduce((sum, m) => sum + (m.totalDonated || 0), 0)).toLocaleString('en-IN')} Household)</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1363,7 +1352,11 @@ export const Households: React.FC = () => {
                             const camp = campaigns.find((c) => c.id === d.campaign_id);
                             const campName = camp ? camp.campaign_name : (d.purpose || (d.donation_type === 'campaign' ? 'Special Campaign' : 'General Donation'));
                             const donorDisplay = d.donor_name || selectedHouseholdDetails.house_owner_name;
-                            const isHead = donorDisplay.toLowerCase().trim() === (selectedHouseholdDetails.house_owner_name || '').toLowerCase().trim();
+                            const matchedMember = householdMembersDetails.find(
+                              (m) =>
+                                (d.donor_member_id && m.id === d.donor_member_id) ||
+                                (d.donor_name && d.donor_name.toLowerCase().trim() === (m.name || '').toLowerCase().trim())
+                            );
 
                             return (
                               <tr key={d.id} style={{ borderBottom: '1px solid #f8fafc', transition: 'background 0.15s' }}>
@@ -1377,9 +1370,13 @@ export const Households: React.FC = () => {
                                 </td>
                                 <td style={{ padding: '10px 12px', fontWeight: 600, color: '#1e293b' }}>
                                   <div>{donorDisplay}</div>
-                                  {isHead && (
-                                    <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 400 }}>
-                                      Head of Family
+                                  {matchedMember ? (
+                                    <span style={{ fontSize: '10px', color: '#047857', background: '#ecfdf5', padding: '1px 6px', borderRadius: '4px', fontWeight: 500, display: 'inline-block', marginTop: '2px' }}>
+                                      {matchedMember.relationship || 'Registered Member'}
+                                    </span>
+                                  ) : (
+                                    <span style={{ fontSize: '10px', color: '#6b21a8', background: '#f5f3ff', padding: '1px 6px', borderRadius: '4px', fontWeight: 500, display: 'inline-block', marginTop: '2px' }}>
+                                      Household Contributor
                                     </span>
                                   )}
                                 </td>
@@ -1409,6 +1406,11 @@ export const Households: React.FC = () => {
                         const camp = campaigns.find((c) => c.id === d.campaign_id);
                         const campName = camp ? camp.campaign_name : (d.purpose || (d.donation_type === 'campaign' ? 'Special Campaign' : 'General Donation'));
                         const donorDisplay = d.donor_name || selectedHouseholdDetails.house_owner_name;
+                        const matchedMember = householdMembersDetails.find(
+                          (m) =>
+                            (d.donor_member_id && m.id === d.donor_member_id) ||
+                            (d.donor_name && d.donor_name.toLowerCase().trim() === (m.name || '').toLowerCase().trim())
+                        );
 
                         return (
                           <div key={d.id} style={{ background: '#faf5ff', border: '1px solid #ede9fe', borderRadius: '10px', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -1421,7 +1423,7 @@ export const Households: React.FC = () => {
                               </span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: '#64748b' }}>
-                              <span>{d.donation_date} • {donorDisplay}</span>
+                              <span>{d.donation_date} • {donorDisplay} {matchedMember ? `(${matchedMember.relationship})` : '(Household Contributor)'}</span>
                               <span style={{ background: '#ecfdf5', color: '#047857', padding: '1px 6px', borderRadius: '8px', fontWeight: 700, fontSize: '10px' }}>
                                 ✓ Received
                               </span>
