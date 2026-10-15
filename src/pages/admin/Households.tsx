@@ -308,28 +308,20 @@ export const Households: React.FC = () => {
       const dName = (d.donor_name || '').toLowerCase().trim();
       const ownerName = (h.house_owner_name || '').toLowerCase().trim();
 
-      const isMatch =
-        (d.donor_household_id && d.donor_household_id === h.id) ||
-        (d.donor_member_id && houseMemberIds.includes(d.donor_member_id)) ||
-        (dName && ownerName && (dName === ownerName || dName.includes(ownerName) || ownerName.includes(dName))) ||
+      // Only include donations made by registered members of this household
+      // or explicit household donations belonging to this household
+      const isMemberMatch =
+        (Boolean(d.donor_member_id) && houseMemberIds.includes(d.donor_member_id!)) ||
         houseMembers.some((m) => {
           const mName = (m.name || '').toLowerCase().trim();
-          return mName && dName && (mName === dName || mName.includes(dName) || dName.includes(mName));
-        }) ||
-        (Boolean(h.house_number) && (() => {
-          const cleanNum = h.house_number.trim().toLowerCase().replace(/^h-?/, '');
-          const notesStr = `${d.notes || ''} ${d.donor_name || ''} ${d.purpose || ''}`.toLowerCase();
-          return (
-            notesStr.includes(`h-${cleanNum}`) ||
-            notesStr.includes(`h ${cleanNum}`) ||
-            notesStr.includes(`house: ${cleanNum}`) ||
-            notesStr.includes(`house ${cleanNum}`) ||
-            notesStr.includes(`household: ${cleanNum}`) ||
-            notesStr.includes(`household ${cleanNum}`)
-          );
-        })());
+          return Boolean(mName && dName && mName === dName);
+        });
 
-      if (!isMatch) return false;
+      const isHouseholdMatch =
+        Boolean(d.donor_household_id && d.donor_household_id === h.id) &&
+        (d.donor_type === 'household' || !dName || (ownerName && (dName === ownerName || dName.includes(ownerName) || ownerName.includes(dName))));
+
+      if (!isMemberMatch && !isHouseholdMatch) return false;
 
       // Unique by donation ID (or receipt number) so valid transactions are never collapsed
       const uniqueKey = d.id || d.receipt_number || `${dName}_${d.amount}_${d.donation_date}`;

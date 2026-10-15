@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../services/db';
 import type { 
-  Donation, DonationCampaign, SubscriptionYear 
+  Donation, DonationCampaign, SubscriptionYear, Household 
 } from '../../services/db';
 import { 
   Plus, Search, Filter, Calendar, X, AlertCircle, 
@@ -69,6 +69,7 @@ export const Donations: React.FC = () => {
   const [selectedYearId, setSelectedYearId] = useState<string>('');
   const [donations, setDonations] = useState<Donation[]>([]);
   const [campaigns, setCampaigns] = useState<DonationCampaign[]>([]);
+  const [households, setHouseholds] = useState<Household[]>([]);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -79,7 +80,7 @@ export const Donations: React.FC = () => {
   const [selectedDonationType, setSelectedDonationType] = useState<'' | 'general' | 'campaign'>('');
   const [selectedCampaignId, setSelectedCampaignId] = useState('');
   const [selectedMethod, setSelectedMethod] = useState('');
-  const [selectedDonorType, setSelectedDonorType] = useState<'' | 'member' | 'external' | 'anonymous'>('');
+  const [selectedDonorType, setSelectedDonorType] = useState<'' | 'member' | 'household' | 'external' | 'anonymous'>('');
   const [selectedStatus, setSelectedStatus] = useState<'' | 'received' | 'pending' | 'cancelled' | 'refunded'>('');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'highest' | 'lowest' | 'name'>('newest');
 
@@ -126,14 +127,16 @@ export const Donations: React.FC = () => {
     setLoading(true);
     setFetchError(false);
     try {
-      const [yearList, donationList, campaignList] = await Promise.all([
+      const [yearList, donationList, campaignList, householdList] = await Promise.all([
         db.years.get(),
         db.donations.get(),
         db.donationCampaigns.get(),
+        db.households.get(),
       ]);
       setYears(yearList || []);
       setDonations(donationList || []);
       setCampaigns(campaignList || []);
+      setHouseholds(householdList || []);
     } catch (err) {
       console.error('Failed to load donation records:', err);
       setFetchError(true);
@@ -203,6 +206,28 @@ export const Donations: React.FC = () => {
     };
   }, [donations, years, selectedYearId]);
 
+  // Helper to resolve specific household badge (e.g. H-1) instead of generic HOUSEHOLD
+  const getHouseholdBadge = (d: Donation | null | undefined): string | null => {
+    if (!d) return null;
+    if (d.donor_household_id) {
+      const h = households.find((item) => item.id === d.donor_household_id);
+      if (h) {
+        const num = (h.house_number || '').trim().replace(/^h-?/i, '');
+        return `H-${num}`;
+      }
+    }
+    if (d.notes) {
+      const match = d.notes.match(/Household:\s*(?:H-?)?(\d+|[A-Za-z0-9-]+)/i);
+      if (match && match[1]) {
+        return `H-${match[1]}`;
+      }
+    }
+    if (d.donor_type === 'household') {
+      return 'HOUSEHOLD';
+    }
+    return null;
+  };
+
   // Filtered & Sorted Donations
   const filteredDonations = useMemo(() => {
     const selectedYear = years.find((y) => y.id === selectedYearId)?.year ?? null;
@@ -212,6 +237,9 @@ export const Donations: React.FC = () => {
       if (activeTab === 'general' && d.donation_type !== 'general') return false;
       if (activeTab === 'campaigns' && d.donation_type !== 'campaign') return false;
 
+      const householdBadge = getHouseholdBadge(d);
+      const isHousehold = Boolean(householdBadge) || d.donor_type === 'household';
+
       const query = searchQuery.toLowerCase().trim();
       const matchSearch = !query || (
         (d.donor_name && d.donor_name.toLowerCase().includes(query)) ||
@@ -219,7 +247,8 @@ export const Donations: React.FC = () => {
         (d.reference_number && d.reference_number.toLowerCase().includes(query)) ||
         (d.donor_phone && d.donor_phone.includes(query)) ||
         (d.donor_member_id && d.donor_member_id.toLowerCase().includes(query)) ||
-        (d.notes && d.notes.toLowerCase().includes(query))
+        (d.notes && d.notes.toLowerCase().includes(query)) ||
+        (Boolean(householdBadge) && householdBadge!.toLowerCase().includes(query))
       );
 
       const matchYear = !selectedYearId || !selectedYear || (d.donation_date && new Date(d.donation_date).getFullYear() === selectedYear);
@@ -233,7 +262,13 @@ export const Donations: React.FC = () => {
         ))
       );
       const matchMethod = !selectedMethod || d.payment_method === selectedMethod;
-      const matchDonorType = !selectedDonorType || d.donor_type === selectedDonorType;
+      const matchDonorType = !selectedDonorType || (
+        selectedDonorType === 'household'
+          ? isHousehold
+          : selectedDonorType === 'external'
+            ? (!isHousehold && (d.donor_type === 'external' || !d.donor_type))
+            : d.donor_type === selectedDonorType
+      );
       const matchStatus = !selectedStatus || (d.status || 'received') === selectedStatus;
 
       return matchSearch && matchYear && matchType && matchCampaign && matchMethod && matchDonorType && matchStatus;
@@ -252,7 +287,7 @@ export const Donations: React.FC = () => {
     }
 
     return result;
-  }, [donations, searchQuery, activeTab, selectedYearId, selectedDonationType, selectedCampaignId, selectedMethod, selectedDonorType, selectedStatus, sortBy, years]);
+  }, [donations, searchQuery, activeTab, selectedYearId, selectedDonationType, selectedCampaignId, selectedMethod, selectedDonorType, selectedStatus, sortBy, years, households]);
 
   // Paginated Donations
   const totalPages = Math.ceil(filteredDonations.length / rowsPerPage) || 1;
@@ -929,6 +964,7 @@ export const Donations: React.FC = () => {
               <select value={selectedDonorType} onChange={(e) => setSelectedDonorType(e.target.value as any)}>
                 <option value="">Donor: All</option>
                 <option value="member">Mahall Member</option>
+                <option value="household">Household (H-1, H-2...)</option>
                 <option value="external">External Donor</option>
                 <option value="anonymous">Anonymous</option>
               </select>
@@ -1208,7 +1244,8 @@ export const Donations: React.FC = () => {
                     {paginatedDonations.map((d) => {
                       const isSelected = selectedIds.includes(d.id);
                       const campaignDisplayName = getCampaignDisplayName(d);
-                      const isHousehold = d.donor_type === 'household' || (d.notes && d.notes.includes('Household:'));
+                      const householdBadge = getHouseholdBadge(d);
+                      const isHousehold = Boolean(householdBadge) || d.donor_type === 'household';
 
                       return (
                         <tr key={d.id} className={isSelected ? 'selected-row' : ''}>
@@ -1232,7 +1269,7 @@ export const Donations: React.FC = () => {
                           </td>
                           <td style={{ textAlign: 'left' }}>
                             <span className={`status-pill ${d.donor_type === 'member' ? 'paid' : isHousehold ? 'paid' : 'unpaid'}`}>
-                              {isHousehold ? 'HOUSEHOLD' : d.donor_type ? d.donor_type.toUpperCase() : 'EXTERNAL'}
+                              {householdBadge ? householdBadge : d.donor_type ? d.donor_type.toUpperCase() : 'EXTERNAL'}
                             </span>
                           </td>
                           <td style={{ textAlign: 'left' }}>
@@ -1302,7 +1339,7 @@ export const Donations: React.FC = () => {
                           </div>
                           <div>
                             <div className="font-weight-800 font-sm text-dark">{d.donor_name || 'Anonymous Donor'}</div>
-                            <span className="font-xs color-subtle">{d.donor_type ? d.donor_type.toUpperCase() : 'EXTERNAL'}</span>
+                            <span className="font-xs color-subtle">{getHouseholdBadge(d) || (d.donor_type ? d.donor_type.toUpperCase() : 'EXTERNAL')}</span>
                           </div>
                         </div>
 
@@ -1617,7 +1654,7 @@ export const Donations: React.FC = () => {
                 </div>
                 <div>
                   <div className="detail-item-label">Donor Identity</div>
-                  <div className="font-weight-600">{selectedDonationRecord.donor_type ? selectedDonationRecord.donor_type.toUpperCase() : 'EXTERNAL'}</div>
+                  <div className="font-weight-600">{getHouseholdBadge(selectedDonationRecord) || (selectedDonationRecord.donor_type ? selectedDonationRecord.donor_type.toUpperCase() : 'EXTERNAL')}</div>
                 </div>
                 <div>
                   <div className="detail-item-label">Phone Number</div>
