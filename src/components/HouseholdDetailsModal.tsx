@@ -73,15 +73,24 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
                 );
               })());
 
+            // Exclude pending, cancelled, or rejected donations
+            const status = ((d as any).status || (d as any).payment_status || 'received').toLowerCase();
+            if (status === 'cancelled' || status === 'rejected' || status === 'pending') {
+              return false;
+            }
+
             if (!isMatch) return false;
 
-            // Strict Deduplication: same donor + amount + date + campaign
-            const campKey = (d.campaign_id || d.purpose || '').trim().toLowerCase();
-            const dateKey = (d.donation_date || '').slice(0, 10);
-            const fingerprint = `${d.donor_member_id || dName}_${d.amount}_${dateKey}_${campKey}`;
-            if (seenDonationKeys.has(fingerprint)) return false;
-            seenDonationKeys.add(fingerprint);
+            // Unique by donation ID (or receipt number) so valid transactions are never collapsed
+            const uniqueKey = d.id || d.receipt_number || `${dName}_${d.amount}_${d.donation_date}`;
+            if (seenDonationKeys.has(uniqueKey)) return false;
+            seenDonationKeys.add(uniqueKey);
             return true;
+          }).sort((a, b) => {
+            const dateA = new Date(a.donation_date || (a as any).created_at || 0).getTime();
+            const dateB = new Date(b.donation_date || (b as any).created_at || 0).getTime();
+            if (dateB !== dateA) return dateB - dateA;
+            return (b.receipt_number || b.id || '').localeCompare(a.receipt_number || a.id || '');
           });
           setHouseholdDonations(hDonations);
 
@@ -489,10 +498,10 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
                 <thead>
                   <tr>
                     <th>Member Name</th>
-                    <th>Expected</th>
-                    <th>Paid</th>
-                    <th>Balance</th>
-                    <th>Donated</th>
+                    <th style={{ textAlign: 'right' }}>Expected</th>
+                    <th style={{ textAlign: 'right' }}>Paid</th>
+                    <th style={{ textAlign: 'right' }}>Balance</th>
+                    <th style={{ textAlign: 'right', color: '#7c3aed' }}>Donated</th>
                     <th>Status</th>
                   </tr>
                 </thead>
@@ -500,10 +509,10 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
                   {memberSubscriptions.map(({ member, sub, totalDonated }) => (
                     <tr key={member.id}>
                       <td className="font-weight-700">{member.name}</td>
-                      <td>₹{sub?.total_due || 0}</td>
-                      <td className="text-emerald font-weight-800">₹{sub?.total_paid || 0}</td>
-                      <td className="text-danger font-weight-800">₹{sub?.balance || 0}</td>
-                      <td className="text-purple font-weight-800">₹{totalDonated}</td>
+                      <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>₹{(sub?.total_due || 0).toLocaleString('en-IN')}</td>
+                      <td className="text-emerald font-weight-800" style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>₹{(sub?.total_paid || 0).toLocaleString('en-IN')}</td>
+                      <td className="text-danger font-weight-800" style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>₹{(sub?.balance || 0).toLocaleString('en-IN')}</td>
+                      <td className="text-purple font-weight-800" style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>₹{(totalDonated || 0).toLocaleString('en-IN')}</td>
                       <td>
                         <span className={`status-badge-pill ${sub?.status || 'unpaid'}`}>
                           {(sub?.status || 'unpaid').replace('_', ' ').toUpperCase()}
@@ -529,9 +538,9 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
                     <tr>
                       <th>Date</th>
                       <th>Member</th>
-                      <th>Amount</th>
+                      <th style={{ textAlign: 'right' }}>Amount</th>
                       <th>Method</th>
-                      <th>Receipt</th>
+                      <th style={{ textAlign: 'right' }}>Receipt</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -541,9 +550,9 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
                         <tr key={p.id}>
                           <td>{p.payment_date}</td>
                           <td className="font-weight-700">{m?.name || 'Household Member'}</td>
-                          <td className="font-weight-800 text-emerald">₹{p.amount}</td>
+                          <td className="font-weight-800 text-emerald" style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>₹{p.amount.toLocaleString('en-IN')}</td>
                           <td className="text-uppercase font-weight-700">{p.payment_method}</td>
-                          <td><code>{p.reference_number || 'REC-OFFLINE'}</code></td>
+                          <td style={{ textAlign: 'right' }}><code>{p.reference_number || 'REC-OFFLINE'}</code></td>
                         </tr>
                       );
                     })}
@@ -557,6 +566,21 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
         {/* TAB 4: DONATIONS */}
         {activeTab === 'donations' && (
           <div className="flex-col gap-sm animate-fade-in">
+            <div className="flex-between align-items-center padding-xs" style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 10 }}>
+              <div>
+                <span className="font-xs font-weight-700 text-purple">Special Campaign Contributions & Donations</span>
+                <span className="font-2xs color-subtle display-block">Campaign contributions recorded for this household</span>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <span className="font-sm font-weight-800 text-purple display-block" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                  Total: ₹{totalDonations.toLocaleString('en-IN')}
+                </span>
+                <span className="font-2xs text-purple font-weight-600">
+                  {householdDonations.length} {householdDonations.length === 1 ? 'eligible contribution' : 'eligible contributions'}
+                </span>
+              </div>
+            </div>
+
             {householdDonations.length === 0 ? (
               <div className="notif-empty">No voluntary donations or campaign contributions recorded for this household yet.</div>
             ) : (
@@ -565,27 +589,30 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
                   <thead>
                     <tr>
                       <th>Date</th>
+                      <th>Campaign / Purpose</th>
                       <th>Donor Name</th>
-                      <th>Type / Purpose</th>
-                      <th>Amount</th>
-                      <th>Method</th>
-                      <th>Receipt</th>
+                      <th style={{ textAlign: 'right' }}>Amount</th>
+                      <th style={{ textAlign: 'center' }}>Status</th>
+                      <th style={{ textAlign: 'right' }}>Receipt</th>
                     </tr>
                   </thead>
                   <tbody>
                     {householdDonations.map((d) => (
                       <tr key={d.id}>
-                        <td>{d.donation_date}</td>
-                        <td className="font-weight-700">{d.donor_name || household.house_owner_name}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{d.donation_date}</td>
                         <td>
                           <span className="text-purple font-weight-700">
-                            {d.donation_type === 'campaign' ? 'Campaign Contribution' : 'General Donation'}
+                            🎯 {d.purpose || (d.donation_type === 'campaign' ? 'Special Campaign' : 'General Donation')}
                           </span>
-                          {d.purpose && <span className="display-block font-2xs color-subtle">{d.purpose}</span>}
                         </td>
-                        <td className="font-weight-800 text-purple">₹{d.amount}</td>
-                        <td className="text-uppercase font-weight-700">{d.payment_method}</td>
-                        <td><code>{d.receipt_number || 'DON-REC'}</code></td>
+                        <td className="font-weight-700">{d.donor_name || household.house_owner_name}</td>
+                        <td className="font-weight-800 text-purple" style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>₹{d.amount.toLocaleString('en-IN')}</td>
+                        <td style={{ textAlign: 'center' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#ecfdf5', color: '#047857', padding: '2px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: 700 }}>
+                            ✓ Received
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}><code>{d.receipt_number || 'DON-REC'}</code></td>
                       </tr>
                     ))}
                   </tbody>

@@ -103,6 +103,7 @@ export const Households: React.FC = () => {
   // Household Details Panel
   const [selectedHouseholdDetails, setSelectedHouseholdDetails] = useState<Household | null>(null);
   const [householdMembersDetails, setHouseholdMembersDetails] = useState<any[]>([]);
+  const [selectedHouseholdDonations, setSelectedHouseholdDonations] = useState<Donation[]>([]);
 
   const showToast = (type: 'success' | 'error', text: string) => {
     setToastMessage({ type, text });
@@ -292,9 +293,15 @@ export const Households: React.FC = () => {
     const houseMemberIds = houseMembers.map((m) => m.id);
     const targetYearId = selectedYearId !== 'all' ? selectedYearId : (years.find((y) => y.status === 'active')?.id || years[0]?.id);
 
-    const seenDonationKeys = new Set<string>();
+    const seenDonationIds = new Set<string>();
     const householdDonations = donations.filter((d) => {
       if (d.is_anonymous || d.donor_type === 'anonymous') {
+        return false;
+      }
+
+      // Exclude pending, cancelled, or rejected donations
+      const status = ((d as any).status || (d as any).payment_status || 'received').toLowerCase();
+      if (status === 'cancelled' || status === 'rejected' || status === 'pending') {
         return false;
       }
 
@@ -324,14 +331,19 @@ export const Households: React.FC = () => {
 
       if (!isMatch) return false;
 
-      // Strict Deduplication: same donor + amount + date + campaign
-      const campKey = (d.campaign_id || d.purpose || '').trim().toLowerCase();
-      const dateKey = (d.donation_date || '').slice(0, 10);
-      const fingerprint = `${d.donor_member_id || dName}_${d.amount}_${dateKey}_${campKey}`;
-      if (seenDonationKeys.has(fingerprint)) return false;
-      seenDonationKeys.add(fingerprint);
+      // Unique by donation ID (or receipt number) so valid transactions are never collapsed
+      const uniqueKey = d.id || d.receipt_number || `${dName}_${d.amount}_${d.donation_date}`;
+      if (seenDonationIds.has(uniqueKey)) return false;
+      seenDonationIds.add(uniqueKey);
       return true;
+    }).sort((a, b) => {
+      const dateA = new Date(a.donation_date || (a as any).created_at || 0).getTime();
+      const dateB = new Date(b.donation_date || (b as any).created_at || 0).getTime();
+      if (dateB !== dateA) return dateB - dateA;
+      return (b.receipt_number || b.id || '').localeCompare(a.receipt_number || a.id || '');
     });
+
+    setSelectedHouseholdDonations(householdDonations);
 
     const headMember = houseMembers.find(
       (m) =>
@@ -387,6 +399,8 @@ export const Households: React.FC = () => {
           campaignName: camp ? camp.campaign_name : (d.purpose || (d.donation_type === 'campaign' ? 'Special Campaign' : 'General Donation')),
           date: d.donation_date,
           receipt: d.receipt_number || 'DON-REC',
+          donorName: d.donor_name || m.name,
+          status: (d as any).status || 'received',
         };
       });
 
@@ -398,6 +412,7 @@ export const Households: React.FC = () => {
         totalPaid: sub ? sub.total_paid : 0,
         balance: sub ? sub.balance : 0,
         totalDonated,
+        donationsCount: mDonations.length,
         campaignBreakdown,
       };
     });
@@ -1192,23 +1207,23 @@ export const Households: React.FC = () => {
                 <span className="form-card-title margin-left-xs">Family Roster & Financial Summary</span>
               </div>
 
-              <div className="members-ledger-table-wrapper" style={{ overflowX: 'auto' }}>
-                <table className="mini-ledger-table" style={{ width: '100%', fontSize: '12.5px' }}>
+              <div className="members-ledger-table-wrapper" style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
+                <table className="mini-ledger-table" style={{ width: '100%', fontSize: '12.5px', borderCollapse: 'collapse' }}>
                   <thead>
-                    <tr>
-                      <th style={{ textAlign: 'left', padding: '8px' }}>Member & Number</th>
-                      <th style={{ textAlign: 'center', padding: '8px' }}>Portal</th>
-                      <th style={{ textAlign: 'right', padding: '8px' }}>Due</th>
-                      <th style={{ textAlign: 'right', padding: '8px' }}>Paid</th>
-                      <th style={{ textAlign: 'right', padding: '8px' }}>Balance</th>
-                      <th style={{ textAlign: 'right', padding: '8px', color: '#7c3aed' }}>Donations</th>
-                      <th style={{ textAlign: 'right', padding: '8px' }}>Action</th>
+                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                      <th style={{ textAlign: 'left', padding: '10px 12px', fontWeight: 700, color: '#475569' }}>Family Member</th>
+                      <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 700, color: '#475569' }}>Portal</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 700, color: '#475569' }}>Subscription / Due</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 700, color: '#00966b' }}>Paid</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 700, color: '#dc2626' }}>Balance</th>
+                      <th style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 700, color: '#7c3aed' }}>Donations</th>
+                      <th style={{ textAlign: 'center', padding: '10px 8px', fontWeight: 700, color: '#475569' }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {householdMembersDetails.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="no-data-cell" style={{ textAlign: 'center', padding: '16px', color: '#94a3b8' }}>
+                        <td colSpan={7} className="no-data-cell" style={{ textAlign: 'center', padding: '24px', color: '#94a3b8' }}>
                           No members added to this household yet.
                         </td>
                       </tr>
@@ -1220,33 +1235,37 @@ export const Households: React.FC = () => {
                           const mNo = fullM?.member_number || `MEM-${m.id.replace(/\D/g, '').slice(0, 6) || m.id.slice(0, 6)}`;
                           return (
                             <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                              <td style={{ padding: '8px', fontWeight: 700, color: '#0f172a' }}>
+                              <td style={{ padding: '10px 12px', fontWeight: 700, color: '#0f172a' }}>
                                 <div>
-                                  <span>{m.name}</span>
-                                  <span style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 400, display: 'block' }}>
+                                  <span style={{ fontSize: '13px' }}>{m.name}</span>
+                                  <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 400, display: 'block', marginTop: '2px' }}>
                                     {mNo} • {m.relationship}
                                   </span>
                                 </div>
                               </td>
-                              <td style={{ padding: '8px', textAlign: 'center' }}>
-                                <span className={`status-pill ${hasPortal ? 'paid' : 'unpaid'}`} style={{ fontSize: '10px', padding: '2px 6px' }}>
+                              <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                                <span className={`status-pill ${hasPortal ? 'paid' : 'unpaid'}`} style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '12px' }}>
                                   {hasPortal ? 'Portal ✓' : 'No Portal'}
                                 </span>
                               </td>
-                              <td style={{ padding: '8px', textAlign: 'right' }}>{formatCurrency(m.totalDue)}</td>
-                              <td style={{ padding: '8px', textAlign: 'right', color: '#00966b', fontWeight: 700 }}>{formatCurrency(m.totalPaid)}</td>
-                              <td style={{ padding: '8px', textAlign: 'right', color: m.balance > 0 ? '#dc2626' : '#00966b', fontWeight: 800 }}>
+                              <td style={{ padding: '10px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                                {formatCurrency(m.totalDue)}
+                              </td>
+                              <td style={{ padding: '10px 12px', textAlign: 'right', color: '#00966b', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                                {formatCurrency(m.totalPaid)}
+                              </td>
+                              <td style={{ padding: '10px 12px', textAlign: 'right', color: m.balance > 0 ? '#dc2626' : '#00966b', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
                                 {formatCurrency(m.balance)}
                               </td>
-                              <td style={{ padding: '8px', textAlign: 'right', color: '#7c3aed', fontWeight: 700 }}>
-                                {formatCurrency(m.totalDonated || 0)}
-                                {m.campaignBreakdown && m.campaignBreakdown.length > 0 && (
-                                  <div style={{ fontSize: '9.5px', color: '#6b21a8', fontWeight: 600 }}>
-                                    {m.campaignBreakdown.map((cb: any) => cb.campaignName).join(', ')}
+                              <td style={{ padding: '10px 12px', textAlign: 'right', color: '#7c3aed', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                                <div>{formatCurrency(m.totalDonated || 0)}</div>
+                                {m.totalDonated > 0 && m.donationsCount > 0 && (
+                                  <div style={{ fontSize: '10px', color: '#6b21a8', fontWeight: 500, marginTop: '2px' }}>
+                                    {m.donationsCount} {m.donationsCount === 1 ? 'contribution' : 'contributions'}
                                   </div>
                                 )}
                               </td>
-                              <td style={{ padding: '8px', textAlign: 'right' }}>
+                              <td style={{ padding: '10px 8px', textAlign: 'center' }}>
                                 <button
                                   type="button"
                                   className="action-icon-btn edit"
@@ -1257,7 +1276,7 @@ export const Households: React.FC = () => {
                                     }
                                   }}
                                   title="Manage Member Portal Access"
-                                  style={{ width: 28, height: 28, minWidth: 28, minHeight: 28 }}
+                                  style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, margin: '0 auto' }}
                                 >
                                   <ShieldCheck size={13} />
                                 </button>
@@ -1266,14 +1285,23 @@ export const Households: React.FC = () => {
                           );
                         })}
                         <tr style={{ background: '#f8fafc', fontWeight: 800, borderTop: '2px solid #e2e8f0' }}>
-                          <td colSpan={2} style={{ padding: '10px 8px', color: '#0f172a' }}>Consolidated Total</td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right' }}>{formatCurrency(householdMembersDetails.reduce((sum, m) => sum + m.totalDue, 0))}</td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', color: '#00966b' }}>{formatCurrency(householdMembersDetails.reduce((sum, m) => sum + m.totalPaid, 0))}</td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', color: householdMembersDetails.reduce((sum, m) => sum + m.balance, 0) > 0 ? '#dc2626' : '#00966b', fontSize: '14px' }}>
+                          <td colSpan={2} style={{ padding: '12px', color: '#0f172a' }}>Consolidated Total</td>
+                          <td style={{ padding: '12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                            {formatCurrency(householdMembersDetails.reduce((sum, m) => sum + m.totalDue, 0))}
+                          </td>
+                          <td style={{ padding: '12px', textAlign: 'right', color: '#00966b', fontVariantNumeric: 'tabular-nums' }}>
+                            {formatCurrency(householdMembersDetails.reduce((sum, m) => sum + m.totalPaid, 0))}
+                          </td>
+                          <td style={{ padding: '12px', textAlign: 'right', color: householdMembersDetails.reduce((sum, m) => sum + m.balance, 0) > 0 ? '#dc2626' : '#00966b', fontSize: '13.5px', fontVariantNumeric: 'tabular-nums' }}>
                             {formatCurrency(householdMembersDetails.reduce((sum, m) => sum + m.balance, 0))}
                           </td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', color: '#7c3aed', fontSize: '13px' }}>
-                            {formatCurrency(householdMembersDetails.reduce((sum, m) => sum + (m.totalDonated || 0), 0))}
+                          <td style={{ padding: '12px', textAlign: 'right', color: '#7c3aed', fontSize: '13.5px', fontVariantNumeric: 'tabular-nums' }}>
+                            <div>{formatCurrency(selectedHouseholdDonations.reduce((sum, d) => sum + (d.amount || 0), 0))}</div>
+                            {selectedHouseholdDonations.length > 0 && (
+                              <div style={{ fontSize: '10px', color: '#6b21a8', fontWeight: 600, marginTop: '2px' }}>
+                                {selectedHouseholdDonations.length} {selectedHouseholdDonations.length === 1 ? 'contribution' : 'contributions'}
+                              </div>
+                            )}
                           </td>
                           <td></td>
                         </tr>
@@ -1283,55 +1311,132 @@ export const Households: React.FC = () => {
                 </table>
               </div>
 
-              {/* SPECIAL CAMPAIGN DONATIONS BREAKDOWN CARD */}
-              <div className="margin-top-sm padding-xs" style={{ background: '#fcf7ff', border: '1.5px solid #e9d5ff', borderRadius: 10 }}>
-                <div className="flex-between align-items-center margin-bottom-xs" style={{ padding: '4px 6px' }}>
-                  <div className="flex-center gap-xs">
-                    <Heart size={15} style={{ color: '#7c3aed' }} />
-                    <span className="font-xs font-weight-700 text-purple" style={{ color: '#7c3aed' }}>Special Campaign Contributions & Donations</span>
+              {/* SPECIAL CAMPAIGN CONTRIBUTIONS & DONATIONS SECTION */}
+              <div className="campaign-donations-card" style={{ background: '#ffffff', border: '1.5px solid #e9d5ff', borderRadius: 14, overflow: 'hidden', marginTop: '16px', boxShadow: '0 2px 10px rgba(124, 58, 237, 0.04)' }}>
+                {/* SECTION HEADER */}
+                <div style={{ padding: '14px 16px', background: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)', borderBottom: '1px solid #e9d5ff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: '#7c3aed', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Heart size={16} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#5b21b6' }}>
+                        Special Campaign Contributions & Donations
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#7c3aed', opacity: 0.85 }}>
+                        Campaign contributions recorded for this household
+                      </div>
+                    </div>
                   </div>
-                  <span className="font-xs font-weight-800 text-purple" style={{ color: '#7c3aed' }}>
-                    Total: {formatCurrency(householdMembersDetails.reduce((sum, m) => sum + (m.totalDonated || 0), 0))}
-                  </span>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '15px', fontWeight: 800, color: '#7c3aed', fontVariantNumeric: 'tabular-nums' }}>
+                      Total: {formatCurrency(selectedHouseholdDonations.reduce((sum, d) => sum + (d.amount || 0), 0))}
+                    </div>
+                    <div style={{ fontSize: '10.5px', color: '#6b21a8', fontWeight: 600 }}>
+                      {selectedHouseholdDonations.length} {selectedHouseholdDonations.length === 1 ? 'eligible contribution' : 'eligible contributions'}
+                    </div>
+                  </div>
                 </div>
 
-                {(() => {
-                  const allItems = householdMembersDetails.flatMap((m) =>
-                    (m.campaignBreakdown || []).map((cb: any) => ({ ...cb, memberName: m.name, memberRel: m.relationship }))
-                  );
-                  const uniqueMap = new Map();
-                  allItems.forEach((item) => {
-                    const itemFingerprint = `${(item.memberName || '').trim().toLowerCase()}_${item.amount}_${(item.date || '').slice(0, 10)}_${(item.campaignName || '').trim().toLowerCase()}`;
-                    if (!uniqueMap.has(itemFingerprint)) {
-                      uniqueMap.set(itemFingerprint, item);
-                    }
-                  });
-                  const uniqueList = Array.from(uniqueMap.values());
+                {/* TRANSACTIONS LIST */}
+                {selectedHouseholdDonations.length === 0 ? (
+                  <div style={{ padding: '24px 16px', textAlign: 'center', color: '#94a3b8', fontSize: '12.5px' }}>
+                    No special campaign contributions recorded for this household yet.
+                  </div>
+                ) : (
+                  <>
+                    {/* DESKTOP / TABLET TRANSACTION TABLE */}
+                    <div className="campaign-table-desktop" style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
+                        <thead>
+                          <tr style={{ background: '#faf5ff', borderBottom: '1px solid #f3e8ff', color: '#6b21a8', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                            <th style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>Date</th>
+                            <th style={{ padding: '10px 12px' }}>Campaign</th>
+                            <th style={{ padding: '10px 12px' }}>Donor</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'right' }}>Amount</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'center' }}>Status</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'right' }}>Receipt</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedHouseholdDonations.map((d) => {
+                            const camp = campaigns.find((c) => c.id === d.campaign_id);
+                            const campName = camp ? camp.campaign_name : (d.purpose || (d.donation_type === 'campaign' ? 'Special Campaign' : 'General Donation'));
+                            const donorDisplay = d.donor_name || selectedHouseholdDetails.house_owner_name;
+                            const isHead = donorDisplay.toLowerCase().trim() === (selectedHouseholdDetails.house_owner_name || '').toLowerCase().trim();
 
-                  if (uniqueList.length === 0) {
-                    return (
-                      <div className="font-2xs color-subtle text-center" style={{ padding: '8px' }}>
-                        No special campaign contributions recorded for this household yet.
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div className="flex-col gap-2xs font-xs">
-                      {uniqueList.map((cb: any) => (
-                        <div key={cb.id} className="flex-between align-items-center" style={{ background: '#ffffff', borderRadius: 8, border: '1px solid #f3e8ff', padding: '6px 10px', marginBottom: '4px' }}>
-                          <div>
-                            <span className="font-weight-700 text-purple" style={{ color: '#7c3aed', fontSize: '12px' }}>🎯 {cb.campaignName}</span>
-                            <span className="font-2xs color-subtle display-block">Donor: {cb.memberName} ({cb.memberRel}) • {cb.date}</span>
-                          </div>
-                          <span className="font-weight-800 text-purple" style={{ color: '#7c3aed', fontSize: '13px' }}>
-                            {formatCurrency(cb.amount)}
-                          </span>
-                        </div>
-                      ))}
+                            return (
+                              <tr key={d.id} style={{ borderBottom: '1px solid #f8fafc', transition: 'background 0.15s' }}>
+                                <td style={{ padding: '10px 12px', whiteSpace: 'nowrap', color: '#475569', fontWeight: 500 }}>
+                                  {d.donation_date}
+                                </td>
+                                <td style={{ padding: '10px 12px' }}>
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#f5f3ff', color: '#6d28d9', padding: '3px 8px', borderRadius: '6px', fontWeight: 600, fontSize: '11px', border: '1px solid #ede9fe' }}>
+                                    🎯 {campName}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '10px 12px', fontWeight: 600, color: '#1e293b' }}>
+                                  <div>{donorDisplay}</div>
+                                  {isHead && (
+                                    <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 400 }}>
+                                      Head of Family
+                                    </span>
+                                  )}
+                                </td>
+                                <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 800, color: '#7c3aed', fontVariantNumeric: 'tabular-nums', fontSize: '13px' }}>
+                                  {formatCurrency(d.amount)}
+                                </td>
+                                <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#ecfdf5', color: '#047857', padding: '2px 8px', borderRadius: '12px', fontSize: '10.5px', fontWeight: 700, border: '1px solid #a7f3d0' }}>
+                                    ✓ Received
+                                  </span>
+                                </td>
+                                <td style={{ padding: '10px 12px', textAlign: 'right' }}>
+                                  <code style={{ background: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontFamily: 'monospace' }}>
+                                    {d.receipt_number || 'DON-REC'}
+                                  </code>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
-                  );
-                })()}
+
+                    {/* MOBILE CARD LIST (< 640px) */}
+                    <div className="campaign-cards-mobile" style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {selectedHouseholdDonations.map((d) => {
+                        const camp = campaigns.find((c) => c.id === d.campaign_id);
+                        const campName = camp ? camp.campaign_name : (d.purpose || (d.donation_type === 'campaign' ? 'Special Campaign' : 'General Donation'));
+                        const donorDisplay = d.donor_name || selectedHouseholdDetails.house_owner_name;
+
+                        return (
+                          <div key={d.id} style={{ background: '#faf5ff', border: '1px solid #ede9fe', borderRadius: '10px', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontWeight: 700, color: '#6d28d9', fontSize: '12.5px' }}>
+                                🎯 {campName}
+                              </span>
+                              <span style={{ fontWeight: 800, color: '#7c3aed', fontSize: '14px', fontVariantNumeric: 'tabular-nums' }}>
+                                {formatCurrency(d.amount)}
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: '#64748b' }}>
+                              <span>{d.donation_date} • {donorDisplay}</span>
+                              <span style={{ background: '#ecfdf5', color: '#047857', padding: '1px 6px', borderRadius: '8px', fontWeight: 700, fontSize: '10px' }}>
+                                ✓ Received
+                              </span>
+                            </div>
+                            {d.receipt_number && (
+                              <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>
+                                Receipt: <code style={{ fontFamily: 'monospace', color: '#64748b' }}>{d.receipt_number}</code>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -2010,9 +2115,14 @@ export const Households: React.FC = () => {
           }
         }
 
+        .campaign-table-desktop { display: block; }
+        .campaign-cards-mobile { display: none; }
+
         @media (max-width: 640px) {
           .desktop-view-only { display: none; }
           .mobile-cards-directory { display: flex; }
+          .campaign-table-desktop { display: none !important; }
+          .campaign-cards-mobile { display: flex !important; }
 
           .filter-selectors-grid {
             grid-template-columns: repeat(2, 1fr);

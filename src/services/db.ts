@@ -2344,8 +2344,10 @@ export const db = {
         const dName = (d.donor_name || d.donor_member_id || '').trim().toLowerCase();
         const campKey = (d.campaign_id || d.purpose || '').trim().toLowerCase();
         const dateKey = (d.donation_date || '').slice(0, 10);
-        // Primary deduplication key based on donor, amount, date, and campaign
-        const key = `fprint_${dName}_${d.amount}_${dateKey}_${campKey}`;
+        const rKey = (d.receipt_number || '').trim().toLowerCase();
+
+        // If a valid receipt exists, use receipt as primary key so distinct receipts are never collapsed; otherwise use content fingerprint
+        const key = rKey ? `receipt_${rKey}` : `fprint_${dName}_${d.amount}_${dateKey}_${campKey}`;
 
         if (!uniqueDonationsMap.has(key)) {
           uniqueDonationsMap.set(key, d);
