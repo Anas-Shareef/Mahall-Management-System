@@ -345,16 +345,6 @@ export const Households: React.FC = () => {
 
     setSelectedHouseholdDonations(householdDonations);
 
-    const headMember = houseMembers.find(
-      (m) =>
-        m.relationship === 'Self (Owner)' ||
-        m.relationship === 'Head of Family' ||
-        m.relationship?.toLowerCase().includes('owner') ||
-        m.relationship?.toLowerCase().includes('head') ||
-        m.relationship?.toLowerCase().includes('self') ||
-        m.name?.toLowerCase().trim() === h.house_owner_name?.toLowerCase().trim()
-    ) || houseMembers[0];
-
     const details = houseMembers.map((m) => {
       const sub = targetYearId
         ? subscriptions.find((s) => s.member_id === m.id && s.subscription_year_id === targetYearId)

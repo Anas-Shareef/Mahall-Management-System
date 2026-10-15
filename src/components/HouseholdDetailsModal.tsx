@@ -94,17 +94,6 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
           });
           setHouseholdDonations(hDonations);
 
-          // Identify head of family / house owner member
-          const headMember = hMembers.find(
-            (m) =>
-              m.relationship === 'Self (Owner)' ||
-              m.relationship === 'Head of Family' ||
-              m.relationship?.toLowerCase().includes('owner') ||
-              m.relationship?.toLowerCase().includes('head') ||
-              m.relationship?.toLowerCase().includes('self') ||
-              m.name?.toLowerCase().trim() === household.house_owner_name?.toLowerCase().trim()
-          ) || hMembers[0];
-
           // Map subscriptions and member donations for members (at most 1 member per donation)
           const subMap = hMembers.map((m) => {
             const sub = allSubs.find((s) => s.member_id === m.id) || null;
