@@ -2332,13 +2332,35 @@ export const db = {
         }
       }
       const localDonations = getLocalData<Donation>('mahal_donations');
-      // Merge: keep all supaDonations + any localDonations that aren't in Supabase yet
       const supaIds = new Set(supaDonations.map((d) => d.id));
       const combined = [
         ...supaDonations,
         ...localDonations.filter((d) => !supaIds.has(d.id)),
       ];
-      return combined.sort(
+
+      // Smart Content Fingerprint Deduplication (eliminates duplicate entries created during sync/fallback or double submits)
+      const uniqueDonationsMap = new Map<string, Donation>();
+      combined.forEach((d) => {
+        const dName = (d.donor_name || d.donor_member_id || '').trim().toLowerCase();
+        const campKey = (d.campaign_id || d.purpose || '').trim().toLowerCase();
+        const dateKey = (d.donation_date || '').slice(0, 10);
+        // Primary deduplication key based on donor, amount, date, and campaign
+        const key = `fprint_${dName}_${d.amount}_${dateKey}_${campKey}`;
+
+        if (!uniqueDonationsMap.has(key)) {
+          uniqueDonationsMap.set(key, d);
+        } else {
+          // If duplicate exists, prefer Supabase UUID or one with valid receipt
+          const existing = uniqueDonationsMap.get(key)!;
+          if (existing.id.startsWith('don-') && !d.id.startsWith('don-')) {
+            uniqueDonationsMap.set(key, d);
+          } else if (!existing.receipt_number && d.receipt_number) {
+            uniqueDonationsMap.set(key, d);
+          }
+        }
+      });
+
+      return Array.from(uniqueDonationsMap.values()).sort(
         (a, b) => new Date(b.donation_date || b.created_at || 0).getTime() - new Date(a.donation_date || a.created_at || 0).getTime()
       );
     },

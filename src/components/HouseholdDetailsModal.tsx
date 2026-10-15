@@ -43,42 +43,45 @@ export const HouseholdDetailsModal: React.FC<HouseholdDetailsModalProps> = ({
           const memberIds = hMembers.map((m) => m.id);
 
           // Filter donations for members of this household
+          const seenDonationKeys = new Set<string>();
           const hDonations = allDonations.filter((d) => {
             if (d.is_anonymous || d.donor_type === 'anonymous') {
               return false;
             }
 
-            if (d.donor_household_id && d.donor_household_id === household.id) return true;
-            if (d.donor_member_id && memberIds.includes(d.donor_member_id)) return true;
-
             const dName = (d.donor_name || '').toLowerCase().trim();
             const ownerName = (household.house_owner_name || '').toLowerCase().trim();
-            if (dName && ownerName && (dName === ownerName || dName.includes(ownerName) || ownerName.includes(dName))) {
-              return true;
-            }
 
-            const matchesMember = hMembers.some((m) => {
-              const mName = (m.name || '').toLowerCase().trim();
-              return mName && dName && (mName === dName || mName.includes(dName) || dName.includes(mName));
-            });
-            if (matchesMember) return true;
+            const isMatch =
+              (d.donor_household_id && d.donor_household_id === household.id) ||
+              (d.donor_member_id && memberIds.includes(d.donor_member_id)) ||
+              (dName && ownerName && (dName === ownerName || dName.includes(ownerName) || ownerName.includes(dName))) ||
+              hMembers.some((m) => {
+                const mName = (m.name || '').toLowerCase().trim();
+                return mName && dName && (mName === dName || mName.includes(dName) || dName.includes(mName));
+              }) ||
+              (Boolean(household.house_number) && (() => {
+                const cleanNum = household.house_number.trim().toLowerCase().replace(/^h-?/, '');
+                const notesStr = `${d.notes || ''} ${d.donor_name || ''} ${d.purpose || ''}`.toLowerCase();
+                return (
+                  notesStr.includes(`h-${cleanNum}`) ||
+                  notesStr.includes(`h ${cleanNum}`) ||
+                  notesStr.includes(`house: ${cleanNum}`) ||
+                  notesStr.includes(`house ${cleanNum}`) ||
+                  notesStr.includes(`household: ${cleanNum}`) ||
+                  notesStr.includes(`household ${cleanNum}`)
+                );
+              })());
 
-            if (household.house_number) {
-              const cleanNum = household.house_number.trim().toLowerCase().replace(/^h-?/, '');
-              const notesStr = `${d.notes || ''} ${d.donor_name || ''} ${d.purpose || ''}`.toLowerCase();
-              if (
-                notesStr.includes(`h-${cleanNum}`) ||
-                notesStr.includes(`h ${cleanNum}`) ||
-                notesStr.includes(`house: ${cleanNum}`) ||
-                notesStr.includes(`house ${cleanNum}`) ||
-                notesStr.includes(`household: ${cleanNum}`) ||
-                notesStr.includes(`household ${cleanNum}`)
-              ) {
-                return true;
-              }
-            }
+            if (!isMatch) return false;
 
-            return false;
+            // Strict Deduplication: same donor + amount + date + campaign
+            const campKey = (d.campaign_id || d.purpose || '').trim().toLowerCase();
+            const dateKey = (d.donation_date || '').slice(0, 10);
+            const fingerprint = `${d.donor_member_id || dName}_${d.amount}_${dateKey}_${campKey}`;
+            if (seenDonationKeys.has(fingerprint)) return false;
+            seenDonationKeys.add(fingerprint);
+            return true;
           });
           setHouseholdDonations(hDonations);
 

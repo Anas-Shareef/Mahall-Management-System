@@ -196,6 +196,7 @@ export const DonationForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     if (!validate()) return;
 
     setIsSaving(true);

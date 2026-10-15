@@ -292,42 +292,45 @@ export const Households: React.FC = () => {
     const houseMemberIds = houseMembers.map((m) => m.id);
     const targetYearId = selectedYearId !== 'all' ? selectedYearId : (years.find((y) => y.status === 'active')?.id || years[0]?.id);
 
+    const seenDonationKeys = new Set<string>();
     const householdDonations = donations.filter((d) => {
       if (d.is_anonymous || d.donor_type === 'anonymous') {
         return false;
       }
 
-      if (d.donor_household_id && d.donor_household_id === h.id) return true;
-      if (d.donor_member_id && houseMemberIds.includes(d.donor_member_id)) return true;
-
       const dName = (d.donor_name || '').toLowerCase().trim();
       const ownerName = (h.house_owner_name || '').toLowerCase().trim();
-      if (dName && ownerName && (dName === ownerName || dName.includes(ownerName) || ownerName.includes(dName))) {
-        return true;
-      }
 
-      const matchesMember = houseMembers.some((m) => {
-        const mName = (m.name || '').toLowerCase().trim();
-        return mName && dName && (mName === dName || mName.includes(dName) || dName.includes(mName));
-      });
-      if (matchesMember) return true;
+      const isMatch =
+        (d.donor_household_id && d.donor_household_id === h.id) ||
+        (d.donor_member_id && houseMemberIds.includes(d.donor_member_id)) ||
+        (dName && ownerName && (dName === ownerName || dName.includes(ownerName) || ownerName.includes(dName))) ||
+        houseMembers.some((m) => {
+          const mName = (m.name || '').toLowerCase().trim();
+          return mName && dName && (mName === dName || mName.includes(dName) || dName.includes(mName));
+        }) ||
+        (Boolean(h.house_number) && (() => {
+          const cleanNum = h.house_number.trim().toLowerCase().replace(/^h-?/, '');
+          const notesStr = `${d.notes || ''} ${d.donor_name || ''} ${d.purpose || ''}`.toLowerCase();
+          return (
+            notesStr.includes(`h-${cleanNum}`) ||
+            notesStr.includes(`h ${cleanNum}`) ||
+            notesStr.includes(`house: ${cleanNum}`) ||
+            notesStr.includes(`house ${cleanNum}`) ||
+            notesStr.includes(`household: ${cleanNum}`) ||
+            notesStr.includes(`household ${cleanNum}`)
+          );
+        })());
 
-      if (h.house_number) {
-        const cleanNum = h.house_number.trim().toLowerCase().replace(/^h-?/, '');
-        const notesStr = `${d.notes || ''} ${d.donor_name || ''} ${d.purpose || ''}`.toLowerCase();
-        if (
-          notesStr.includes(`h-${cleanNum}`) ||
-          notesStr.includes(`h ${cleanNum}`) ||
-          notesStr.includes(`house: ${cleanNum}`) ||
-          notesStr.includes(`house ${cleanNum}`) ||
-          notesStr.includes(`household: ${cleanNum}`) ||
-          notesStr.includes(`household ${cleanNum}`)
-        ) {
-          return true;
-        }
-      }
+      if (!isMatch) return false;
 
-      return false;
+      // Strict Deduplication: same donor + amount + date + campaign
+      const campKey = (d.campaign_id || d.purpose || '').trim().toLowerCase();
+      const dateKey = (d.donation_date || '').slice(0, 10);
+      const fingerprint = `${d.donor_member_id || dName}_${d.amount}_${dateKey}_${campKey}`;
+      if (seenDonationKeys.has(fingerprint)) return false;
+      seenDonationKeys.add(fingerprint);
+      return true;
     });
 
     const headMember = houseMembers.find(
@@ -1298,8 +1301,9 @@ export const Households: React.FC = () => {
                   );
                   const uniqueMap = new Map();
                   allItems.forEach((item) => {
-                    if (!uniqueMap.has(item.id)) {
-                      uniqueMap.set(item.id, item);
+                    const itemFingerprint = `${(item.memberName || '').trim().toLowerCase()}_${item.amount}_${(item.date || '').slice(0, 10)}_${(item.campaignName || '').trim().toLowerCase()}`;
+                    if (!uniqueMap.has(itemFingerprint)) {
+                      uniqueMap.set(itemFingerprint, item);
                     }
                   });
                   const uniqueList = Array.from(uniqueMap.values());
